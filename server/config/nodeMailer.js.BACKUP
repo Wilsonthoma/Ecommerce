@@ -1,0 +1,221 @@
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+import { getTemplate } from './emailTemplates.js';
+
+dotenv.config();
+
+// -------------------- CONFIGURATION --------------------
+const SMTP_CONFIG = {
+  host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+  port: parseInt(process.env.SMTP_PORT) || 587,
+  secure: false, // Brevo uses STARTTLS on 587
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: true, // ✅ Keep this true - don't disable SSL verification
+    ciphers: 'SSLv3'
+  },
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+  rateDelta: 1000,
+  rateLimit: 5
+};
+
+// -------------------- TRANSPORTER --------------------
+const transporter = nodemailer.createTransport(SMTP_CONFIG);
+
+// ✅ FIXED: Proper SMTP verification with detailed error logging
+transporter.verify(async (error, success) => {
+  if (error) {
+    console.error('❌ SMTP Connection Failed - DETAILED DEBUG:');
+    console.error(`   Code: ${error.code}`);
+    console.error(`   Command: ${error.command}`);
+    console.error(`   Response: ${error.response}`);
+    console.error(`   ResponseCode: ${error.responseCode}`);
+    console.error(`   Message: ${error.message}`);
+    
+    // Specific Brevo/Gmail fixes
+    if (error.message.includes('Invalid login') || error.responseCode === 535) {
+      console.error('\n🔐 FIX: Your SMTP password is WRONG or EXPIRED.');
+      console.error('   1. Go to https://app.brevo.com');
+      console.error('   2. Settings → SMTP & API → SMTP tab');
+      console.error('   3. Generate a NEW SMTP key');
+      console.error('   4. Update SMTP_PASS in .env with the NEW key (64 chars)');
+    } else if (error.message.includes('connect ETIMEDOUT')) {
+      console.error('\n🌐 FIX: Cannot connect to Brevo. Check firewall or VPN.');
+    }
+  } else {
+    console.log('✅ SMTP Basic Connection Established');
+    console.log(`   Host: ${SMTP_CONFIG.host}`);
+    console.log(`   Port: ${SMTP_CONFIG.port}`);
+    console.log(`   Auth: ${SMTP_CONFIG.auth.user ? 'User Set ✓' : 'Missing User!'}`);
+    console.log(`   TLS: ${SMTP_CONFIG.tls.rejectUnauthorized ? 'Secure' : '⚠️ Insecure'}`);
+  }
+});
+
+// -------------------- EMAIL SENDING SERVICE --------------------
+export class EmailService {
+  constructor() {
+    this.transporter = transporter;
+    this.defaultFrom = `"${process.env.COMPANY_NAME || 'KwetuShop'}" <${process.env.SENDER_EMAIL || process.env.SMTP_USER}>`;
+    this.companyName = process.env.COMPANY_NAME || 'KwetuShop';
+  }
+
+  /**
+   * ✅ FIXED: Send email with REAL error reporting, not fake success
+   */
+  async sendTemplateEmail(options) {
+    const { to, template, data, subject, from } = options;
+    
+    try {
+      // Get HTML template
+      const html = getTemplate(template, {
+        ...data,
+        companyName: this.companyName,
+        currentYear: new Date().getFullYear(),
+        frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173'
+      });
+
+      const emailSubject = subject || this.getDefaultSubject(template);
+      const text = this.generatePlainText(html);
+
+      const mailOptions = {
+        from: from || this.defaultFrom,
+        to: Array.isArray(to) ? to.join(', ') : to,
+        subject: emailSubject,
+        text,
+        html,
+        headers: {
+          'X-Priority': '1',
+          'X-MSMail-Priority': 'High',
+          'Importance': 'high'
+        }
+      };
+
+      console.log('📤 Attempting to send email via Brevo SMTP...');
+      
+      // ✅ Send mail with actual error catching
+      const info = await this.transporter.sendMail(mailOptions);
+      
+      console.log('✅ Brevo SMTP Accepted Email:');
+      console.log(`   Message ID: ${info.messageId}`);
+      console.log(`   Response: ${info.response}`);
+      console.log(`   To: ${to}`);
+      console.log(`   Template: ${template}`);
+      
+      // ✅ CRITICAL: Check if Brevo accepted it
+      if (info.accepted && info.accepted.length > 0) {
+        console.log(`   ✅ Accepted by Brevo: ${info.accepted.join(', ')}`);
+      }
+      
+      if (info.rejected && info.rejected.length > 0) {
+        console.error(`   ❌ Rejected by Brevo: ${info.rejected.join(', ')}`);
+      }
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        response: info.response,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error) {
+      // ✅ THIS IS WHERE THE REAL ERROR WILL SHOW UP!
+      console.error('❌ Brevo SMTP SEND FAILED:');
+      console.error(`   Code: ${error.code}`);
+      console.error(`   Command: ${error.command}`);
+      console.error(`   Response: ${error.response}`);
+      console.error(`   ResponseCode: ${error.responseCode}`);
+      console.error(`   Message: ${error.message}`);
+
+      // ✅ Specific Brevo error fixes
+      if (error.responseCode === 535) {
+        console.error('\n🔐 CRITICAL: Invalid SMTP credentials!');
+        console.error('   1. Your SMTP_PASS in .env is WRONG or EXPIRED');
+        console.error('   2. Generate a NEW SMTP key at app.brevo.com');
+        console.error('   3. Update .env with the NEW 64-character key');
+        console.error('   4. RESTART your server');
+      } else if (error.code === 'EAUTH') {
+        console.error('\n🔐 Authentication mechanism failed. Try:');
+        console.error('   1. Set SMTP_SECURE=false in .env');
+        console.error('   2. Use port 587 (STARTTLS) not 465');
+      } else if (error.code === 'ESOCKET' || error.message.includes('SSL')) {
+        console.error('\n🔒 SSL/TLS Error. Try:');
+        console.error('   Set tls.rejectUnauthorized: false (INSECURE, for testing only)');
+      }
+
+      return {
+        success: false,
+        error: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  getDefaultSubject(template) {
+    const subjects = {
+      'email-verify': `Verify Your Email - ${this.companyName}`,
+      'password-reset': `Password Reset - ${this.companyName}`,
+      'verification-success': `Email Verified - ${this.companyName}`,
+      'password-reset-success': `Password Updated - ${this.companyName}`,
+      'welcome': `Welcome to ${this.companyName}!`,
+      'order-confirmation': `Order Confirmation - ${this.companyName}`
+    };
+    return subjects[template] || `Message from ${this.companyName}`;
+  }
+
+  generatePlainText(html) {
+    return html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .trim();
+  }
+
+  /**
+   * ✅ NEW: Test Brevo connection with real credentials
+   */
+  async testConnection() {
+    try {
+      await this.transporter.verify();
+      return { connected: true };
+    } catch (error) {
+      return { 
+        connected: false, 
+        error: error.message,
+        code: error.code,
+        responseCode: error.responseCode
+      };
+    }
+  }
+}
+
+// -------------------- INSTANCE & EXPORTS --------------------
+const emailService = new EmailService();
+
+// Test connection on startup
+const testResult = await emailService.testConnection();
+if (!testResult.connected) {
+  console.error('\n❌ BREVO SMTP INITIALIZATION FAILED!');
+  console.error(`   Reason: ${testResult.error}`);
+  console.error(`   Code: ${testResult.code}`);
+  console.error(`   Response: ${testResult.responseCode}`);
+  console.error('\n✅ Email will be DISABLED until fixed.');
+  console.error('   API will still work, but no emails will send.\n');
+}
+
+export const sendEmail = (options) => emailService.sendTemplateEmail(options);
+export default emailService;

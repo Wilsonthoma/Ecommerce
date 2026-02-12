@@ -1,0 +1,73 @@
+{
+  "storeName": "KwetuShop",
+  "storeEmail": "admin@kwetushop.co.ke",
+  "storePhone": "+254712345678",
+  "storeAddress": "123 Kimathi Street, Nairobi, Kenya",
+  "storeLogo": "/uploads/logo.png",
+  "currency": "KES",
+  "timezone": "Africa/Nairobi",
+  "dateFormat": "dd/MM/yyyy",
+  "timeFormat": "24h",
+  "paymentMethods": [
+    "mpesa",
+    "card",
+    "cash_on_delivery"
+  ],
+  "stripePublicKey": "",
+  "stripeSecretKey": "",
+  "mpesaShortCode": "174379",
+  "mpesaPasskey": "",
+  "mpesaConsumerKey": "",
+  "mpesaConsumerSecret": "",
+  "shippingMethods": [
+    "standard",
+    "express",
+    "pickup"
+  ],
+  "standardShippingPrice": 200,
+  "expressShippingPrice": 500,
+  "freeShippingThreshold": 2000,
+  "shippingZones": [
+    {
+      "name": "Nairobi",
+      "price": 150
+    },
+    {
+      "name": "Mombasa",
+      "price": 300
+    },
+    {
+      "name": "Kisumu",
+      "price": 250
+    }
+  ],
+  "emailNotifications": true,
+  "orderConfirmation": true,
+  "shippingUpdates": true,
+  "promotionalEmails": false,
+  "adminNotifications": true,
+  "smtpHost": "",
+  "smtpPort": 587,
+  "smtpUsername": "",
+  "smtpPassword": "",
+  "smtpFromEmail": "noreply@kwetushop.co.ke",
+  "smtpFromName": "KwetuShop",
+  "require2FA": false,
+  "sessionTimeout": 30,
+  "passwordPolicy": "medium",
+  "apiRateLimit": 100,
+  "loginAttempts": 5,
+  "maintenanceMode": false,
+  "metaTitle": "KwetuShop - Online Shopping in Kenya",
+  "metaDescription": "Best online shopping in Kenya with quality products and fast delivery",
+  "metaKeywords": "online shopping, kenya, electronics, fashion, home",
+  "googleAnalyticsId": "",
+  "facebookUrl": "",
+  "twitterUrl": "",
+  "instagramUrl": "",
+  "whatsappNumber": "",
+  "createdAt": "2026-02-11T11:39:43.128Z",
+  "updatedAt": "2026-02-11T11:39:43.128Z",
+  "updatedBy": null,
+  "_savedAt": "2026-02-11T11:39:43.131Z"
+}

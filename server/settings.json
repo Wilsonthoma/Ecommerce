@@ -1,0 +1,84 @@
+{
+  "storeName": "KwetuShop",
+  "storeEmail": "admin@kwetushop.co.ke",
+  "storePhone": "+254712345678",
+  "storeAddress": "123 Kimathi Street, Nairobi, Kenya",
+  "storeLogo": "/uploads/logo-1765724298831-80795134.png",
+  "currency": "KES",
+  "timezone": "Africa/Nairobi",
+  "dateFormat": "dd/MM/yyyy",
+  "timeFormat": "24h",
+  "paymentMethods": [
+    "mpesa",
+    "card",
+    "cash_on_delivery",
+    "bank_transfer"
+  ],
+  "stripePublicKey": "",
+  "stripeSecretKey": "",
+  "mpesaShortCode": "174379",
+  "mpesaPasskey": "",
+  "mpesaConsumerKey": "",
+  "mpesaConsumerSecret": "",
+  "shippingMethods": [
+    "standard",
+    "express",
+    "pickup"
+  ],
+  "standardShippingPrice": 200,
+  "expressShippingPrice": 500,
+  "freeShippingThreshold": 2000,
+  "shippingZones": [
+    {
+      "name": "Nairobi",
+      "price": 150
+    },
+    {
+      "name": "Mombasa",
+      "price": 300
+    },
+    {
+      "name": "Kisumu",
+      "price": 250
+    },
+    {
+      "name": "eldorate",
+      "price": 177
+    }
+  ],
+  "emailNotifications": true,
+  "orderConfirmation": true,
+  "shippingUpdates": true,
+  "promotionalEmails": false,
+  "adminNotifications": true,
+  "smtpHost": "",
+  "smtpPort": 587,
+  "smtpUsername": "",
+  "smtpPassword": "",
+  "smtpFromEmail": "noreply@kwetushop.co.ke",
+  "smtpFromName": "KwetuShop",
+  "require2FA": true,
+  "sessionTimeout": 39,
+  "passwordPolicy": "medium",
+  "apiRateLimit": 100,
+  "loginAttempts": 5,
+  "maintenanceMode": false,
+  "metaTitle": "KwetuShop - Online Shopping in Kenya",
+  "metaDescription": "Best online shopping in Kenya with quality products and fast delivery",
+  "metaKeywords": "online shopping, kenya, electronics, fashion, home",
+  "googleAnalyticsId": "",
+  "facebookUrl": "",
+  "twitterUrl": "",
+  "instagramUrl": "",
+  "whatsappNumber": "",
+  "createdAt": "2025-12-13T18:13:53.054Z",
+  "updatedAt": "2025-12-14T15:01:01.393Z",
+  "updatedBy": "6938730d8824b17ef3f2dfdd",
+  "resetBy": "6938730d8824b17ef3f2dfdd",
+  "resetAt": "2025-12-13T20:22:32.456Z",
+  "stripeWebhookSecret": "",
+  "mpesaTestMode": false,
+  "smsNotifications": true,
+  "ipWhitelist": [],
+  "_savedAt": "2025-12-14T15:01:01.393Z"
+}

@@ -1,10 +1,10 @@
 import axios from "axios";
 
-// ✅ FIXED: Base URL should NOT include /api
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+// ✅ FIXED: Add /api to base URL
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000/api";
 
 const clientApi = axios.create({
-  baseURL: API_BASE_URL, // Now just http://localhost:5000
+  baseURL: API_BASE_URL, // Now: http://localhost:5000/api
   headers: {
     "Content-Type": "application/json",
   },
@@ -40,7 +40,6 @@ clientApi.interceptors.request.use(
 // Response interceptor
 clientApi.interceptors.response.use(
   (response) => {
-    // ✅ Add response logging for debugging
     console.log(`✅ ${response.status} ${response.config.url}`);
     return response;
   },
@@ -55,7 +54,7 @@ clientApi.interceptors.response.use(
 
       try {
         // ✅ FIXED: Use correct CSRF endpoint
-        const csrfResponse = await axios.get(`${API_BASE_URL}/api/csrf-token`, {
+        const csrfResponse = await axios.get(`${API_BASE_URL}/auth/csrf-token`, {
           withCredentials: true,
         });
 

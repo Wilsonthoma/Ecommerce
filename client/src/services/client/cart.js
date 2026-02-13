@@ -1,3 +1,4 @@
+// client/src/services/client/cart.js
 import api from './api.js';
 
 // Cart Services
@@ -5,7 +6,8 @@ export const cartService = {
   // Get cart
   getCart: async () => {
     try {
-      const response = await api.get('/api/cart/');
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.get('/cart/');
       return response.data;
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -16,7 +18,8 @@ export const cartService = {
   // Add to cart
   addToCart: async (productId, quantity = 1) => {
     try {
-      const response = await api.post('/api/cart/items', {
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.post('/cart/items', {
         productId,
         quantity
       });
@@ -30,7 +33,8 @@ export const cartService = {
   // Update cart item
   updateCartItem: async (productId, quantity) => {
     try {
-      const response = await api.put(`/api/cart/items/${productId}`, {
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.put(`/cart/items/${productId}`, {
         quantity
       });
       return response.data;
@@ -43,7 +47,8 @@ export const cartService = {
   // Remove from cart
   removeFromCart: async (productId) => {
     try {
-      const response = await api.delete(`/api/cart/items/${productId}`);
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.delete(`/cart/items/${productId}`);
       return response.data;
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -54,7 +59,8 @@ export const cartService = {
   // Clear cart
   clearCart: async () => {
     try {
-      const response = await api.delete('/api/cart/clear');
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.delete('/cart/clear');
       return response.data;
     } catch (error) {
       console.error('Error clearing cart:', error);

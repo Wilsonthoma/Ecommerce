@@ -7,6 +7,7 @@ import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
+import { IoClose } from "react-icons/io5";
 
 const Login = () => {
   const [state, setState] = useState("Login");
@@ -55,7 +56,7 @@ const Login = () => {
     }
   };
 
-  // ==================== FIXED: OAUTH CALLBACK HANDLER - SINGLE TOAST ====================
+  // OAuth callback handler
   useEffect(() => {
     const checkOAuthStatus = async () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -76,7 +77,6 @@ const Login = () => {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      // ✅ ONLY show toast for successful OAuth login
       if (loginStatus === "success") {
         toast.success(
           source === "google"
@@ -91,7 +91,6 @@ const Login = () => {
           console.error("Failed to get user data after OAuth:", err);
         }
         
-        // Clean URL after navigation
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     };
@@ -170,7 +169,6 @@ const Login = () => {
           localStorage.setItem('user', JSON.stringify(response.data.user));
         }
 
-        // ✅ Show toast for email/password auth
         toast.success(response.data.message || (
           state === "Sign Up" 
             ? "Account created successfully!" 
@@ -218,24 +216,17 @@ const Login = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen px-4 bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Logo */}
-      <img
-        onClick={() => navigate("/")}
-        src={assets.logo}
-        alt="Logo"
-        className="absolute cursor-pointer left-5 sm:left-20 top-5 w-28 sm:w-32"
-      />
-
-      {/* Back button */}
-      <button
-        onClick={() => navigate("/")}
-        className="absolute px-4 py-2 text-gray-600 transition-colors bg-white border border-gray-300 rounded-full right-5 sm:right-20 top-5 hover:bg-gray-50"
-      >
-        ← Back to Home
-      </button>
-
       {/* Auth Container */}
-      <div className="w-full max-w-md p-8 text-center bg-white shadow-2xl rounded-2xl">
+      <div className="relative w-full max-w-md p-8 text-center bg-white shadow-2xl rounded-2xl">
+        {/* Styled Close Button - Top Right Corner */}
+        <button
+          onClick={() => navigate("/")}
+          className="absolute p-2 transition-all duration-300 bg-white border border-gray-200 rounded-full shadow-lg -top-3 -right-3 hover:shadow-xl group hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          aria-label="Close"
+        >
+          <IoClose className="w-5 h-5 text-gray-500 transition-colors duration-300 group-hover:text-gray-700" />
+        </button>
+
         <h2 className="mb-2 text-2xl font-semibold text-gray-800">
           {state === "Sign Up" ? "Create Account" : "Welcome Back"}
         </h2>

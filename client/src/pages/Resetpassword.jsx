@@ -1,3 +1,4 @@
+// src/pages/ResetPassword.jsx
 import React, { useState, useRef, useContext, useEffect, useCallback } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -5,6 +6,7 @@ import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { IoArrowBack } from "react-icons/io5";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -49,7 +51,6 @@ const ResetPassword = () => {
     setIsLoading(true);
     try {
       console.log("🚀 Making OTP verification request...");
-      // ✅ FIXED: Changed from /api/auth-new/i/verify-reset-otp to /api/auth/verify-reset-otp
       const { data } = await axios.post(
         `${backendUrl}/api/auth/verify-reset-otp`,
         { email, otp },
@@ -83,7 +84,6 @@ const ResetPassword = () => {
         try {
           console.log("🔄 CSRF token expired, refreshing and retrying...");
           await refreshCsrfToken();
-          // ✅ FIXED: Changed from /api/auth-new/i/verify-reset-otp to /api/auth/verify-reset-otp
           const retryData = await axios.post(
             `${backendUrl}/api/auth/verify-reset-otp`,
             { email, otp },
@@ -154,18 +154,15 @@ const ResetPassword = () => {
   const handleInput = (e, index) => {
     const value = e.target.value;
     
-    // Only allow numbers
     if (!/^\d*$/.test(value)) {
       e.target.value = '';
       return;
     }
 
-    // If user entered a digit and there are more inputs, move focus
     if (value.length > 0 && index < inputRefs.current.length - 1) {
       inputRefs.current[index + 1].focus();
     }
 
-    // Check if all OTP digits are filled for auto-submit
     if (value.length > 0 && index === inputRefs.current.length - 1) {
       const allFilled = inputRefs.current.every(input => input && input.value.length > 0);
       if (allFilled && !isAutoSubmittingRef.current) {
@@ -184,14 +181,12 @@ const ResetPassword = () => {
     }
   };
 
-  // Move focus back on backspace
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && e.target.value === "" && index > 0) {
       inputRefs.current[index - 1].focus();
     }
   };
 
-  // Handle paste event for OTP + Auto-submit
   const handlePaste = (e) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text").trim();
@@ -205,13 +200,11 @@ const ResetPassword = () => {
       if (inputRefs.current[i]) inputRefs.current[i].value = digit;
     });
 
-    // Focus the last filled input
     const lastFilledIndex = Math.min(digits.length, 5);
     if (inputRefs.current[lastFilledIndex]) {
       inputRefs.current[lastFilledIndex].focus();
     }
 
-    // Auto-submit if all 6 digits are pasted
     if (digits.length === 6 && !isAutoSubmittingRef.current) {
       setOtpAutoSubmit(true);
       isAutoSubmittingRef.current = true;
@@ -227,7 +220,6 @@ const ResetPassword = () => {
     }
   };
 
-  // Auto-submit OTP when all digits are entered
   const handleAutoSubmitOtp = useCallback(async () => {
     console.log("🔄 handleAutoSubmitOtp called");
     
@@ -268,7 +260,6 @@ const ResetPassword = () => {
     setIsLoading(true);
     try {
       console.log("📧 Sending reset OTP to:", email);
-      // ✅ FIXED: Changed from /api/auth-new/i/send-reset-otp to /api/auth/send-reset-otp
       const { data } = await axios.post(
         `${backendUrl}/api/auth/send-reset-otp`,
         { email },
@@ -293,12 +284,10 @@ const ResetPassword = () => {
       console.error("❌ Send OTP Error:", error);
       console.error("❌ Error details:", error.response?.data);
       
-      // Handle CSRF token expiration
       if (error.response?.status === 403 && error.response?.data?.message?.includes('CSRF')) {
         try {
           console.log("🔄 CSRF token expired, refreshing...");
           await refreshCsrfToken();
-          // ✅ FIXED: Changed from /api/auth-new/i/send-reset-otp to /api/auth/send-reset-otp
           const retryData = await axios.post(
             `${backendUrl}/api/auth/send-reset-otp`,
             { email },
@@ -339,7 +328,6 @@ const ResetPassword = () => {
     setIsLoading(true);
     try {
       console.log("🔄 Resending OTP to:", email);
-      // ✅ FIXED: Changed from /api/auth-new/i/send-reset-otp to /api/auth/send-reset-otp
       const { data } = await axios.post(
         `${backendUrl}/api/auth/send-reset-otp`,
         { email },
@@ -365,7 +353,6 @@ const ResetPassword = () => {
       if (error.response?.status === 403 && error.response?.data?.message?.includes('CSRF')) {
         try {
           await refreshCsrfToken();
-          // ✅ FIXED: Changed from /api/auth-new/i/send-reset-otp to /api/auth/send-reset-otp
           const retryData = await axios.post(
             `${backendUrl}/api/auth/send-reset-otp`,
             { email },
@@ -409,7 +396,6 @@ const ResetPassword = () => {
     setIsLoading(true);
     try {
       console.log("🔑 Resetting password for:", email);
-      // ✅ FIXED: Changed from /api/auth-new/i/reset-password to /api/auth/reset-password
       const { data } = await axios.post(
         `${backendUrl}/api/auth/reset-password`,
         {
@@ -441,7 +427,6 @@ const ResetPassword = () => {
       if (error.response?.status === 403 && error.response?.data?.message?.includes('CSRF')) {
         try {
           await refreshCsrfToken();
-          // ✅ FIXED: Changed from /api/auth-new/i/reset-password to /api/auth/reset-password
           const retryData = await axios.post(
             `${backendUrl}/api/auth/reset-password`,
             {
@@ -526,27 +511,17 @@ const ResetPassword = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen px-4 bg-gradient-to-br from-blue-200 to-purple-400">
-      {/* Logo */}
-      <img
-        onClick={() => navigate("/")}
-        src={assets.logo}
-        alt="Logo"
-        className="absolute cursor-pointer left-5 sm:left-20 top-5 w-28 sm:w-32"
-      />
+      {/* Card with Styled Back Arrow */}
+      <div className="relative w-full max-w-md p-8 text-center bg-white shadow-2xl rounded-2xl">
+        {/* Styled Back Arrow Button - Top Left Corner */}
+        <button
+          onClick={handleBack}
+          className="absolute -left-3 -top-3 p-2.5 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          aria-label="Go back"
+        >
+          <IoArrowBack className="w-5 h-5 text-gray-500 transition-colors duration-300 group-hover:text-gray-700" />
+        </button>
 
-      {/* Back Button */}
-      <button
-        onClick={handleBack}
-        className="absolute flex items-center text-gray-600 transition-colors left-5 sm:left-20 top-32 hover:text-gray-800"
-      >
-        <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back
-      </button>
-
-      {/* Card */}
-      <div className="w-full max-w-md p-8 text-center bg-white shadow-2xl rounded-2xl">
         {/* Step 1: Email input */}
         {step === 1 && (
           <>
@@ -668,7 +643,6 @@ const ResetPassword = () => {
             </p>
 
             <form onSubmit={handleResetPassword}>
-              {/* New Password Input with Eye Toggle */}
               <div className="relative flex items-center w-full px-5 py-3 mb-4 bg-gray-100 rounded-full">
                 <img
                   src={assets.lock_icon}
@@ -697,7 +671,6 @@ const ResetPassword = () => {
                 </span>
               </div>
 
-              {/* Confirm Password Input with Eye Toggle */}
               <div className="relative flex items-center w-full px-5 py-3 mb-6 bg-gray-100 rounded-full">
                 <img
                   src={assets.lock_icon}

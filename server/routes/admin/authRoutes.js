@@ -8,6 +8,7 @@ import {
   changePassword,
   logout,
   checkAuth,
+  checkSetup,           // ✅ ADDED - Import the missing controller
   setupFirstAdmin,
   forgotPassword,
   verifyResetOtp,
@@ -19,6 +20,9 @@ const router = express.Router();
 
 // CSRF token endpoint
 router.get('/csrf-token', getCsrfToken);
+
+// ✅ ADDED - Missing check-setup route
+router.get('/check-setup', checkSetup);
 
 // Public routes
 router.post('/setup', csrfProtection, setupFirstAdmin);

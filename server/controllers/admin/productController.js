@@ -7,7 +7,7 @@ import { generateSKU } from '../../utils/helpers.js';
 const getFileUrl = (filename) => `/uploads/products/${filename}`; 
 
 // =========================================================================
-//                  CORE CRUD CONTROLLERS (Provided Code)
+//                  CORE CRUD CONTROLLERS
 // =========================================================================
 
 /**
@@ -43,6 +43,12 @@ export const createProduct = asyncHandler(async (req, res) => {
       productData.quantity = productData.stock;
       delete productData.stock; 
   }
+  
+  // ✅ CRITICAL: Set default values for product visibility
+  productData.inStock = true;           // THIS ENABLES THE BUY BUTTONS!
+  productData.status = 'active';        // Product is active
+  productData.isPublished = true;       // Product is published
+  productData.isActive = true;         // Product is active
   
   // Generate SKU if not provided
   if (!productData.sku) {
@@ -139,6 +145,11 @@ export const updateProduct = asyncHandler(async (req, res) => {
       delete updateData.stock; 
   }
   
+  // ✅ Ensure these fields are properly set
+  if (updateData.inStock === undefined) {
+    updateData.inStock = true; // Default to true if not specified
+  }
+  
   // Check SKU uniqueness
   if (updateData.sku && updateData.sku !== product.sku) {
     const existingProduct = await Product.findOne({ sku: updateData.sku });
@@ -180,7 +191,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
 
 // =========================================================================
-//      MISSING EXPORTS (Function Stubs added to fix SyntaxError)
+//      PRODUCT CRUD OPERATIONS
 // =========================================================================
 
 /**
@@ -189,15 +200,39 @@ export const updateProduct = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const getProducts = asyncHandler(async (req, res) => {
-    // Basic placeholder implementation:
-    const products = await Product.find({})
-      .select('-__v') // Exclude mongoose version key
-      .sort({ createdAt: -1 })
-      .limit(100);
-      
+    const { page = 1, limit = 20, search, category, status, sort = '-createdAt' } = req.query;
+    
+    const query = {};
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (category) query.category = category;
+    if (status) query.status = status;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [products, total] = await Promise.all([
+      Product.find(query)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .sort(sort)
+        .select('-__v')
+        .lean(),
+      Product.countDocuments(query)
+    ]);
+    
     res.status(200).json({ 
         success: true, 
-        count: products.length, 
+        count: products.length,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / parseInt(limit)),
         data: products 
     });
 });
@@ -208,7 +243,7 @@ export const getProducts = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const getProduct = asyncHandler(async (req, res) => {
-    const product = await Product.findById(req.params.id).select('-__v');
+    const product = await Product.findById(req.params.id).select('-__v').lean();
     if (!product) {
         return res.status(404).json({ success: false, error: 'Product not found' });
     }
@@ -221,14 +256,11 @@ export const getProduct = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const deleteProduct = asyncHandler(async (req, res) => {
-    // Find the product first to handle file deletion if necessary
     const product = await Product.findById(req.params.id);
     
     if (!product) {
         return res.status(404).json({ success: false, error: 'Product not found' });
     }
-
-    // TODO: Implement file deletion logic here using deleteFile utility
 
     await Product.deleteOne({ _id: req.params.id }); 
     res.status(200).json({ success: true, message: 'Product deleted successfully' });
@@ -247,7 +279,6 @@ export const bulkUpdateProducts = asyncHandler(async (req, res) => {
     }
 
     const operations = updates.map(item => {
-      // Ensure we map 'stock' to 'quantity' if present in the bulk update item
       if (item.changes.stock !== undefined) {
           item.changes.quantity = item.changes.stock;
           delete item.changes.stock;
@@ -256,7 +287,6 @@ export const bulkUpdateProducts = asyncHandler(async (req, res) => {
         updateOne: {
             filter: { _id: item.id },
             update: { $set: item.changes },
-            // $set operator is important for partial updates
         }
       }
     });
@@ -271,12 +301,11 @@ export const bulkUpdateProducts = asyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Get product statistics (e.g., total sales, stock counts)
+ * @desc    Get product statistics
  * @route   GET /api/admin/products/stats
  * @access  Private/Admin,Editor
  */
 export const getProductStats = asyncHandler(async (req, res) => {
-    // Placeholder for Mongoose aggregation pipeline
     const stats = await Product.aggregate([
         {
             $group: {
@@ -289,10 +318,24 @@ export const getProductStats = asyncHandler(async (req, res) => {
         { $sort: { count: -1 } }
     ]);
 
-    res.status(200).json({ success: true, data: stats });
+    const totalProducts = await Product.countDocuments();
+    const totalStock = await Product.aggregate([
+      { $group: { _id: null, total: { $sum: '$quantity' } } }
+    ]);
+
+    res.status(200).json({ 
+      success: true, 
+      data: {
+        byCategory: stats,
+        totalProducts,
+        totalStock: totalStock[0]?.total || 0,
+        outOfStock: await Product.countDocuments({ quantity: { $lte: 0 } }),
+        lowStock: await Product.countDocuments({ quantity: { $gt: 0, $lte: 10 } })
+      } 
+    });
 });
 
-// --- Image & Inventory Management (Placeholder Stubs) ---
+// --- Image & Inventory Management ---
 
 /**
  * @desc    Upload additional product images
@@ -300,7 +343,32 @@ export const getProductStats = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const uploadProductImages = asyncHandler(async (req, res) => {
-    res.status(200).json({ success: true, message: "Upload images endpoint working." });
+    const { id } = req.params;
+    const uploadedFiles = req.files;
+    
+    if (!uploadedFiles || uploadedFiles.length === 0) {
+      return res.status(400).json({ success: false, error: 'No images uploaded' });
+    }
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    const newImages = uploadedFiles.map(file => ({
+      url: getFileUrl(file.filename),
+      altText: product.name,
+      isPrimary: product.images.length === 0 // Set as primary if no images exist
+    }));
+    
+    product.images.push(...newImages);
+    await product.save();
+    
+    res.status(200).json({ 
+      success: true, 
+      message: `${newImages.length} images uploaded successfully`,
+      data: product.images 
+    });
 });
 
 /**
@@ -309,7 +377,32 @@ export const uploadProductImages = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const deleteProductImage = asyncHandler(async (req, res) => {
-    res.status(200).json({ success: true, message: "Delete image endpoint working." });
+    const { id, imageIndex } = req.params;
+    const index = parseInt(imageIndex);
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    if (index < 0 || index >= product.images.length) {
+      return res.status(400).json({ success: false, error: 'Invalid image index' });
+    }
+    
+    product.images.splice(index, 1);
+    
+    // If we removed the primary image and there are other images, set the first as primary
+    if (product.images.length > 0 && !product.images.some(img => img.isPrimary)) {
+      product.images[0].isPrimary = true;
+    }
+    
+    await product.save();
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Image deleted successfully',
+      data: product.images 
+    });
 });
 
 /**
@@ -318,7 +411,30 @@ export const deleteProductImage = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const setPrimaryImage = asyncHandler(async (req, res) => {
-    res.status(200).json({ success: true, message: "Set primary image endpoint working." });
+    const { id, imageIndex } = req.params;
+    const index = parseInt(imageIndex);
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    if (index < 0 || index >= product.images.length) {
+      return res.status(400).json({ success: false, error: 'Invalid image index' });
+    }
+    
+    // Set all images isPrimary to false, then set the selected one to true
+    product.images.forEach((img, i) => {
+      img.isPrimary = i === index;
+    });
+    
+    await product.save();
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Primary image set successfully',
+      data: product.images 
+    });
 });
 
 /**
@@ -327,5 +443,28 @@ export const setPrimaryImage = asyncHandler(async (req, res) => {
  * @access  Private/Admin,Editor
  */
 export const updateInventory = asyncHandler(async (req, res) => {
-    res.status(200).json({ success: true, message: "Update inventory endpoint working." });
+    const { id } = req.params;
+    const { quantity, adjustBy } = req.body;
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+    
+    if (adjustBy) {
+      product.quantity += adjustBy;
+    } else if (quantity !== undefined) {
+      product.quantity = quantity;
+    }
+    
+    // Update inStock based on quantity
+    product.inStock = product.quantity > 0;
+    
+    await product.save();
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Inventory updated successfully',
+      data: { quantity: product.quantity, inStock: product.inStock }
+    });
 });

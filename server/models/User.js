@@ -1,3 +1,4 @@
+// server/models/User.js
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -55,7 +56,7 @@ const userSchema = new mongoose.Schema({
     postalCode: String
   },
   
-  // ✅ ACCOUNT VERIFICATION STATUS
+  // Account verification status
   isAccountVerified: {
     type: Boolean,
     default: false
@@ -67,7 +68,7 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: String,
   passwordResetExpires: Date,
   
-  // ✅ PASSWORD RESET OTP FIELDS
+  // Password reset OTP fields
   resetOtp: {
     type: String,
     select: false
@@ -113,7 +114,7 @@ const userSchema = new mongoose.Schema({
     select: false
   },
   
-  // ✅ EMAIL VERIFICATION OTP FIELDS
+  // Email verification OTP fields
   verifyOtp: {
     type: String,
     select: false
@@ -225,18 +226,28 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Indexes
-userSchema.index({ email: 1 });
+// ==================== INDEXES (FIXED - DUPLICATE EMAIL INDEX REMOVED) ====================
 userSchema.index({ status: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ createdAt: -1 });
 userSchema.index({ 'metadata.referredBy': 1 });
-userSchema.index({ resetOtpExpiredAt: 1 }, { expireAfterSeconds: 0, partialFilterExpression: { resetOtpExpiredAt: { $exists: true } } });
-userSchema.index({ verifyOtpExpiredAt: 1 }, { expireAfterSeconds: 0, partialFilterExpression: { verifyOtpExpiredAt: { $exists: true } } });
+userSchema.index({ resetOtpExpiredAt: 1 }, { 
+  expireAfterSeconds: 0, 
+  partialFilterExpression: { resetOtpExpiredAt: { $exists: true } } 
+});
+userSchema.index({ verifyOtpExpiredAt: 1 }, { 
+  expireAfterSeconds: 0, 
+  partialFilterExpression: { verifyOtpExpiredAt: { $exists: true } } 
+});
 
 // Virtual for full name
 userSchema.virtual('fullName').get(function() {
   return this.name;
+});
+
+// Check if email is verified
+userSchema.virtual('isVerified').get(function() {
+  return this.isAccountVerified === true;
 });
 
 // ==================== PRE-SAVE HOOKS ====================
@@ -367,7 +378,7 @@ userSchema.methods.generateVerifyOtp = function() {
 };
 
 /**
- * Verify email verification OTP - FULLY FIXED
+ * Verify email verification OTP
  */
 userSchema.methods.verifyEmailOtp = function(enteredOtp) {
   // Check if OTP exists
@@ -404,7 +415,7 @@ userSchema.methods.verifyEmailOtp = function(enteredOtp) {
     };
   }
   
-  // ✅ OTP is valid - clear it and mark account as verified
+  // OTP is valid - clear it and mark account as verified
   this.verifyOtp = undefined;
   this.verifyOtpExpiredAt = undefined;
   this.failedOtpAttempts = 0;
@@ -545,13 +556,6 @@ userSchema.methods.toSafeObject = function() {
   
   return userObject;
 };
-
-/**
- * Check if email is verified
- */
-userSchema.virtual('isVerified').get(function() {
-  return this.isAccountVerified === true;
-});
 
 const User = mongoose.model('User', userSchema);
 export default User;

@@ -1,4 +1,3 @@
-// src/services/analytics.js - UPDATED FOR KSH
 import api from './api';
 
 export const analyticsService = {
@@ -9,13 +8,14 @@ export const analyticsService = {
    */
   getDashboardStats: async (timeRange = 'month') => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/dashboard', {
         params: { timeRange }
       });
-      return response.data; // Return direct response for consistency
+      return response.data;
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
-      // Return mock data for development in KSH
+      // Return mock data for development
       return {
         success: true,
         data: {
@@ -91,11 +91,11 @@ export const analyticsService = {
    */
   getSalesData: async (params = {}) => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/sales', { params });
-      return response.data; // Return direct response
+      return response.data;
     } catch (error) {
       console.error('Error fetching sales data:', error);
-      // Return mock data for development in KSH
       return {
         success: true,
         data: {
@@ -126,13 +126,13 @@ export const analyticsService = {
    */
   getRevenueStats: async (period = 'month') => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/revenue', {
         params: { period }
       });
-      return response.data; // Return direct response
+      return response.data;
     } catch (error) {
       console.error('Error fetching revenue stats:', error);
-      // Return mock data for development in KSH
       return {
         success: true,
         data: {
@@ -153,6 +153,7 @@ export const analyticsService = {
    */
   getTopProducts: async (limit = 5) => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/products', {
         params: { 
           limit, 
@@ -161,7 +162,6 @@ export const analyticsService = {
         }
       });
       
-      // Handle different response structures
       let products = [];
       if (response.data?.data && Array.isArray(response.data.data)) {
         products = response.data.data;
@@ -173,7 +173,6 @@ export const analyticsService = {
         products = response.data.data.products;
       }
       
-      // Transform products for analytics display
       const transformedProducts = products.map((product, index) => ({
         id: product._id || product.id || index + 1,
         name: product.name || product.title || `Product ${index + 1}`,
@@ -190,7 +189,6 @@ export const analyticsService = {
       };
     } catch (error) {
       console.error('Error fetching top products:', error);
-      // Return mock data for development in KSH
       return {
         success: true,
         data: [
@@ -211,6 +209,7 @@ export const analyticsService = {
    */
   getRecentOrders: async (limit = 5) => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/orders', {
         params: { 
           limit, 
@@ -219,7 +218,6 @@ export const analyticsService = {
         }
       });
       
-      // Handle different response structures
       let orders = [];
       if (response.data?.data && Array.isArray(response.data.data)) {
         orders = response.data.data;
@@ -233,7 +231,6 @@ export const analyticsService = {
         orders = response.data.data.recentOrders;
       }
       
-      // Transform orders for analytics display
       const transformedOrders = orders.map((order, index) => ({
         id: order._id || order.id || `ORD-00${index + 1}`,
         orderNumber: order.orderNumber || order.orderId || `ORD-00${index + 1}`,
@@ -251,7 +248,6 @@ export const analyticsService = {
       };
     } catch (error) {
       console.error('Error fetching recent orders:', error);
-      // Return mock data for development in KSH
       return {
         success: true,
         data: [
@@ -317,13 +313,13 @@ export const analyticsService = {
    */
   getCategorySales: async (timeRange = 'month') => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/categories', {
         params: { timeRange }
       });
-      return response.data; // Return direct response
+      return response.data;
     } catch (error) {
       console.error('Error fetching category sales:', error);
-      // Return mock data for development in KSH
       return {
         success: true,
         data: {
@@ -347,6 +343,7 @@ export const analyticsService = {
    */
   getProductAnalytics: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/products');
       return response.data;
     } catch (error) {
@@ -373,6 +370,7 @@ export const analyticsService = {
    */
   getCustomerAnalytics: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/analytics/customers');
       return response.data;
     } catch (error) {

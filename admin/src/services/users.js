@@ -4,10 +4,10 @@ export const userService = {
   getAll: async (params = {}) => {
     console.log('👤 userService.getAll called with params:', params);
     try {
-      const response = await api.get('/api/admin/users', { params });
+      // ✅ FIXED: Remove /api prefix - api.js already adds it
+      const response = await api.get('/admin/users', { params });
       console.log('📥 userService.getAll response:', response.data);
       
-      // Return consistent structure
       return {
         success: response.data?.success || false,
         data: response.data?.data || [],
@@ -26,7 +26,8 @@ export const userService = {
   getById: async (id) => {
     console.log(`👤 userService.getById called for ID: ${id}`);
     try {
-      const response = await api.get(`/api/admin/users/${id}`);
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.get(`/admin/users/${id}`);
       console.log('📥 userService.getById response:', response.data);
       
       return {
@@ -42,7 +43,8 @@ export const userService = {
   create: async (userData) => {
     console.log('👤 userService.create called with data:', userData);
     try {
-      const response = await api.post('/api/admin/users', userData);
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.post('/admin/users', userData);
       console.log('✅ userService.create response:', response.data);
       return response.data;
     } catch (error) {
@@ -54,7 +56,8 @@ export const userService = {
   update: async (id, userData) => {
     console.log(`👤 userService.update called for ID ${id}:`, userData);
     try {
-      const response = await api.put(`/api/admin/users/${id}`, userData);
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.put(`/admin/users/${id}`, userData);
       console.log('✅ userService.update response:', response.data);
       return response.data;
     } catch (error) {
@@ -66,7 +69,8 @@ export const userService = {
   delete: async (id) => {
     console.log(`👤 userService.delete called for ID: ${id}`);
     try {
-      const response = await api.delete(`/api/admin/users/${id}`);
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.delete(`/admin/users/${id}`);
       console.log('✅ userService.delete response:', response.data);
       return response.data;
     } catch (error) {
@@ -78,7 +82,8 @@ export const userService = {
   updateStatus: async (id, status) => {
     console.log(`👤 userService.updateStatus called: ID=${id}, status=${status}`);
     try {
-      const response = await api.patch(`/api/admin/users/${id}`, { status });
+      // ✅ FIXED: Remove /api prefix
+      const response = await api.patch(`/admin/users/${id}`, { status });
       console.log('✅ userService.updateStatus response:', response.data);
       return response.data;
     } catch (error) {

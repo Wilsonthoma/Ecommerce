@@ -1,3 +1,4 @@
+// admin/src/pages/Products/ProductDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -17,12 +18,24 @@ import {
   TruckIcon,
   InformationCircleIcon,
   ExclamationTriangleIcon,
-  PlusIcon // ✅ ADDED THIS IMPORT
+  PlusIcon,
+  CurrencyDollarIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline';
 import { productService } from '../../services/products';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
-import ImageGallery from '../../components/common/ImageGallery';
+
+// Backend URL for images - IMPORTANT: Remove /api for images
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Create a base URL without /api for images
+const IMAGE_BASE_URL = API_URL.replace('/api', '');
+
+// Reliable fallback images from Unsplash
+const FALLBACK_IMAGES = {
+  main: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
+  thumbnail: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop',
+  placeholder: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop'
+};
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -32,6 +45,129 @@ const ProductDetails = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [lowStockThreshold] = useState(10);
+  const [imageErrors, setImageErrors] = useState({});
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // ✅ FIXED: Get full image URL without /api
+  const getFullImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    
+    // If it's already a full URL
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+    
+    // CRITICAL FIX: Remove any /api from the path
+    let cleanPath = imagePath;
+    if (cleanPath.includes('/api/')) {
+      cleanPath = cleanPath.replace('/api/', '/');
+    }
+    
+    // Handle different path formats
+    if (cleanPath.startsWith('/uploads/')) {
+      return `${IMAGE_BASE_URL}${cleanPath}`;
+    }
+    
+    if (cleanPath.startsWith('uploads/')) {
+      return `${IMAGE_BASE_URL}/${cleanPath}`;
+    }
+    
+    // Default: assume it's in products subfolder
+    return `${IMAGE_BASE_URL}/uploads/products/${cleanPath}`;
+  };
+
+  // ✅ FIXED: Comprehensive image extraction from various data structures
+  const extractImagesFromProduct = (productData) => {
+    if (!productData) return [];
+    
+    let images = [];
+    
+    // Case 1: productData.images is an array
+    if (productData.images && Array.isArray(productData.images)) {
+      productData.images.forEach((img, index) => {
+        if (typeof img === 'object' && img !== null) {
+          // Object with url property
+          if (img.url) {
+            images.push({
+              url: getFullImageUrl(img.url),
+              altText: img.altText || productData.name || `Image ${index + 1}`,
+              isPrimary: img.isPrimary || index === 0,
+              id: img._id || img.id || index
+            });
+          } 
+          // Object with direct string value
+          else {
+            const url = Object.values(img).find(v => typeof v === 'string' && (v.includes('uploads') || v.includes('images')));
+            if (url) {
+              images.push({
+                url: getFullImageUrl(url),
+                altText: productData.name || `Image ${index + 1}`,
+                isPrimary: index === 0,
+                id: index
+              });
+            }
+          }
+        } else if (typeof img === 'string') {
+          // Direct string URL
+          images.push({
+            url: getFullImageUrl(img),
+            altText: productData.name || `Image ${index + 1}`,
+            isPrimary: index === 0,
+            id: index
+          });
+        }
+      });
+    }
+    
+    // Case 2: productData.image is a string
+    else if (productData.image && typeof productData.image === 'string') {
+      images.push({
+        url: getFullImageUrl(productData.image),
+        altText: productData.name || 'Product image',
+        isPrimary: true,
+        id: 'primary'
+      });
+    }
+    
+    // Case 3: productData.image is an object
+    else if (productData.image && typeof productData.image === 'object') {
+      images.push({
+        url: getFullImageUrl(productData.image.url || ''),
+        altText: productData.image.altText || productData.name || 'Product image',
+        isPrimary: true,
+        id: productData.image._id || 'primary'
+      });
+    }
+    
+    // Case 4: Check for common image field names
+    if (images.length === 0) {
+      const possibleFields = ['thumbnail', 'photo', 'picture', 'img', 'cover', 'mainImage'];
+      for (const field of possibleFields) {
+        if (productData[field]) {
+          images.push({
+            url: getFullImageUrl(productData[field]),
+            altText: productData.name || 'Product image',
+            isPrimary: true,
+            id: field
+          });
+          break;
+        }
+      }
+    }
+    
+    // Filter out any null/undefined URLs and deduplicate
+    images = images.filter(img => img && img.url);
+    
+    // Remove duplicates by URL
+    const uniqueUrls = new Set();
+    images = images.filter(img => {
+      if (uniqueUrls.has(img.url)) return false;
+      uniqueUrls.add(img.url);
+      return true;
+    });
+    
+    return images;
+  };
 
   useEffect(() => {
     fetchProduct();
@@ -40,10 +176,24 @@ const ProductDetails = () => {
   const fetchProduct = async (showToast = false) => {
     try {
       setLoading(true);
+      
       const response = await productService.getById(id);
       
       if (response.success) {
-        setProduct(response.data);
+        const productData = response.data || response.product || response;
+        
+        // Extract images using our comprehensive function
+        const extractedImages = extractImagesFromProduct(productData);
+        
+        // Create enhanced product object with images
+        const enhancedProduct = {
+          ...productData,
+          images: extractedImages,
+          hasImages: extractedImages.length > 0
+        };
+        
+        setProduct(enhancedProduct);
+        
         if (showToast) {
           toast.success('Product details loaded');
         }
@@ -112,6 +262,11 @@ const ProductDetails = () => {
     }
   };
 
+  const handleImageError = (index) => {
+    setImageErrors(prev => ({ ...prev, [index]: true }));
+    console.error(`❌ Image ${index} failed to load`);
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: {
@@ -120,6 +275,13 @@ const ProductDetails = () => {
         border: 'border-emerald-200',
         icon: '✅',
         label: 'Active'
+      },
+      published: {
+        bg: 'bg-emerald-100',
+        text: 'text-emerald-800',
+        border: 'border-emerald-200',
+        icon: '✅',
+        label: 'Published'
       },
       inactive: {
         bg: 'bg-gray-100',
@@ -141,13 +303,6 @@ const ProductDetails = () => {
         border: 'border-slate-200',
         icon: '📝',
         label: 'Draft'
-      },
-      published: {
-        bg: 'bg-emerald-100',
-        text: 'text-emerald-800',
-        border: 'border-emerald-200',
-        icon: '✅',
-        label: 'Published'
       }
     };
 
@@ -162,14 +317,15 @@ const ProductDetails = () => {
   };
 
   const getStockLevelBadge = (stock) => {
-    if (stock <= 0) {
+    const stockValue = stock || 0;
+    if (stockValue <= 0) {
       return (
         <div className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
           <ExclamationTriangleIcon className="h-3 w-3 mr-1.5" />
           Out of Stock
         </div>
       );
-    } else if (stock <= lowStockThreshold) {
+    } else if (stockValue <= lowStockThreshold) {
       return (
         <div className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
           <ExclamationTriangleIcon className="h-3 w-3 mr-1.5" />
@@ -187,9 +343,9 @@ const ProductDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
           <p className="text-gray-600">Loading product details...</p>
         </div>
       </div>
@@ -198,18 +354,18 @@ const ProductDetails = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <ExclamationTriangleIcon className="h-10 w-10 text-gray-400" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="max-w-md text-center">
+          <div className="flex items-center justify-center w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full">
+            <ExclamationTriangleIcon className="w-10 h-10 text-gray-400" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Product Not Found</h2>
-          <p className="text-gray-600 mb-6">The product you're looking for doesn't exist or has been removed.</p>
+          <h2 className="mb-2 text-2xl font-bold text-gray-900">Product Not Found</h2>
+          <p className="mb-6 text-gray-600">The product you're looking for doesn't exist or has been removed.</p>
           <Link 
             to="/products" 
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="inline-flex items-center px-6 py-3 font-medium text-white transition-colors bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700"
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Products
           </Link>
         </div>
@@ -224,19 +380,22 @@ const ProductDetails = () => {
     { id: 'activity', name: 'Activity', icon: ClockIcon },
   ];
 
+  const productImages = product.images || [];
+  const hasImages = productImages.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-4">
                 <Link
                   to="/products"
-                  className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                  className="inline-flex items-center text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
                 >
-                  <ArrowLeftIcon className="h-4 w-4 mr-2" />
+                  <ArrowLeftIcon className="w-4 h-4 mr-2" />
                   Products
                 </Link>
                 <div className="h-6 border-l border-gray-300" />
@@ -246,23 +405,23 @@ const ProductDetails = () => {
                 </div>
               </div>
               
-              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col mt-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 truncate">{product.name}</h1>
-                  <div className="mt-1 flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3 mt-1">
                     <p className="text-sm text-gray-600">SKU: {product.sku || 'Not specified'}</p>
                     <span className="text-gray-300">•</span>
                     <p className="text-sm text-gray-600">Category: {product.category || 'Uncategorized'}</p>
                     <span className="text-gray-300">•</span>
-                    <p className="text-sm text-gray-600">ID: {product.id?.substring(0, 8)}...</p>
+                    <p className="text-sm text-gray-600">ID: {product._id?.substring(0, 8) || product.id?.substring(0, 8)}...</p>
                   </div>
                 </div>
                 
-                <div className="mt-4 sm:mt-0 flex items-center space-x-3">
+                <div className="flex items-center mt-4 space-x-3 sm:mt-0">
                   <button
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ArrowPathIcon className={`h-4 w-4 mr-1.5 ${refreshing ? 'animate-spin' : ''}`} />
                     Refresh
@@ -270,19 +429,17 @@ const ProductDetails = () => {
                   
                   <Link
                     to={`/products/new?duplicate=${id}`}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50"
                   >
-                    <svg className="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+                    <PlusIcon className="h-4 w-4 mr-1.5" />
                     Duplicate
                   </Link>
                   
                   <Link
                     to={`/products/edit/${id}`}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700"
                   >
-                    <PencilIcon className="h-4 w-4 mr-2" />
+                    <PencilIcon className="w-4 h-4 mr-2" />
                     Edit Product
                   </Link>
                 </div>
@@ -292,28 +449,55 @@ const ProductDetails = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8 lg:col-span-2">
             {/* Product Images */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
               <div className="p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Images</h2>
-                {product.images && product.images.length > 0 ? (
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Product Images</h2>
+                  <span className="text-sm text-gray-500">
+                    {hasImages ? `${productImages.length} image(s)` : 'No images'}
+                  </span>
+                </div>
+                
+                {hasImages ? (
                   <div className="space-y-4">
-                    {/* Primary Image */}
-                    <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                    {/* Main Selected Image */}
+                    <div className="relative overflow-hidden border border-gray-200 rounded-lg aspect-square bg-gray-50">
                       <img
-                        src={product.images[0].url}
-                        alt={product.images[0].altText || product.name}
-                        className="w-full h-full object-cover"
+                        key={`main-image-${selectedImageIndex}`}
+                        src={productImages[selectedImageIndex]?.url}
+                        alt={productImages[selectedImageIndex]?.altText || product.name}
+                        className="object-contain w-full h-full"
                         onError={(e) => {
-                          e.target.src = '/placeholder-image.png';
+                          e.target.src = FALLBACK_IMAGES.main;
                           e.target.onerror = null;
                         }}
                       />
-                      {product.images[0].isPrimary && (
+                      
+                      {productImages.length > 1 && (
+                        <div className="absolute flex space-x-2 bottom-3 right-3">
+                          <button
+                            onClick={() => setSelectedImageIndex(prev => Math.max(0, prev - 1))}
+                            disabled={selectedImageIndex === 0}
+                            className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            ←
+                          </button>
+                          <button
+                            onClick={() => setSelectedImageIndex(prev => Math.min(productImages.length - 1, prev + 1))}
+                            disabled={selectedImageIndex === productImages.length - 1}
+                            className="p-2 bg-white rounded-full shadow-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            →
+                          </button>
+                        </div>
+                      )}
+                      
+                      {productImages[selectedImageIndex]?.isPrimary && (
                         <div className="absolute top-3 left-3">
                           <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-blue-600 text-white">
                             Primary
@@ -322,34 +506,52 @@ const ProductDetails = () => {
                       )}
                     </div>
                     
-                    {/* Thumbnails */}
-                    {product.images.length > 1 && (
-                      <div className="grid grid-cols-4 gap-3">
-                        {product.images.slice(1).map((image, index) => (
-                          <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200">
+                    {/* Thumbnail Gallery */}
+                    {productImages.length > 1 && (
+                      <div className="grid grid-cols-5 gap-3">
+                        {productImages.map((image, index) => (
+                          <button
+                            key={`thumbnail-${index}`}
+                            onClick={() => setSelectedImageIndex(index)}
+                            className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                              selectedImageIndex === index
+                                ? 'border-blue-600 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
                             <img
                               src={image.url}
-                              alt={image.altText || `${product.name} - Image ${index + 2}`}
-                              className="w-full h-full object-cover"
+                              alt={image.altText}
+                              className="object-cover w-full h-full"
                               onError={(e) => {
-                                e.target.src = '/placeholder-image.png';
+                                e.target.src = FALLBACK_IMAGES.thumbnail;
                                 e.target.onerror = null;
                               }}
                             />
-                          </div>
+                            {image.isPrimary && (
+                              <div className="absolute w-2 h-2 bg-blue-600 rounded-full top-1 right-1"></div>
+                            )}
+                          </button>
                         ))}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+                  <div className="flex items-center justify-center bg-gray-100 border border-gray-200 rounded-lg aspect-square">
                     <div className="text-center">
-                      <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center">
-                        <svg className="h-full w-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm text-gray-500">No images available</p>
+                      <img
+                        src={FALLBACK_IMAGES.placeholder}
+                        alt="No images available"
+                        className="object-cover w-32 h-32 mx-auto mb-3 rounded-lg opacity-50"
+                      />
+                      <p className="text-sm text-gray-500">No images available for this product</p>
+                      <Link
+                        to={`/products/edit/${id}`}
+                        className="inline-flex items-center px-4 py-2 mt-4 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+                      >
+                        <PlusIcon className="w-4 h-4 mr-2" />
+                        Add Images
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -357,7 +559,7 @@ const ProductDetails = () => {
             </div>
 
             {/* Product Details Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
               <div className="border-b border-gray-200">
                 <nav className="flex -mb-px overflow-x-auto">
                   {tabs.map((tab) => (
@@ -373,7 +575,7 @@ const ProductDetails = () => {
                         }
                       `}
                     >
-                      <tab.icon className="h-4 w-4" />
+                      <tab.icon className="w-4 h-4" />
                       <span>{tab.name}</span>
                     </button>
                   ))}
@@ -384,24 +586,24 @@ const ProductDetails = () => {
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-3">Description</h3>
+                      <h3 className="mb-3 text-lg font-medium text-gray-900">Description</h3>
                       <div className="prose max-w-none">
                         {product.description ? (
-                          <div className="text-gray-600 whitespace-pre-line bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <div className="p-4 text-gray-600 whitespace-pre-line border border-gray-200 rounded-lg bg-gray-50">
                             {product.description}
                           </div>
                         ) : (
-                          <p className="text-gray-500 italic bg-gray-50 p-4 rounded-lg border border-gray-200">
+                          <p className="p-4 italic text-gray-500 border border-gray-200 rounded-lg bg-gray-50">
                             No description provided.
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                          <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 className="flex items-center mb-3 text-sm font-medium text-gray-900">
+                          <CurrencyDollarIcon className="w-4 h-4 mr-2" />
                           Pricing Information
                         </h4>
                         <div className="space-y-3">
@@ -424,9 +626,9 @@ const ProductDetails = () => {
                         </div>
                       </div>
 
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                          <CubeIcon className="h-4 w-4 mr-2" />
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 className="flex items-center mb-3 text-sm font-medium text-gray-900">
+                          <CubeIcon className="w-4 h-4 mr-2" />
                           Inventory Details
                         </h4>
                         <div className="space-y-3">
@@ -452,16 +654,16 @@ const ProductDetails = () => {
 
                     {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                          <TagIcon className="h-4 w-4 mr-2" />
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <h4 className="flex items-center mb-3 text-sm font-medium text-gray-900">
+                          <TagIcon className="w-4 h-4 mr-2" />
                           Product Tags
                         </h4>
                         <div className="flex flex-wrap gap-2">
                           {product.tags.map((tag, index) => (
                             <span
                               key={index}
-                              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-800 bg-blue-100 border border-blue-200 rounded-full"
                             >
                               {tag}
                             </span>
@@ -476,38 +678,38 @@ const ProductDetails = () => {
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
                       <h3 className="text-lg font-medium text-gray-900">Inventory Management</h3>
-                      <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200">
-                        <PlusIcon className="h-4 w-4 mr-1" />
+                      <button className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 transition-colors border border-blue-200 rounded-lg hover:text-blue-800 hover:bg-blue-50">
+                        <PlusIcon className="w-4 h-4 mr-1" />
                         Adjust Stock
                       </button>
                     </div>
                     
-                    {product.stock <= lowStockThreshold && (
-                      <div className="bg-gradient-to-r from-amber-50 to-amber-100 border border-amber-200 rounded-lg p-4">
+                    {(product.stock || product.quantity) <= lowStockThreshold && (
+                      <div className="p-4 border rounded-lg bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
                         <div className="flex items-start">
                           <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 mt-0.5 mr-3" />
                           <div>
-                            <h4 className="text-sm font-medium text-amber-900 mb-1">Stock Alert</h4>
+                            <h4 className="mb-1 text-sm font-medium text-amber-900">Stock Alert</h4>
                             <p className="text-sm text-amber-800">
-                              Current stock is {formatNumber(product.stock || product.quantity)} units, which is {product.stock <= 0 ? 'out of stock' : 'below'} the {lowStockThreshold} unit threshold.
-                              {product.stock > 0 && ' Consider restocking soon.'}
+                              Current stock is {formatNumber(product.stock || product.quantity)} units, which is {(product.stock || product.quantity) <= 0 ? 'out of stock' : 'below'} the {lowStockThreshold} unit threshold.
+                              {(product.stock || product.quantity) > 0 && ' Consider restocking soon.'}
                             </p>
                           </div>
                         </div>
                       </div>
                     )}
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">Available Stock</div>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                        <div className="mb-1 text-sm text-gray-600">Available Stock</div>
                         <div className="text-2xl font-bold text-gray-900">{formatNumber(product.stock || product.quantity)}</div>
                       </div>
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">Low Stock Level</div>
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                        <div className="mb-1 text-sm text-gray-600">Low Stock Level</div>
                         <div className="text-2xl font-bold text-gray-900">{lowStockThreshold}</div>
                       </div>
-                      <div className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="text-sm text-gray-600 mb-1">Reorder Point</div>
+                      <div className="p-4 bg-white border border-gray-200 rounded-lg">
+                        <div className="mb-1 text-sm text-gray-600">Reorder Point</div>
                         <div className="text-2xl font-bold text-gray-900">{product.reorderLevel || 'Not set'}</div>
                       </div>
                     </div>
@@ -517,15 +719,15 @@ const ProductDetails = () => {
                 {activeTab === 'analytics' && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium text-gray-900">Product Analytics</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                        <div className="text-sm text-gray-600 mb-2">Total Sales</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-2">0</div>
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                      <div className="p-6 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="mb-2 text-sm text-gray-600">Total Sales</div>
+                        <div className="mb-2 text-3xl font-bold text-gray-900">0</div>
                         <div className="text-sm text-gray-500">All time sales</div>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                        <div className="text-sm text-gray-600 mb-2">Total Revenue</div>
-                        <div className="text-3xl font-bold text-gray-900 mb-2">{formatCurrency(0)}</div>
+                      <div className="p-6 border border-gray-200 rounded-lg bg-gray-50">
+                        <div className="mb-2 text-sm text-gray-600">Total Revenue</div>
+                        <div className="mb-2 text-3xl font-bold text-gray-900">{formatCurrency(0)}</div>
                         <div className="text-sm text-gray-500">All time revenue</div>
                       </div>
                     </div>
@@ -535,8 +737,8 @@ const ProductDetails = () => {
                 {activeTab === 'activity' && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
-                    <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                      <ClockIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <div className="py-12 text-center border border-gray-200 rounded-lg bg-gray-50">
+                      <ClockIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                       <p className="text-gray-600">No recent activity recorded</p>
                     </div>
                   </div>
@@ -548,19 +750,19 @@ const ProductDetails = () => {
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Quick Actions</h3>
               <div className="space-y-3">
                 <Link
                   to={`/products/edit/${id}`}
                   className="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 >
-                  <PencilIcon className="h-5 w-5 mr-2" />
+                  <PencilIcon className="w-5 h-5 mr-2" />
                   Edit Product
                 </Link>
                 
                 <button
-                  onClick={() => handleStatusChange(product.status === 'active' ? 'inactive' : 'active')}
+                  onClick={() => handleStatusChange(product.status === 'active' || product.status === 'published' ? 'inactive' : 'active')}
                   className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                 >
                   {product.status === 'active' || product.status === 'published' 
@@ -573,7 +775,7 @@ const ProductDetails = () => {
                   state={{ productId: id }}
                   className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                 >
-                  <ShoppingCartIcon className="h-5 w-5 mr-2" />
+                  <ShoppingCartIcon className="w-5 h-5 mr-2" />
                   Create Order
                 </Link>
                 
@@ -581,20 +783,20 @@ const ProductDetails = () => {
                   onClick={handleDelete}
                   className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-red-300 text-red-700 font-medium rounded-lg hover:bg-red-50 transition-colors shadow-sm"
                 >
-                  <TrashIcon className="h-5 w-5 mr-2" />
+                  <TrashIcon className="w-5 h-5 mr-2" />
                   Delete Product
                 </button>
               </div>
             </div>
 
             {/* Product Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Information</h3>
+            <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Product Information</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Product ID</span>
-                  <span className="text-xs font-mono text-gray-900">
-                    {product.id?.substring(0, 8)}...
+                  <span className="font-mono text-xs text-gray-900">
+                    {product._id?.substring(0, 8) || product.id?.substring(0, 8)}...
                   </span>
                 </div>
                 
@@ -642,8 +844,8 @@ const ProductDetails = () => {
 
             {/* Shipping Information */}
             {(product.dimensions || product.weight) && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Shipping Information</h3>
+              <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+                <h3 className="mb-4 text-lg font-semibold text-gray-900">Shipping Information</h3>
                 <div className="space-y-4">
                   {product.weight && (
                     <div className="flex items-center justify-between">
@@ -672,8 +874,8 @@ const ProductDetails = () => {
             )}
 
             {/* Featured Status */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Status</h3>
+            <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900">Product Status</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -719,4 +921,4 @@ const ProductDetails = () => {
   );
 };
 
-export default ProductDetails;
+export default ProductDetails;   

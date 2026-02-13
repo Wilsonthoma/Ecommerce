@@ -1,9 +1,9 @@
-// src/pages/Home.jsx - FIXED VERSION
+// src/pages/Home.jsx - IMPROVED UI & FIXED VIDEO
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { AppContext } from "../context/AppContext";
-import { useCart } from "../context/CartContext"; // Changed from CartContext to useCart
+import { useCart } from "../context/CartContext";
 import { clientProductService } from "../services/client/products";
 import { toast } from "react-hot-toast";
 import { 
@@ -16,51 +16,54 @@ import {
   FiHeadphones,
   FiSmartphone,
   FiWatch,
-  FiBattery,
-  FiSpeaker,
-  FiStar,
   FiArrowRight,
   FiCheckCircle,
   FiPlay,
   FiPause,
-  FiShoppingBag,
-  FiShoppingCart,
-  FiHome,
-  FiPackage
+  FiPackage,
+  FiPercent,
+  FiClock,
+  FiGift,
+  FiAward,
+  FiTrendingUp,
+  FiStar,
+  FiShoppingBag
 } from "react-icons/fi";
 import { 
-  BsLightningFill, 
   BsArrowRight,
-  BsBatteryCharging,
-  BsQuote,
+  BsFire,
+  BsLightningCharge,
+  BsShieldCheck,
+  BsTruck,
+  BsArrowRepeat,
+  BsHeadphones,
   BsStarFill,
-  BsStarHalf,
-  BsFire
+  BsStarHalf
 } from "react-icons/bs";
-import { MdLocalShipping, MdSecurity, MdSupportAgent, MdPerson } from "react-icons/md";
-import { AiFillThunderbolt, AiFillFire, AiOutlineRight, AiFillStar } from "react-icons/ai";
-import { IoFlashSharp } from "react-icons/io5";
+import { MdLocalShipping, MdSecurity, MdSupportAgent } from "react-icons/md";
+import { AiFillThunderbolt, AiFillFire, AiFillStar } from "react-icons/ai";
 
 const Home = () => {
   const { user, isAuthenticated } = useContext(AppContext);
-  const { addToCart } = useCart(); // Changed from useContext(CartContext) to useCart()
+  const { addToCart } = useCart();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   
   const categoryRef = useRef(null);
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState("all");
 
+  // Fetch data
   const fetchData = async () => {
     try {
       setLoading(true);
       
-      // Fetch all data in parallel
       const [productsResponse, categoriesResponse, featuredResponse] = await Promise.all([
         clientProductService.getProducts({ limit: 16, sort: '-createdAt' }),
         clientProductService.getCategories(),
@@ -70,20 +73,17 @@ const Home = () => {
         }))
       ]);
 
-      // Handle products response
       if (productsResponse.success) {
         const productsData = productsResponse.data?.products || productsResponse.products || [];
         setProducts(productsData);
         setTrendingProducts(productsData.slice(0, 8));
       }
 
-      // Handle categories response
       if (categoriesResponse.success) {
         const categoriesData = categoriesResponse.data?.categories || categoriesResponse.categories || [];
         setCategories(categoriesData);
       }
 
-      // Handle featured products response
       if (featuredResponse.success) {
         const featuredData = featuredResponse.data?.products || featuredResponse.products || [];
         setFeaturedProducts(featuredData);
@@ -92,8 +92,6 @@ const Home = () => {
     } catch (error) {
       console.error("Failed to fetch data:", error);
       toast.error("Failed to load products. Please try again.");
-      
-      // Fallback empty states
       setProducts([]);
       setCategories([]);
       setFeaturedProducts([]);
@@ -107,49 +105,60 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // Video handling
+  // ✅ FIXED: Video handling with proper error catching
   useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
     const playVideo = async () => {
-      if (videoRef.current) {
-        try {
-          videoRef.current.muted = true;
-          await videoRef.current.play();
-          setVideoPlaying(true);
-        } catch (err) {
-          console.log("Video autoplay failed:", err);
-          setVideoPlaying(false);
-        }
+      try {
+        video.muted = true;
+        video.playsInline = true;
+        await video.play();
+        setVideoPlaying(true);
+        setVideoError(false);
+      } catch (err) {
+        console.log("Video autoplay prevented:", err.message);
+        setVideoPlaying(false);
+        setVideoError(true);
       }
     };
 
-    const timer = setTimeout(() => {
-      playVideo();
-    }, 100);
+    // Add error event listener
+    const handleVideoError = (e) => {
+      console.log("Video failed to load:", e);
+      setVideoError(true);
+    };
 
-    return () => clearTimeout(timer);
+    video.addEventListener('error', handleVideoError);
+    
+    const timer = setTimeout(playVideo, 100);
+
+    return () => {
+      clearTimeout(timer);
+      video.removeEventListener('error', handleVideoError);
+      video.pause();
+    };
   }, []);
 
   const toggleVideoPlay = () => {
-    if (videoRef.current) {
-      if (videoPlaying) {
-        videoRef.current.pause();
-        setVideoPlaying(false);
-      } else {
-        videoRef.current.play()
-          .then(() => setVideoPlaying(true))
-          .catch(e => console.log("Video play failed:", e));
-      }
-      
-      if (videoRef.current.muted) {
-        videoRef.current.muted = false;
-      }
+    const video = videoRef.current;
+    if (!video || videoError) return;
+
+    if (videoPlaying) {
+      video.pause();
+      setVideoPlaying(false);
+    } else {
+      video.play()
+        .then(() => setVideoPlaying(true))
+        .catch(err => console.log("Video play failed:", err));
     }
   };
 
   const scrollCategories = (dir) => {
     if (categoryRef.current) {
       categoryRef.current.scrollBy({ 
-        left: dir === "left" ? -350 : 350, 
+        left: dir === "left" ? -300 : 300, 
         behavior: "smooth" 
       });
     }
@@ -158,25 +167,24 @@ const Home = () => {
   const scrollFeatured = (dir) => {
     if (featuredRef.current) {
       featuredRef.current.scrollBy({ 
-        left: dir === "left" ? -350 : 350, 
+        left: dir === "left" ? -300 : 300, 
         behavior: "smooth" 
       });
     }
   };
 
-  // Format price to Kenyan Shillings
+  // Format price
   const formatKES = (price) => {
     if (!price && price !== 0) return "KSh 0";
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  // Handle add to cart
   const handleAddToCart = (product) => {
     addToCart(product, 1);
     toast.success(`${product.name} added to cart!`);
   };
 
-  // Color theme constants
+  // Theme colors
   const themeColors = {
     primary: "from-blue-600 to-cyan-500",
     secondary: "from-orange-500 to-red-500",
@@ -186,69 +194,71 @@ const Home = () => {
     light: "from-blue-50 to-cyan-50"
   };
 
+  // Benefits with improved icons
   const benefits = [
     { 
-      icon: <MdLocalShipping className="w-8 h-8" />, 
+      icon: <BsTruck className="w-6 h-6" />, 
       title: "Free Shipping", 
-      desc: "On orders over KSh 6,000", 
+      desc: "Orders over KSh 6,000", 
       bg: `bg-gradient-to-r ${themeColors.primary}`,
-      color: "text-white",
       delay: "0ms"
     },
     { 
-      icon: <MdSecurity className="w-8 h-8" />, 
+      icon: <BsShieldCheck className="w-6 h-6" />, 
       title: "2 Year Warranty", 
       desc: "On all products", 
       bg: `bg-gradient-to-r ${themeColors.success}`,
-      color: "text-white",
       delay: "100ms"
     },
     { 
-      icon: <FiRefreshCw className="w-8 h-8" />, 
+      icon: <BsArrowRepeat className="w-6 h-6" />, 
       title: "30-Day Returns", 
       desc: "Money back guarantee", 
       bg: `bg-gradient-to-r ${themeColors.accent}`,
-      color: "text-white",
       delay: "200ms"
     },
     { 
-      icon: <MdSupportAgent className="w-8 h-8" />, 
+      icon: <BsHeadphones className="w-6 h-6" />, 
       title: "24/7 Support", 
-      desc: "Dedicated support team", 
+      desc: "Dedicated team", 
       bg: `bg-gradient-to-r ${themeColors.secondary}`,
-      color: "text-white",
       delay: "300ms"
     },
   ];
 
+  // Categories with improved styling
   const productCategories = [
     { 
       id: "electronics", 
       name: "Electronics", 
-      icon: <FiSmartphone />, 
-      bg: "bg-gradient-to-r from-blue-500 to-cyan-500",
-      image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+      icon: <FiSmartphone className="w-6 h-6" />, 
+      bg: "bg-gradient-to-br from-blue-500 to-cyan-500",
+      image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+      count: "245+"
     },
     { 
       id: "audio", 
       name: "Audio Gear", 
-      icon: <FiHeadphones />, 
-      bg: "bg-gradient-to-r from-purple-500 to-pink-500",
-      image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+      icon: <FiHeadphones className="w-6 h-6" />, 
+      bg: "bg-gradient-to-br from-purple-500 to-pink-500",
+      image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+      count: "189+"
     },
     { 
       id: "wearables", 
       name: "Wearables", 
-      icon: <FiWatch />, 
-      bg: "bg-gradient-to-r from-emerald-500 to-green-500",
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+      icon: <FiWatch className="w-6 h-6" />, 
+      bg: "bg-gradient-to-br from-emerald-500 to-green-500",
+      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+      count: "156+"
     },
     { 
       id: "home-appliances", 
       name: "Home Appliances", 
-      icon: <FiPackage />, 
-      bg: "bg-gradient-to-r from-orange-500 to-red-500",
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
+      icon: <FiPackage className="w-6 h-6" />, 
+      bg: "bg-gradient-to-br from-orange-500 to-red-500",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
+      count: "112+"
     },
   ];
 
@@ -259,127 +269,123 @@ const Home = () => {
   // Render star rating
   const renderStars = (rating) => {
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
+    const fullStars = Math.floor(rating || 0);
     
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<AiFillStar key={i} className="w-4 h-4 text-yellow-400" />);
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<BsStarFill key={i} className="w-3 h-3 text-yellow-400 sm:w-4 sm:h-4" />);
+      } else {
+        stars.push(<BsStarHalf key={i} className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4" />);
+      }
     }
-    
-    if (hasHalfStar) {
-      stars.push(<BsStarHalf key="half" className="w-4 h-4 text-yellow-400" />);
-    }
-    
     return stars;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-blue-50/30">
-      {/* Hero Banner with Video Background */}
-      <div className="relative h-[85vh] min-h-[600px] overflow-hidden">
-        {/* Video Background */}
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Hero Banner - Fixed Video */}
+      <div className="relative h-[70vh] min-h-[500px] lg:h-[80vh] lg:min-h-[600px] overflow-hidden">
+        {/* Background */}
         <div className="absolute inset-0">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            className="object-cover w-full h-full"
-            poster="https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
-            onClick={toggleVideoPlay}
-          >
-            <source 
-              src="https://assets.mixkit.co/videos/preview/mixkit-electronics-in-a-technology-store-30185-large.mp4" 
-              type="video/mp4" 
-            />
+          {!videoError ? (
+            <video
+              ref={videoRef}
+              muted
+              loop
+              playsInline
+              preload="auto"
+              className="object-cover w-full h-full"
+              poster="https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+            >
+              <source 
+                src="https://assets.mixkit.co/videos/preview/mixkit-electronics-in-a-technology-store-30185-large.mp4" 
+                type="video/mp4" 
+              />
+            </video>
+          ) : (
             <img 
               src="https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
-              alt="Premium Electronics" 
+              alt="Electronics Store" 
               className="object-cover w-full h-full"
             />
-          </video>
+          )}
           
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/85 via-blue-800/80 to-cyan-800/75"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 via-blue-800/85 to-cyan-800/80"></div>
         </div>
 
-        {/* Video Controls */}
-        <button
-          onClick={toggleVideoPlay}
-          className="absolute z-20 p-3 text-white transition-colors rounded-full top-6 right-6 bg-white/20 backdrop-blur-sm hover:bg-white/30"
-        >
-          {videoPlaying ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
-        </button>
+        {/* Video Controls - Only show if video loaded */}
+        {!videoError && (
+          <button
+            onClick={toggleVideoPlay}
+            className="absolute z-20 p-2 text-white transition-all rounded-full top-4 right-4 sm:top-6 sm:right-6 bg-white/20 backdrop-blur-sm hover:bg-white/30 hover:scale-110"
+            aria-label={videoPlaying ? "Pause video" : "Play video"}
+          >
+            {videoPlaying ? <FiPause className="w-4 h-4 sm:w-5 sm:h-5" /> : <FiPlay className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
+        )}
 
-        {/* Content Overlay */}
+        {/* Hero Content */}
         <div className="relative z-10 flex items-center h-full">
           <div className="w-full px-4 mx-auto max-w-7xl">
-            <div className="grid items-center gap-12 lg:grid-cols-2">
-              <div className="text-white">
-                <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full bg-gradient-to-r from-orange-500/90 to-red-500/90 backdrop-blur-sm animate-pulse">
-                  <AiFillThunderbolt className="text-yellow-300" />
-                  <span className="text-sm font-medium">Limited Time Offer</span>
-                </div>
-                
-                <h1 className="mb-4 text-4xl font-bold leading-tight md:text-5xl lg:text-6xl">
-                  Premium Technology
-                  <span className="block text-transparent bg-gradient-to-r from-cyan-300 to-blue-300 bg-clip-text">
-                    At Amazing Prices
-                  </span>
-                </h1>
-                
-                <p className="max-w-xl mb-8 text-lg text-blue-100">
-                  Discover cutting-edge electronics, immersive audio experiences, 
-                  and smart devices at unbeatable prices in Kenyan Shillings.
-                </p>
-                
-                <div className="flex flex-wrap gap-4">
-                  <Link 
-                    to="/shop"
-                    className={`px-8 py-3 bg-gradient-to-r ${themeColors.primary} text-white font-semibold rounded-lg hover:shadow-2xl hover:scale-105 transition-all flex items-center gap-2 group shadow-lg`}
-                  >
-                    <span>Shop Collection</span>
-                    <BsArrowRight className="transition-transform group-hover:translate-x-1" />
-                  </Link>
-                  <Link 
-                    to="/shop?sort=discount"
-                    className="flex items-center gap-2 px-8 py-3 font-semibold text-white transition-all border rounded-lg bg-white/10 backdrop-blur-sm border-white/30 hover:bg-white/20 hover:shadow-lg"
-                  >
-                    <AiFillFire className="text-orange-300" /> Hot Deals
-                  </Link>
-                </div>
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 text-xs font-medium text-orange-600 bg-orange-100 rounded-full sm:px-4 sm:py-2 sm:text-sm animate-pulse">
+                <BsLightningCharge className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span>Limited Time Offer</span>
+              </div>
+              
+              <h1 className="mb-3 text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
+                Premium Technology
+                <span className="block mt-1 text-transparent bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text">
+                  At Amazing Prices
+                </span>
+              </h1>
+              
+              <p className="max-w-xl mb-6 text-sm text-blue-100 sm:text-base md:text-lg">
+                Discover cutting-edge electronics, immersive audio experiences, 
+                and smart devices at unbeatable prices in Kenyan Shillings.
+              </p>
+              
+              <div className="flex flex-wrap gap-3">
+                <Link 
+                  to="/shop"
+                  className="px-6 py-2.5 text-sm font-semibold text-white transition-all bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg hover:shadow-2xl hover:scale-105 sm:px-8 sm:py-3 sm:text-base flex items-center gap-2 group"
+                >
+                  <span>Shop Collection</span>
+                  <BsArrowRight className="transition-transform group-hover:translate-x-1" />
+                </Link>
+                <Link 
+                  to="/shop?sort=discount"
+                  className="px-6 py-2.5 text-sm font-semibold text-white transition-all border rounded-lg backdrop-blur-sm border-white/30 bg-white/10 hover:bg-white/20 sm:px-8 sm:py-3 sm:text-base flex items-center gap-2"
+                >
+                  <BsFire className="text-orange-300" /> Hot Deals
+                </Link>
               </div>
             </div>
           </div>
         </div>
 
         {/* Scroll Indicator */}
-        <div className="absolute text-white transform -translate-x-1/2 bottom-8 left-1/2 animate-bounce">
-          <FiChevronDown className="w-6 h-6" />
+        <div className="absolute hidden text-white transform -translate-x-1/2 bottom-8 left-1/2 animate-bounce md:block">
+          <FiChevronDown className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
       </div>
 
-      {/* Benefits Bar */}
-      <div className={`bg-gradient-to-r ${themeColors.light} py-8 relative z-20 shadow-sm`}>
-        <div className="px-4 mx-auto max-w-7xl">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+      {/* Benefits Bar - Improved */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="px-4 py-6 mx-auto max-w-7xl sm:py-8">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:gap-6">
             {benefits.map((benefit, index) => (
               <div 
                 key={index} 
-                className="animate-fadeInUp"
-                style={{ animationDelay: benefit.delay }}
+                className="flex items-center gap-3 p-2 transition-all rounded-lg hover:shadow-md sm:p-3 group"
               >
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${benefit.bg} ${benefit.color} shadow-lg transform hover:scale-110 transition-transform duration-300`}>
-                    {benefit.icon}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{benefit.title}</h3>
-                    <p className="text-sm text-gray-600">{benefit.desc}</p>
-                  </div>
+                <div className={`p-2 rounded-lg ${benefit.bg} text-white shadow-md group-hover:scale-110 transition-transform sm:p-2.5`}>
+                  {benefit.icon}
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-gray-900 sm:text-sm">{benefit.title}</h3>
+                  <p className="text-[10px] text-gray-600 sm:text-xs">{benefit.desc}</p>
                 </div>
               </div>
             ))}
@@ -387,21 +393,21 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Flash Sale Banner */}
-      <div className="relative py-8 overflow-hidden shadow-lg bg-gradient-to-r from-orange-500 via-red-500 to-pink-600">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] opacity-10"></div>
+      {/* Flash Sale Banner - Improved */}
+      <div className="relative py-6 overflow-hidden shadow-md sm:py-8 bg-gradient-to-r from-orange-500 via-red-500 to-pink-600">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] opacity-10 bg-cover bg-center"></div>
         <div className="relative z-10 px-4 mx-auto max-w-7xl">
-          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="text-white">
-              <div className="flex items-center gap-3 mb-2">
-                <BsFire className="w-8 h-8 text-yellow-300 animate-pulse" />
-                <h2 className="text-2xl font-bold md:text-3xl">🔥 FLASH SALE</h2>
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div className="text-center text-white md:text-left">
+              <div className="flex items-center justify-center gap-2 mb-1 md:justify-start">
+                <BsFire className="w-5 h-5 text-yellow-300 animate-pulse sm:w-6 sm:h-6" />
+                <h2 className="text-xl font-bold sm:text-2xl md:text-3xl">FLASH SALE</h2>
               </div>
-              <p className="mb-4 text-orange-100">Limited time offers ending soon!</p>
+              <p className="text-xs text-orange-100 sm:text-sm">Limited time offers ending soon!</p>
             </div>
             <Link 
               to="/shop?sort=discount"
-              className="px-8 py-3 font-bold text-orange-600 transition-all bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:scale-105"
+              className="px-6 py-2.5 text-sm font-bold text-orange-600 transition-all bg-white rounded-lg shadow-lg hover:bg-gray-100 hover:scale-105 sm:px-8 sm:py-3"
             >
               Shop Flash Deals →
             </Link>
@@ -409,74 +415,74 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Featured Products - Flash Sale */}
-      <section className="px-4 py-16 mx-auto max-w-7xl">
-        <div className="flex flex-col items-start justify-between gap-4 mb-10 md:flex-row md:items-center">
-          <div className="flex items-center gap-4">
-            <div className={`p-3 bg-gradient-to-r ${themeColors.secondary} rounded-xl shadow-lg`}>
-              <AiFillFire className="w-8 h-8 text-white" />
+      {/* Featured Products - Improved */}
+      <section className="px-4 py-12 mx-auto max-w-7xl sm:py-16">
+        <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 sm:p-3">
+              <AiFillFire className="w-5 h-5 text-white sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 md:text-3xl">Flash Deals</h2>
-              <p className="text-gray-600">Limited time offers. Don't miss out!</p>
+              <h2 className="text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Flash Deals</h2>
+              <p className="text-xs text-gray-600 sm:text-sm">Limited time offers. Don't miss out!</p>
             </div>
           </div>
           <Link 
             to="/shop?sort=discount"
-            className="flex items-center gap-2 font-semibold text-blue-600 transition-all hover:text-blue-700 hover:gap-3"
+            className="flex items-center gap-1 text-sm font-semibold text-blue-600 transition-all hover:text-blue-700 hover:gap-2 sm:text-base"
           >
-            View All <FiArrowRight />
+            View All <FiArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
           </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             {[1,2,3,4].map(i => (
-              <div key={i} className="h-64 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse rounded-xl"></div>
+              <div key={i} className="h-48 bg-gray-200 rounded-lg animate-pulse sm:h-56"></div>
             ))}
           </div>
         ) : (
           <div className="relative">
-            <div ref={featuredRef} className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide">
+            <div ref={featuredRef} className="flex gap-4 pb-4 overflow-x-auto scrollbar-hide sm:gap-6">
               {(featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4)).map((product) => (
-                <div key={product._id} className="flex-shrink-0 w-64">
-                  <div className="relative p-4 transition-shadow bg-white shadow-lg rounded-xl hover:shadow-xl">
+                <div key={product._id} className="flex-shrink-0 w-48 sm:w-56">
+                  <div className="p-3 transition-shadow bg-white border border-gray-100 shadow-md rounded-xl hover:shadow-lg sm:p-4">
                     {/* Product Image */}
-                    <div className="relative mb-4 overflow-hidden rounded-lg">
+                    <div className="relative mb-3 overflow-hidden rounded-lg aspect-square">
                       <img 
                         src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'}
                         alt={product.name}
-                        className="object-cover w-full h-48 transition-transform duration-300 hover:scale-105"
+                        className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
                       />
                       {product.discountPrice && (
-                        <div className="absolute px-2 py-1 text-xs font-bold text-white bg-red-500 rounded top-2 left-2">
-                          SAVE {Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
+                        <div className="absolute px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-500 rounded top-2 left-2 sm:px-2 sm:py-1 sm:text-xs">
+                          -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
                         </div>
                       )}
                     </div>
                     
                     {/* Product Info */}
-                    <h3 className="mb-2 font-semibold text-gray-900 line-clamp-1">
+                    <h3 className="mb-1 text-xs font-semibold text-gray-900 line-clamp-1 sm:text-sm">
                       {product.name}
                     </h3>
                     
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-1 mb-2">
                       <div className="flex">
                         {renderStars(product.rating || 4.5)}
                       </div>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-[10px] text-gray-500 sm:text-xs">
                         ({product.reviews || 0})
                       </span>
                     </div>
                     
                     {/* Price */}
-                    <div className="mb-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold text-gray-900">
+                    <div className="mb-3">
+                      <div className="flex items-center gap-1 sm:gap-2">
+                        <span className="text-sm font-bold text-gray-900 sm:text-base">
                           {formatKES(product.discountPrice || product.price)}
                         </span>
                         {product.discountPrice && (
-                          <span className="text-sm text-gray-500 line-through">
+                          <span className="text-[10px] text-gray-500 line-through sm:text-xs">
                             {formatKES(product.price)}
                           </span>
                         )}
@@ -487,64 +493,66 @@ const Home = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleAddToCart(product)}
-                        className="flex-1 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
+                        className="flex-1 py-1.5 text-[10px] font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 sm:py-2 sm:text-xs"
                       >
                         Add to Cart
                       </button>
                       <Link 
                         to={`/product/${product._id}`}
-                        className="px-3 py-2 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50"
+                        className="px-2 py-1.5 text-gray-600 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 sm:px-3 sm:py-2"
                       >
-                        <FiArrowRight className="w-4 h-4" />
+                        <FiArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Link>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {/* Scroll Buttons - Hidden on mobile */}
             <button 
               onClick={() => scrollFeatured("left")}
-              className="absolute left-0 p-2 transition-shadow -translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl"
+              className="left-0 hidden p-2 transition-shadow -translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl md:absolute md:block"
             >
-              <FiChevronLeft className="w-6 h-6" />
+              <FiChevronLeft className="w-5 h-5" />
             </button>
             <button 
               onClick={() => scrollFeatured("right")}
-              className="absolute right-0 p-2 transition-shadow translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl"
+              className="right-0 hidden p-2 transition-shadow translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl md:absolute md:block"
             >
-              <FiChevronRight className="w-6 h-6" />
+              <FiChevronRight className="w-5 h-5" />
             </button>
           </div>
         )}
       </section>
 
-      {/* Shop by Category */}
-      <section className={`bg-gradient-to-b ${themeColors.light} py-16`}>
+      {/* Shop by Category - Improved */}
+      <section className="py-12 bg-gradient-to-b from-blue-50 to-white sm:py-16">
         <div className="px-4 mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-4 text-blue-800 rounded-full bg-gradient-to-r from-blue-100 to-cyan-100">
-              <FiCheckCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">SHOP BY CATEGORY</span>
+          <div className="mb-8 text-center sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 text-xs font-medium text-blue-800 bg-blue-100 rounded-full sm:px-4 sm:py-2 sm:text-sm">
+              <FiCheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>SHOP BY CATEGORY</span>
             </div>
-            <h2 className="mb-3 text-3xl font-bold text-gray-900">Browse Popular Categories</h2>
-            <p className="max-w-2xl mx-auto text-gray-600">
-              Find exactly what you need from our carefully curated tech categories
+            <h2 className="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">Browse Categories</h2>
+            <p className="max-w-2xl mx-auto text-xs text-gray-600 sm:text-sm">
+              Find exactly what you need from our curated collections
             </p>
           </div>
 
           <div className="relative">
-            <div ref={categoryRef} className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide">
+            <div ref={categoryRef} className="flex gap-4 pb-4 overflow-x-auto scrollbar-hide sm:gap-6">
               {productCategories.map((category) => (
                 <div
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
-                  className={`group flex-shrink-0 w-64 cursor-pointer transition-all ${
+                  className={`group flex-shrink-0 w-48 cursor-pointer transition-all sm:w-56 ${
                     activeCategory === category.id ? 'scale-105 ring-2 ring-blue-500' : ''
                   }`}
                 >
-                  <div className="relative overflow-hidden transition-all duration-300 bg-white border border-gray-100 rounded-2xl hover:shadow-2xl">
+                  <div className="relative overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-xl hover:shadow-xl">
                     {/* Category Image */}
-                    <div className="h-40 overflow-hidden">
+                    <div className="h-32 overflow-hidden sm:h-40">
                       <img 
                         src={category.image}
                         alt={category.name}
@@ -554,13 +562,14 @@ const Home = () => {
                     </div>
                     
                     {/* Category Content */}
-                    <div className="p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className={`p-3 rounded-xl ${category.bg} text-white shadow-lg`}>
+                    <div className="p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className={`p-2 rounded-lg ${category.bg} text-white shadow-md sm:p-2.5`}>
                           {category.icon}
                         </div>
-                        <div className="text-left">
-                          <h3 className="text-lg font-bold text-gray-900">{category.name}</h3>
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 sm:text-base">{category.name}</h3>
+                          <p className="text-xs text-gray-500">{category.count} items</p>
                         </div>
                       </div>
                     </div>
@@ -568,58 +577,62 @@ const Home = () => {
                 </div>
               ))}
             </div>
+            
+            {/* Scroll Buttons - Hidden on mobile */}
             <button 
               onClick={() => scrollCategories("left")}
-              className="absolute left-0 p-2 transition-shadow -translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl"
+              className="left-0 hidden p-2 transition-shadow -translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl md:absolute md:block"
             >
-              <FiChevronLeft className="w-6 h-6" />
+              <FiChevronLeft className="w-5 h-5" />
             </button>
             <button 
               onClick={() => scrollCategories("right")}
-              className="absolute right-0 p-2 transition-shadow translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl"
+              className="right-0 hidden p-2 transition-shadow translate-x-4 -translate-y-1/2 bg-white rounded-full shadow-lg top-1/2 hover:shadow-xl md:absolute md:block"
             >
-              <FiChevronRight className="w-6 h-6" />
+              <FiChevronRight className="w-5 h-5" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* Trending Products */}
-      <section className="px-4 py-16 mx-auto max-w-7xl">
-        <div className="flex flex-col items-start justify-between gap-4 mb-10 md:flex-row md:items-center">
+      {/* Trending Products - Improved */}
+      <section className="px-4 py-12 mx-auto max-w-7xl sm:py-16">
+        <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:flex-row sm:items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 mb-3 text-orange-800 rounded-full bg-gradient-to-r from-orange-100 to-red-100">
-              <BsFire className="w-4 h-4" />
-              <span className="text-sm font-medium">TRENDING NOW</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 text-xs font-medium text-orange-800 bg-orange-100 rounded-full sm:px-4 sm:py-2 sm:text-sm">
+              <FiTrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span>TRENDING NOW</span>
             </div>
-            <h2 className="mb-2 text-2xl font-bold text-gray-900 md:text-3xl">Most Popular Products</h2>
-            <p className="text-gray-600">Discover what everyone is buying this week</p>
+            <h2 className="mb-1 text-xl font-bold text-gray-900 sm:text-2xl md:text-3xl">Most Popular</h2>
+            <p className="text-xs text-gray-600 sm:text-sm">Discover what everyone is buying</p>
           </div>
+          
+          {/* Category Filters */}
           <div className="flex gap-2 pb-2 overflow-x-auto">
             {["all", "electronics", "audio", "wearables", "home-appliances"].map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all sm:px-4 sm:py-2 sm:text-sm ${
                   activeCategory === cat 
-                    ? `bg-gradient-to-r ${themeColors.primary} text-white shadow-lg` 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                    ? `bg-gradient-to-r ${themeColors.primary} text-white shadow-md` 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {cat === "all" ? "All Products" : cat.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                {cat === "all" ? "All" : cat.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            {[1,2,3,4].map(i => (
-              <div key={i} className="h-64 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse rounded-xl"></div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {[1,2,3,4,5].map(i => (
+              <div key={i} className="h-48 bg-gray-200 rounded-lg animate-pulse sm:h-56"></div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {filteredProducts.slice(0, 10).map((product) => (
               <ProductCard 
                 key={product._id} 
@@ -629,12 +642,13 @@ const Home = () => {
             ))}
           </div>
         )}
-        <div className="mt-12 text-center">
+        
+        <div className="mt-8 text-center sm:mt-12">
           <Link 
             to="/shop"
-            className="flex items-center gap-2 px-8 py-3 mx-auto font-semibold text-white transition-colors bg-gray-900 rounded-lg hover:bg-gray-700"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white transition-colors bg-gray-900 rounded-lg hover:bg-gray-700 sm:px-8 sm:py-3"
           >
-            Browse All Products <FiArrowRight />
+            Browse All Products <FiArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>

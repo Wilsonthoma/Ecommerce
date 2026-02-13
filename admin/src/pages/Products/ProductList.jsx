@@ -455,7 +455,7 @@ const ProductList = () => {
               setSelectedRows([]);
             }
           }}
-          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
         />
       ),
       render: (_, product) => (
@@ -469,7 +469,7 @@ const ProductList = () => {
               setSelectedRows(prev => prev.filter(id => id !== (product._id || product.id)));
             }
           }}
-          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
         />
       ),
       className: 'w-12',
@@ -503,13 +503,13 @@ const ProductList = () => {
         const fallbackUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik01MCA2MEM1MCA2Ni42Mjg4IDU1LjM3MTYgNzIgNjIgNzJDNjguNjI4NCA3MiA3NCA2Ni42Mjg0IDc0IDYwQzc0IDUzLjM3MTYgNjguNjI4NCA0OCA2MiA0OEM1NS4zNzE2IDQ4IDUwIDUzLjM3MTYgNTAgNjBaIiBmaWxsPSIjRENEQ0RDIi8+CjxwYXRoIGQ9Ik00Mi41IDEwMEwxMS4yNSAxMDBDMTEuMjUgMTAwIDE4LjUzOTEgNzkuMDMzNyAzMC41MzkxIDc5LjAzMzdDMzYuNDI0OCA3OS4wMzM3IDQxLjg3IDgzLjgxODQgNDIuNSAxMDBaIiBmaWxsPSIjRENEQ0RDIi8+CjxwYXRoIGQ9Ik0xMDcuNSAxMDBMMTM4Ljc1IDEwMEwxMzguNzUgMTAwIDEzMS40NjEgNzkuMDMzNyAxMTkuNDYxIDc5LjAzMzdDMTEzLjU3NSA3OS4wMzM3IDEwOC4xMyA4My44MTg0IDEwNy41IDEwMFoiIGZpbGw9IiNEQ0RDREMiLz4KPHBhdGggZD0iTTc1IDEyMEMzNS45MTUyIDEyMCA1IDEzMy45MTUyIDUgMTYwSDE0NUMxNDUgMTMzLjkxNTIgMTE0LjA4NSAxMjAgNzUgMTIwWiIgZmlsbD0iI0RDREJEQiIvPgo8L3N2Zz4K';
         
         return (
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+          <div className="relative w-12 h-12 overflow-hidden bg-gray-100 border border-gray-200 rounded-lg">
             {fullImageUrl ? (
               <>
                 <img
                   src={fullImageUrl}
                   alt={product.name || 'Product image'}
-                  className="w-full h-full object-cover"
+                  className="object-cover w-full h-full"
                   onLoad={() => console.log(`✅ Image loaded: ${fullImageUrl}`)}
                   onError={(e) => {
                     console.error(`❌ Failed to load image: ${fullImageUrl}`, e);
@@ -523,8 +523,8 @@ const ProductList = () => {
                 </div>
               </>
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <PhotoIcon className="h-6 w-6 text-gray-400" />
+              <div className="flex items-center justify-center w-full h-full">
+                <PhotoIcon className="w-6 h-6 text-gray-400" />
               </div>
             )}
             {product.featured && (
@@ -546,11 +546,11 @@ const ProductList = () => {
         const productId = product._id || product.id;
         
         return (
-          <div className="min-w-0 max-w-xs">
+          <div className="max-w-xs min-w-0">
             <div className="flex items-center">
               <Link
                 to={`/products/${productId}`}
-                className="font-medium text-gray-900 hover:text-blue-600 truncate transition-colors"
+                className="font-medium text-gray-900 truncate transition-colors hover:text-blue-600"
                 title={productName}
               >
                 {productName}
@@ -561,7 +561,7 @@ const ProductList = () => {
                 </span>
               )}
             </div>
-            <div className="text-xs text-gray-500 truncate mt-1">
+            <div className="mt-1 text-xs text-gray-500 truncate">
               SKU: {product.sku || 'N/A'} • {product.category || 'Uncategorized'}
             </div>
             {product.tags && product.tags.length > 0 && (
@@ -587,7 +587,7 @@ const ProductList = () => {
       title: 'Price',
       sortable: true,
       render: (price) => (
-        <div className="font-medium text-gray-900 text-right">
+        <div className="font-medium text-right text-gray-900">
           {formatCurrency(price || 0)}
         </div>
       ),
@@ -601,7 +601,7 @@ const ProductList = () => {
         const stockValue = stock || product.quantity || product.inventory || 0;
         return (
           <div className="text-right">
-            <div className="font-medium text-gray-900 mb-1">
+            <div className="mb-1 font-medium text-gray-900">
               {stockValue.toLocaleString()}
             </div>
             {getStockBadge(stockValue)}
@@ -639,21 +639,21 @@ const ProductList = () => {
               className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               title="View details"
             >
-              <EyeIcon className="h-4 w-4" />
+              <EyeIcon className="w-4 h-4" />
             </Link>
             <Link
               to={`/products/edit/${productId}`}
               className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
               title="Edit"
             >
-              <PencilIcon className="h-4 w-4" />
+              <PencilIcon className="w-4 h-4" />
             </Link>
             <button
               onClick={() => handleDelete(productId)}
               className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
               title="Delete"
             >
-              <TrashIcon className="h-4 w-4" />
+              <TrashIcon className="w-4 h-4" />
             </button>
           </div>
         );
@@ -671,8 +671,8 @@ const ProductList = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Products</h1>
               <p className="text-gray-600">Manage your store's products inventory</p>
@@ -681,30 +681,30 @@ const ProductList = () => {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => setShowExport(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50"
               >
-                <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
                 Export
               </button>
               
               <button
                 onClick={handleRefresh}
                 disabled={refreshing || loading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {refreshing ? (
-                  <ArrowPathIcon className="h-4 w-4 mr-2 animate-spin" />
+                  <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
-                  <ArrowPathIcon className="h-4 w-4 mr-2" />
+                  <ArrowPathIcon className="w-4 h-4 mr-2" />
                 )}
                 Refresh
               </button>
               
               <Link
                 to="/products/new"
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700"
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
+                <PlusIcon className="w-4 h-4 mr-2" />
                 Add Product
               </Link>
             </div>
@@ -714,35 +714,35 @@ const ProductList = () => {
 
       {/* Stats Bar */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
               <div className="text-2xl font-bold text-gray-900">{stats.total.toLocaleString()}</div>
-              <div className="text-sm text-gray-600 flex items-center">
+              <div className="flex items-center text-sm text-gray-600">
                 <CubeIcon className="h-4 w-4 mr-1.5" />
                 Total Products
               </div>
             </div>
             
-            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+            <div className="p-4 border rounded-lg bg-emerald-50 border-emerald-200">
               <div className="text-2xl font-bold text-emerald-700">{stats.active.toLocaleString()}</div>
-              <div className="text-sm text-emerald-600 flex items-center">
+              <div className="flex items-center text-sm text-emerald-600">
                 <CheckCircleIcon className="h-4 w-4 mr-1.5" />
                 Active
               </div>
             </div>
             
-            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+            <div className="p-4 border border-red-200 rounded-lg bg-red-50">
               <div className="text-2xl font-bold text-red-700">{stats.outOfStock.toLocaleString()}</div>
-              <div className="text-sm text-red-600 flex items-center">
+              <div className="flex items-center text-sm text-red-600">
                 <ExclamationCircleIcon className="h-4 w-4 mr-1.5" />
                 Out of Stock
               </div>
             </div>
             
-            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+            <div className="p-4 border border-yellow-200 rounded-lg bg-yellow-50">
               <div className="text-2xl font-bold text-yellow-700">{stats.lowStock.toLocaleString()}</div>
-              <div className="text-sm text-yellow-600 flex items-center">
+              <div className="flex items-center text-sm text-yellow-600">
                 <ExclamationCircleIcon className="h-4 w-4 mr-1.5" />
                 Low Stock
               </div>
@@ -753,8 +753,8 @@ const ProductList = () => {
 
       {/* Filters & Search */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="px-4 py-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="flex-1">
               <SearchBar
                 placeholder="Search products by name, SKU, category, or tags..."
@@ -777,7 +777,7 @@ const ProductList = () => {
                     : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <FunnelIcon className="h-4 w-4 mr-2" />
+                <FunnelIcon className="w-4 h-4 mr-2" />
                 Filters
                 {(showFilters || Object.values(filters).some(v => 
                   typeof v === 'string' ? v : Object.values(v).some(subV => subV)
@@ -793,9 +793,9 @@ const ProductList = () => {
               <button
                 onClick={clearFilters}
                 disabled={loading}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <XMarkIcon className="h-4 w-4 mr-2" />
+                <XMarkIcon className="w-4 h-4 mr-2" />
                 Clear
               </button>
             </div>
@@ -817,8 +817,8 @@ const ProductList = () => {
 
       {/* Bulk Actions */}
       {selectedRows.length > 0 && (
-        <div className="bg-blue-50 border-b border-blue-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="border-b border-blue-200 bg-blue-50">
+          <div className="px-4 py-3 mx-auto max-w-7xl sm:px-6 lg:px-8">
             <BulkActions
               selectedCount={selectedRows.length}
               onBulkDelete={handleBulkDelete}
@@ -830,25 +830,25 @@ const ProductList = () => {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* Products Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
           <DataTable
             columns={columns}
             data={filteredProducts}
             loading={loading}
             emptyMessage={
-              <div className="text-center py-16">
+              <div className="py-16 text-center">
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <div className="w-12 h-12 mx-auto mb-4 border-b-2 border-blue-600 rounded-full animate-spin"></div>
                     <p className="text-gray-600">Loading products...</p>
                   </>
                 ) : (
                   <>
-                    <ArchiveBoxIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    <ArchiveBoxIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="mb-2 text-lg font-medium text-gray-900">No products found</h3>
+                    <p className="max-w-md mx-auto mb-6 text-gray-600">
                       {searchQuery || Object.values(filters).some(v => 
                         typeof v === 'string' ? v : Object.values(v).some(subV => subV)
                       )
@@ -861,9 +861,9 @@ const ProductList = () => {
                     )) && (
                       <Link
                         to="/products/new"
-                        className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                        className="inline-flex items-center px-6 py-3 font-medium text-white transition-colors bg-blue-600 rounded-lg shadow-sm hover:bg-blue-700"
                       >
-                        <PlusIcon className="h-5 w-5 mr-2" />
+                        <PlusIcon className="w-5 h-5 mr-2" />
                         Add Your First Product
                       </Link>
                     )}

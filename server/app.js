@@ -12,13 +12,14 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import fs from 'fs';
 
 // Import configuration
 import config from './config/env.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { loginLimiter, otpLimiter, apiLimiter, oauthLimiter } from './middleware/rateLimiters.js';
 import { csrfProtection, getCsrfToken } from './config/csrfProtection.js';
-import logger from './utils/logger.js'; // ✅ FIXED: Single import
+import logger from './utils/logger.js';
 
 // Import routers
 import authRouter from './routes/authRoutes.js';
@@ -32,8 +33,60 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Path for static uploads
-const uploadsPath = path.join(__dirname, 'uploads');
+// ==================== UPLOADS PATH CONFIGURATION ====================
+// Check multiple possible uploads locations
+const possiblePaths = [
+    path.join(__dirname, 'uploads'),                    // server/uploads
+    path.join(__dirname, '..', 'uploads'),              // project-root/uploads
+    path.join(process.cwd(), 'uploads'),                // current working directory/uploads
+    path.join(process.cwd(), 'server', 'uploads')       // cwd/server/uploads
+];
+
+let uploadsPath = null;
+for (const testPath of possiblePaths) {
+    if (fs.existsSync(testPath)) {
+        uploadsPath = testPath;
+        console.log(`📁 Found uploads folder at: ${uploadsPath}`.green);
+        break;
+    }
+}
+
+// If no uploads folder found, create one in server directory
+if (!uploadsPath) {
+    uploadsPath = path.join(__dirname, 'uploads');
+    fs.mkdirSync(uploadsPath, { recursive: true });
+    console.log(`📁 Created uploads folder at: ${uploadsPath}`.yellow);
+}
+
+// Create products subfolder if it doesn't exist
+const productsPath = path.join(uploadsPath, 'products');
+if (!fs.existsSync(productsPath)) {
+    fs.mkdirSync(productsPath, { recursive: true });
+    console.log(`📁 Created products subfolder at: ${productsPath}`.green);
+}
+
+console.log(`📁 Final uploads path: ${uploadsPath}`.cyan);
+console.log(`📁 Products subfolder: ${productsPath}`.cyan);
+console.log(`📁 Uploads folder exists: ${fs.existsSync(uploadsPath)}`.cyan);
+console.log(`📁 Products folder exists: ${fs.existsSync(productsPath)}`.cyan);
+
+// List files in uploads folder for debugging
+try {
+    const files = fs.readdirSync(uploadsPath);
+    console.log(`📁 Files in uploads (${files.length}):`.cyan);
+    files.slice(0, 5).forEach(file => console.log(`   - ${file}`.gray));
+    if (files.length > 5) console.log(`   ... and ${files.length - 5} more`.gray);
+    
+    // List files in products subfolder
+    if (fs.existsSync(productsPath)) {
+        const productFiles = fs.readdirSync(productsPath);
+        console.log(`📁 Files in products (${productFiles.length}):`.cyan);
+        productFiles.slice(0, 5).forEach(file => console.log(`   - ${file}`.gray));
+        if (productFiles.length > 5) console.log(`   ... and ${productFiles.length - 5} more`.gray);
+    }
+} catch (err) {
+    console.log(`📁 Could not read uploads folder: ${err.message}`.yellow);
+}
 
 const app = express();
 
@@ -162,7 +215,8 @@ app.use('/api', (req, res, next) => {
     if (req.path.includes('/auth/google/callback') ||
         req.path.includes('/health') ||
         req.path.includes('/csrf-token') ||
-        req.path.includes('/webhook')) {
+        req.path.includes('/webhook') ||
+        req.path.includes('/debug')) {  // Allow debug endpoints
         return next();
     }
 
@@ -175,17 +229,54 @@ app.use('/api', (req, res, next) => {
 // CSRF Token endpoint
 app.get('/api/csrf-token', getCsrfToken);
 
-// ==================== STATIC FILES ====================
+// ==================== ✅ FIXED: STATIC FILES WITH SUBFOLDER SUPPORT ====================
+// Serve static files from main uploads directory (this automatically serves subfolders)
 app.use('/uploads', express.static(uploadsPath, {
     maxAge: config.isProduction?.() ? '30d' : 0,
     etag: true,
-    lastModified: true
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        console.log(`📸 Serving static file: ${path.basename(filePath)}`.gray);
+    }
+}));
+
+// Explicitly serve products subfolder (redundant but safe)
+app.use('/uploads/products', express.static(path.join(uploadsPath, 'products'), {
+    maxAge: config.isProduction?.() ? '30d' : 0,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
 }));
 
 // ==================== HEALTH CHECK ====================
 app.get('/api/health', (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     const dbState = ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown';
+    
+    // Get uploads stats
+    let uploadsStats = {
+        path: uploadsPath,
+        exists: fs.existsSync(uploadsPath),
+        fileCount: 0,
+        productsCount: 0
+    };
+    
+    if (fs.existsSync(uploadsPath)) {
+        try {
+            uploadsStats.fileCount = fs.readdirSync(uploadsPath).length;
+            const productsSubfolder = path.join(uploadsPath, 'products');
+            if (fs.existsSync(productsSubfolder)) {
+                uploadsStats.productsCount = fs.readdirSync(productsSubfolder).length;
+            }
+        } catch (err) {
+            uploadsStats.error = err.message;
+        }
+    }
     
     res.status(200).json({
         success: true,
@@ -198,6 +289,7 @@ app.get('/api/health', (req, res) => {
             host: mongoose.connection.host || 'N/A',
             name: mongoose.connection.name || 'N/A'
         },
+        uploads: uploadsStats,
         uptime: process.uptime(),
         memory: process.memoryUsage(),
         cpu: process.cpuUsage()
@@ -205,13 +297,8 @@ app.get('/api/health', (req, res) => {
 });
 
 // ==================== API ROUTES ====================
-// Mount all routes through index router (SINGLE SOURCE OF TRUTH)
+// Mount all routes through index router
 app.use('/api', indexRouter);
-
-// Legacy route support (temporary - will be removed after confirming index router works)
-// Comment these out once you verify index router is working
-// app.use('/api/auth', authRouter);
-// app.use('/api/user', userRouter);
 
 // ==================== ROOT ENDPOINT ====================
 app.get('/', (req, res) => {
@@ -225,6 +312,8 @@ app.get('/', (req, res) => {
         health: '/api/health',
         auth: '/api/auth',
         csrf: '/api/csrf-token',
+        uploads: '/uploads',
+        debug: '/api/debug/uploads',
         endpoints: {
             products: '/api/products',
             categories: '/api/categories',
@@ -234,8 +323,160 @@ app.get('/', (req, res) => {
     });
 });
 
-// ==================== DEBUG ENDPOINTS (DEVELOPMENT ONLY) ====================
+// ==================== ENHANCED DEBUG ENDPOINTS ====================
 if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
+    
+    // 🆕 ENHANCED: Uploads debug endpoint with subfolder support
+    app.get('/api/debug/uploads', (req, res) => {
+        try {
+            const folderExists = fs.existsSync(uploadsPath);
+            
+            if (!folderExists) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Uploads folder not found',
+                    path: uploadsPath,
+                    possiblePaths: possiblePaths.map(p => ({
+                        path: p,
+                        exists: fs.existsSync(p)
+                    }))
+                });
+            }
+            
+            // Check main uploads folder
+            const files = fs.readdirSync(uploadsPath);
+            
+            // Check products subfolder
+            const productsPath_check = path.join(uploadsPath, 'products');
+            const productsExists = fs.existsSync(productsPath_check);
+            let productFiles = [];
+            
+            if (productsExists) {
+                productFiles = fs.readdirSync(productsPath_check);
+            }
+            
+            // Get file stats for main folder
+            const fileDetails = files.slice(0, 20).map(filename => {
+                const filePath = path.join(uploadsPath, filename);
+                try {
+                    const stats = fs.statSync(filePath);
+                    return {
+                        name: filename,
+                        size: stats.size,
+                        isFile: stats.isFile(),
+                        isDirectory: stats.isDirectory(),
+                        created: stats.birthtime,
+                        modified: stats.mtime,
+                        url: `/uploads/${filename}`,
+                        fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/${filename}`
+                    };
+                } catch (err) {
+                    return {
+                        name: filename,
+                        error: err.message
+                    };
+                }
+            });
+            
+            // Get stats for product files
+            const productDetails = productFiles.slice(0, 20).map(filename => {
+                const filePath = path.join(productsPath_check, filename);
+                try {
+                    const stats = fs.statSync(filePath);
+                    return {
+                        name: filename,
+                        size: stats.size,
+                        isFile: stats.isFile(),
+                        created: stats.birthtime,
+                        modified: stats.mtime,
+                        url: `/uploads/products/${filename}`,
+                        fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${filename}`
+                    };
+                } catch (err) {
+                    return {
+                        name: filename,
+                        error: err.message
+                    };
+                }
+            });
+            
+            // Check for specific product image
+            const specificImage = 'screenshot-from-2026-01-11-20-54-58-1770967558948-9d92599d.png';
+            const specificImagePath = path.join(uploadsPath, 'products', specificImage);
+            const specificImageExists = fs.existsSync(specificImagePath);
+            
+            res.json({
+                success: true,
+                message: 'Uploads folder structure',
+                path: uploadsPath,
+                exists: true,
+                mainFolder: {
+                    fileCount: files.length,
+                    files: fileDetails
+                },
+                productsSubfolder: {
+                    exists: productsExists,
+                    path: productsPath_check,
+                    fileCount: productFiles.length,
+                    files: productDetails
+                },
+                yourSpecificImage: {
+                    filename: specificImage,
+                    exists: specificImageExists,
+                    path: specificImagePath,
+                    url: `/uploads/products/${specificImage}`,
+                    fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${specificImage}`,
+                    size: specificImageExists ? fs.statSync(specificImagePath).size : null
+                },
+                testYourImage: productFiles.length > 0 ? {
+                    filename: productFiles[0],
+                    url: `/uploads/products/${productFiles[0]}`,
+                    fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${productFiles[0]}`
+                } : null
+            });
+            
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                error: error.message,
+                path: uploadsPath
+            });
+        }
+    });
+
+    // 🆕 Test specific product image endpoint
+    app.get('/api/debug/product-image/:filename?', (req, res) => {
+        const filename = req.params.filename || 'screenshot-from-2026-01-11-20-54-58-1770967558948-9d92599d.png';
+        const imagePath = path.join(uploadsPath, 'products', filename);
+        const productsFolder = path.join(uploadsPath, 'products');
+        
+        const response = {
+            success: false,
+            searchedFile: filename,
+            searchedPath: imagePath,
+            uploadsPath: uploadsPath,
+            productsPath: productsFolder,
+            productsExists: fs.existsSync(productsFolder),
+            fileExists: fs.existsSync(imagePath)
+        };
+        
+        if (fs.existsSync(productsFolder)) {
+            response.productsFiles = fs.readdirSync(productsFolder).slice(0, 10);
+        }
+        
+        if (fs.existsSync(imagePath)) {
+            const stats = fs.statSync(imagePath);
+            response.success = true;
+            response.message = 'Product image found';
+            response.fileSize = stats.size;
+            response.url = `/uploads/products/${filename}`;
+            response.fullUrl = `http://localhost:${config.server?.port || 5000}/uploads/products/${filename}`;
+        }
+        
+        res.json(response);
+    });
+
+    // Routes debug endpoint
     app.get('/api/debug/routes', (req, res) => {
         const routes = [];
 
@@ -273,6 +514,7 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         });
     });
 
+    // Config debug endpoint
     app.get('/api/debug/config', (req, res) => {
         const safeConfig = {
             environment: config.server?.env || process.env.NODE_ENV,
@@ -286,7 +528,13 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
             },
             uploads: {
                 maxSize: config.uploads?.maxSize || '10mb',
-                path: uploadsPath
+                path: uploadsPath,
+                exists: fs.existsSync(uploadsPath),
+                fileCount: fs.existsSync(uploadsPath) ? fs.readdirSync(uploadsPath).length : 0,
+                productsPath: path.join(uploadsPath, 'products'),
+                productsExists: fs.existsSync(path.join(uploadsPath, 'products')),
+                productsCount: fs.existsSync(path.join(uploadsPath, 'products')) ? 
+                    fs.readdirSync(path.join(uploadsPath, 'products')).length : 0
             },
             session: {
                 maxAge: config.session?.cookie?.maxAge || 1200000,
@@ -296,7 +544,7 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         res.json({ success: true, config: safeConfig });
     });
 
-    // Test endpoint for checking server status
+    // Test endpoint
     app.get('/api/test', (req, res) => {
         res.json({
             success: true,
@@ -309,7 +557,6 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
 }
 
 // ==================== 404 HANDLER ====================
-// Catch-all for undefined routes
 app.all('*', (req, res, next) => {
     const err = new Error(`Cannot find ${req.method} ${req.originalUrl} on this server`);
     err.statusCode = 404;
@@ -318,10 +565,7 @@ app.all('*', (req, res, next) => {
 });
 
 // ==================== ERROR HANDLING ====================
-// 404 handler - MUST be after all routes
 app.use(notFound);
-
-// Global error handler - MUST be last
 app.use(errorHandler);
 
 export default app;

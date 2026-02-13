@@ -1,8 +1,7 @@
-// src/services/orders.js - FINAL CORRECTED VERSION
 import api from './api';
 
 export const orderService = {
-  // Get all orders with filters (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT - No /api prefix
   getAll: async (params = {}) => {
     try {
       const response = await api.get('/admin/orders', { params });
@@ -13,7 +12,7 @@ export const orderService = {
     }
   },
 
-  // Get single order (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   getById: async (id) => {
     try {
       const response = await api.get(`/admin/orders/${id}`);
@@ -24,7 +23,7 @@ export const orderService = {
     }
   },
 
-  // Create manual order (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   create: async (orderData) => {
     try {
       const response = await api.post('/admin/orders', orderData);
@@ -35,7 +34,7 @@ export const orderService = {
     }
   },
 
-  // Update order (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   update: async (id, orderData) => {
     try {
       const response = await api.put(`/admin/orders/${id}`, orderData);
@@ -46,7 +45,7 @@ export const orderService = {
     }
   },
 
-  // Delete order (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   delete: async (id) => {
     try {
       const response = await api.delete(`/admin/orders/${id}`);
@@ -57,7 +56,7 @@ export const orderService = {
     }
   },
 
-  // Update order status (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   updateStatus: async (id, status) => {
     try {
       const response = await api.put(`/admin/orders/${id}/status`, { status });
@@ -68,7 +67,7 @@ export const orderService = {
     }
   },
 
-  // Get order statistics (ADMIN ENDPOINT)
+  // ✅ ALREADY CORRECT
   getStatistics: async () => {
     try {
       const response = await api.get('/admin/orders/stats');
@@ -79,7 +78,7 @@ export const orderService = {
     }
   },
 
-  // Additional admin endpoints
+  // ✅ ALREADY CORRECT
   getTimeline: async (id) => {
     try {
       const response = await api.get(`/admin/orders/${id}/timeline`);
@@ -90,7 +89,7 @@ export const orderService = {
     }
   },
 
-  // Fulfill order (mark as shipped)
+  // ✅ ALREADY CORRECT
   fulfill: async (id, trackingData = {}) => {
     try {
       const response = await api.put(`/admin/orders/${id}/fulfill`, trackingData);
@@ -101,7 +100,7 @@ export const orderService = {
     }
   },
 
-  // Bulk update order statuses
+  // ✅ ALREADY CORRECT
   bulkUpdateStatus: async (orderIds, status) => {
     try {
       const response = await api.put('/admin/orders/bulk/status', {
@@ -115,4 +114,5 @@ export const orderService = {
     }
   }
 };
+
 export default orderService;

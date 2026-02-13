@@ -1,17 +1,15 @@
-// src/services/settings.js
 import api from './api';
 
 export const settingsService = {
-  // Get all settings - returns full response object
+  // Get all settings
   getSettings: async () => {
     try {
       console.log('📤 Fetching settings from:', '/admin/settings/');
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/');
       console.log('✅ Settings raw response:', response.data);
       
-      // Return the FULL response.data object
       return response.data;
-      
     } catch (error) {
       console.error('❌ Error fetching settings:', error);
       
@@ -27,6 +25,7 @@ export const settingsService = {
         for (const endpoint of alternativeEndpoints) {
           try {
             console.log(`🔄 Trying alternative endpoint: ${endpoint}`);
+            // ✅ FIXED: Remove /api prefix
             const altResponse = await api.get(endpoint);
             console.log(`✅ Success with endpoint: ${endpoint}`, altResponse.data);
             return altResponse.data;
@@ -50,6 +49,7 @@ export const settingsService = {
     try {
       console.log('📤 Updating settings:', settingsData);
       
+      // ✅ FIXED: Remove /api prefix
       const response = await api.put('/admin/settings/', settingsData);
       console.log('✅ Update response:', response.data);
       
@@ -60,6 +60,7 @@ export const settingsService = {
       if (error.response?.status === 404) {
         try {
           console.log('🔄 Trying without trailing slash...');
+          // ✅ FIXED: Remove /api prefix
           const response = await api.put('/admin/settings', settingsData);
           return response.data;
         } catch (secondError) {
@@ -75,6 +76,7 @@ export const settingsService = {
   resetSettings: async () => {
     try {
       console.log('📤 Resetting settings...');
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post('/admin/settings/reset');
       console.log('✅ Reset response:', response.data);
       return response.data;
@@ -87,6 +89,7 @@ export const settingsService = {
   // Get email settings
   getEmailSettings: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/email');
       return response.data;
     } catch (error) {
@@ -98,6 +101,7 @@ export const settingsService = {
   // Update email settings
   updateEmailSettings: async (data) => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.put('/admin/settings/email', data);
       return response.data;
     } catch (error) {
@@ -109,6 +113,7 @@ export const settingsService = {
   // Get system info
   getSystemInfo: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/system-info');
       return response.data;
     } catch (error) {
@@ -120,6 +125,7 @@ export const settingsService = {
   // Toggle maintenance mode
   toggleMaintenance: async (enabled, message) => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.patch('/admin/settings/maintenance', { 
         enabled: enabled,
         maintenanceMessage: message 
@@ -141,6 +147,7 @@ export const settingsService = {
       }
 
       console.log('📤 Uploading file...');
+      // ✅ FIXED: Remove /api prefix
       const response = await api.post('/admin/settings/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -158,6 +165,7 @@ export const settingsService = {
           formData.append('file', file);
           if (type) formData.append('type', type);
           
+          // ✅ FIXED: Remove /api prefix
           const altResponse = await api.post('/admin/upload/i/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
@@ -174,6 +182,7 @@ export const settingsService = {
   // Test email
   testEmail: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/test');
       return response.data;
     } catch (error) {
@@ -185,6 +194,7 @@ export const settingsService = {
   // Test auth
   testAuth: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/test-auth');
       return response.data;
     } catch (error) {
@@ -196,6 +206,7 @@ export const settingsService = {
   // Test connection
   testConnection: async () => {
     try {
+      // ✅ FIXED: Remove /api prefix
       const response = await api.get('/admin/settings/');
       return {
         success: true,
@@ -216,6 +227,7 @@ export const settingsService = {
       
       for (const endpoint of endpoints) {
         try {
+          // ✅ FIXED: Remove /api prefix
           const response = await api.get(endpoint);
           results.push({
             endpoint,
@@ -254,7 +266,6 @@ export const settingsService = {
         { method: 'GET', path: '/admin/settings/system-info' },
         { method: 'GET', path: '/admin/products/' },
         { method: 'GET', path: '/admin/orders/' },
-        { method: 'GET', path: '/users' },
         { method: 'GET', path: '/health' }
       ];
       

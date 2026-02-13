@@ -1,3 +1,4 @@
+// admin/src/services/products.js
 import api from './api';
 
 // Configuration constants
@@ -52,7 +53,6 @@ const formatError = (error, context) => {
     errorDetails.status = error.response.status;
     errorDetails.data = error.response.data;
     
-    // Map status codes to error types
     if (error.response.status === 400) {
       errorDetails.type = ProductErrorType.VALIDATION;
       errorDetails.message = error.response.data?.message || 'Validation error occurred';
@@ -78,7 +78,6 @@ const formatError = (error, context) => {
       errorDetails.message = error.response.data?.message || 'Unknown error occurred';
     }
     
-    // Extract validation errors from backend response
     if (error.response.data?.errors) {
       errorDetails.validationErrors = error.response.data.errors;
     }
@@ -97,40 +96,60 @@ const formatError = (error, context) => {
 const normalizeProductData = (product) => {
   if (!product) return null;
   
-  // Extract image URL from different possible structures
+  console.log('🔄 Normalizing product:', product);
+  
   let imageUrl = '';
   let imagesArray = [];
   
+  // ✅ FIXED: Better image extraction for multiple formats
   if (product.images && Array.isArray(product.images)) {
-    imagesArray = product.images.map(img => {
+    imagesArray = product.images.map((img, index) => {
       if (typeof img === 'string') {
-        return { url: img, altText: product.name || '', isPrimary: false };
-      } else if (img && img.url) {
         return { 
-          url: img.url, 
-          altText: img.altText || product.name || '', 
-          isPrimary: img.isPrimary || false 
+          url: img, 
+          altText: product.name || '', 
+          isPrimary: index === 0 
         };
+      } else if (img && typeof img === 'object') {
+        // Handle object with url property
+        const url = img.url || img.src || img.path;
+        if (url) {
+          return { 
+            url, 
+            altText: img.altText || product.name || '', 
+            isPrimary: img.isPrimary || index === 0,
+            id: img._id || img.id || index
+          };
+        }
       }
-      return { url: '', altText: '', isPrimary: false };
-    }).filter(img => img.url);
-    
-    // Use first image as primary if no primary is set
-    if (imagesArray.length > 0) {
-      imageUrl = imagesArray[0].url;
-      if (!imagesArray.some(img => img.isPrimary)) {
-        imagesArray[0].isPrimary = true;
-      }
+      return null;
+    }).filter(Boolean);
+  } 
+  
+  // Handle single image field
+  if (imagesArray.length === 0) {
+    if (product.image && typeof product.image === 'string') {
+      imageUrl = product.image;
+      imagesArray = [{ url: product.image, altText: product.name || '', isPrimary: true }];
+    } else if (product.image && typeof product.image === 'object' && product.image.url) {
+      imageUrl = product.image.url;
+      imagesArray = [{ 
+        url: product.image.url, 
+        altText: product.image.altText || product.name || '', 
+        isPrimary: true 
+      }];
+    } else if (product.thumbnail) {
+      imageUrl = product.thumbnail;
+      imagesArray = [{ url: product.thumbnail, altText: product.name || '', isPrimary: true }];
     }
-  } else if (product.image) {
-    imageUrl = product.image;
-    imagesArray = [{ url: product.image, altText: product.name || '', isPrimary: true }];
-  } else if (product.thumbnail) {
-    imageUrl = product.thumbnail;
-    imagesArray = [{ url: product.thumbnail, altText: product.name || '', isPrimary: true }];
   }
   
-  return {
+  // Ensure we have at least the image URL
+  if (imagesArray.length === 0 && imageUrl) {
+    imagesArray = [{ url: imageUrl, altText: product.name || '', isPrimary: true }];
+  }
+  
+  const normalized = {
     id: product._id || product.id,
     _id: product._id || product.id,
     name: product.name || '',
@@ -141,7 +160,7 @@ const normalizeProductData = (product) => {
     quantity: product.quantity || product.stock || product.inventory || 0,
     category: product.category || '',
     images: imagesArray,
-    image: imageUrl,
+    image: imageUrl || (imagesArray[0]?.url || ''),
     status: product.status || 'draft',
     sku: product.sku || '',
     barcode: product.barcode || '',
@@ -155,30 +174,42 @@ const normalizeProductData = (product) => {
     trackQuantity: product.trackQuantity !== false,
     allowOutOfStockPurchase: Boolean(product.allowOutOfStockPurchase),
   };
+  
+  console.log('✅ Normalized product:', {
+    id: normalized.id,
+    name: normalized.name,
+    imageCount: normalized.images.length,
+    images: normalized.images
+  });
+  
+  return normalized;
 };
 
 // Helper to normalize products array
 const normalizeProductsData = (data) => {
+  console.log('🔄 Normalizing products data:', data);
+  
+  if (!data) return [];
+  
+  // If it's already an array
   if (Array.isArray(data)) {
-    return data.map(normalizeProductData);
+    return data.map(normalizeProductData).filter(Boolean);
   }
   
+  // If it's an object with common patterns
   if (data && typeof data === 'object') {
-    // Check for common API response structures
-    if (Array.isArray(data.data)) {
-      return data.data.map(normalizeProductData);
+    // Check for common array properties
+    const possibleArrays = ['data', 'products', 'results', 'items', 'docs'];
+    for (const key of possibleArrays) {
+      if (Array.isArray(data[key])) {
+        return data[key].map(normalizeProductData).filter(Boolean);
+      }
     }
-    if (Array.isArray(data.products)) {
-      return data.products.map(normalizeProductData);
-    }
-    if (Array.isArray(data.results)) {
-      return data.results.map(normalizeProductData);
-    }
-    if (Array.isArray(data.items)) {
-      return data.items.map(normalizeProductData);
-    }
+    
+    // If it's a single product object with _id or id
     if (data._id || data.id) {
-      return [normalizeProductData(data)];
+      const normalized = normalizeProductData(data);
+      return normalized ? [normalized] : [];
     }
   }
   
@@ -186,10 +217,8 @@ const normalizeProductsData = (data) => {
 };
 
 export const productService = {
-  // Configuration
   config: API_CONFIG,
 
-  // Get all products with enhanced filtering and pagination
   getAll: async (filters = {}) => {
     try {
       const defaultFilters = {
@@ -207,23 +236,21 @@ export const productService = {
         ...filters,
       };
 
-      // Clean up filters - remove empty values
       const cleanFilters = {};
       Object.entries(defaultFilters).forEach(([key, value]) => {
-        if (value !== '' && value !== null && value !== undefined && !(typeof value === 'object' && Object.keys(value).length === 0)) {
-          // Handle nested objects
+        if (value !== '' && value !== null && value !== undefined) {
           if (typeof value === 'object' && !Array.isArray(value)) {
             const nestedValues = Object.values(value).filter(v => v !== '' && v !== null && v !== undefined);
             if (nestedValues.length > 0) {
               cleanFilters[key] = value;
             }
-          } else {
+          } else if (value !== '') {
             cleanFilters[key] = value;
           }
         }
       });
 
-      console.log('Fetching products with filters:', cleanFilters);
+      console.log('📤 Fetching products with filters:', cleanFilters);
 
       const response = await retryRequest(() => 
         api.get('/admin/products', { 
@@ -232,23 +259,23 @@ export const productService = {
         })
       );
       
-      console.log('Raw API response:', response.data);
+      console.log('📦 Raw API response:', response.data);
       
-      // Normalize the response data
       const normalizedData = normalizeProductsData(response.data);
+      console.log('✨ Normalized data:', normalizedData);
       
       return {
         success: true,
         data: normalizedData,
         pagination: {
-          page: parseInt(cleanFilters.page) || 1,
-          limit: parseInt(cleanFilters.limit) || 100,
-          total: response.data?.total || normalizedData.length,
-          totalPages: response.data?.totalPages || Math.ceil(normalizedData.length / (cleanFilters.limit || 100)),
+          page: response.data?.page || parseInt(cleanFilters.page) || 1,
+          limit: response.data?.limit || parseInt(cleanFilters.limit) || 100,
+          total: response.data?.total || response.data?.count || normalizedData.length,
+          totalPages: response.data?.totalPages || response.data?.pages || Math.ceil(normalizedData.length / (cleanFilters.limit || 100)),
         },
       };
     } catch (error) {
-      console.error('Error in getAll:', error);
+      console.error('❌ Error in getAll:', error);
       const errorDetails = formatError(error, 'fetching products');
       return {
         success: false,
@@ -257,29 +284,55 @@ export const productService = {
     }
   },
 
-  // Get single product
+  // ✅ FIXED: Get by ID with better response handling
   getById: async (id, options = {}) => {
     try {
       if (!id) {
         throw new Error('Product ID is required');
       }
 
-      const config = {
-        timeout: API_CONFIG.TIMEOUT,
-        ...options,
-      };
+      console.log(`🔍 Fetching product ${id}...`);
 
       const response = await retryRequest(() => 
-        api.get(`/admin/products/${id}`, config)
+        api.get(`/admin/products/${id}`, {
+          timeout: API_CONFIG.TIMEOUT,
+          ...options,
+        })
       );
 
-      const normalizedData = normalizeProductData(response.data);
+      console.log('📦 Raw product response:', response.data);
+      
+      // Handle different response structures
+      let productData = response.data;
+      
+      // Case 1: response.data.product exists
+      if (response.data.product) {
+        productData = response.data.product;
+      } 
+      // Case 2: response.data.data exists
+      else if (response.data.data) {
+        productData = response.data.data;
+      }
+      // Case 3: response.data itself is the product
+      else if (response.data._id || response.data.id) {
+        productData = response.data;
+      }
+      // Case 4: response.data.success and response.data.data
+      else if (response.data.success && response.data.data) {
+        productData = response.data.data;
+      }
+
+      console.log('📊 Extracted product data:', productData);
+
+      const normalizedData = normalizeProductData(productData);
+      console.log('✨ Normalized product:', normalizedData);
       
       return {
         success: true,
         data: normalizedData,
       };
     } catch (error) {
+      console.error(`❌ Error fetching product ${id}:`, error);
       const errorDetails = formatError(error, `fetching product ${id}`);
       return {
         success: false,
@@ -288,10 +341,8 @@ export const productService = {
     }
   },
 
-  // Create product with FormData
   create: async (formData, options = {}) => {
     try {
-      // Validate required fields
       const name = formData.get('name');
       const price = formData.get('price');
       const stock = formData.get('stock');
@@ -310,16 +361,15 @@ export const productService = {
         throw new Error('Category is required');
       }
 
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: API_CONFIG.TIMEOUT,
-      };
-
-      console.log('Creating product...');
+      console.log('📝 Creating product...');
+      
       const response = await retryRequest(() => 
-        api.post('/admin/products', formData, config)
+        api.post('/admin/products', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: API_CONFIG.TIMEOUT,
+        })
       );
 
       const normalizedData = normalizeProductData(response.data);
@@ -330,6 +380,7 @@ export const productService = {
         message: 'Product created successfully',
       };
     } catch (error) {
+      console.error('❌ Error creating product:', error);
       const errorDetails = formatError(error, 'creating product');
       return {
         success: false,
@@ -338,7 +389,6 @@ export const productService = {
     }
   },
 
-  // Update product with FormData or JSON
   update: async (id, data, options = {}) => {
     try {
       if (!id) {
@@ -347,18 +397,17 @@ export const productService = {
 
       const isFormData = data instanceof FormData;
       
-      const config = {
-        headers: isFormData ? {
-          'Content-Type': 'multipart/form-data',
-        } : {
-          'Content-Type': 'application/json',
-        },
-        timeout: API_CONFIG.TIMEOUT,
-      };
+      console.log(`📝 Updating product ${id}...`);
 
-      console.log(`Updating product ${id}...`);
       const response = await retryRequest(() => 
-        api.put(`/admin/products/${id}`, data, config)
+        api.put(`/admin/products/${id}`, data, {
+          headers: isFormData ? {
+            'Content-Type': 'multipart/form-data',
+          } : {
+            'Content-Type': 'application/json',
+          },
+          timeout: API_CONFIG.TIMEOUT,
+        })
       );
 
       const normalizedData = normalizeProductData(response.data);
@@ -369,6 +418,7 @@ export const productService = {
         message: 'Product updated successfully',
       };
     } catch (error) {
+      console.error(`❌ Error updating product ${id}:`, error);
       const errorDetails = formatError(error, `updating product ${id}`);
       return {
         success: false,
@@ -377,12 +427,13 @@ export const productService = {
     }
   },
 
-  // Delete product
   delete: async (id, options = {}) => {
     try {
       if (!id) {
         throw new Error('Product ID is required for deletion');
       }
+
+      console.log(`🗑️ Deleting product ${id}...`);
 
       const response = await retryRequest(() => 
         api.delete(`/admin/products/${id}`, {
@@ -396,6 +447,7 @@ export const productService = {
         message: 'Product deleted successfully',
       };
     } catch (error) {
+      console.error(`❌ Error deleting product ${id}:`, error);
       const errorDetails = formatError(error, `deleting product ${id}`);
       return {
         success: false,
@@ -404,12 +456,13 @@ export const productService = {
     }
   },
 
-  // Update status
   updateStatus: async (id, status) => {
     try {
       if (!id) {
         throw new Error('Product ID is required');
       }
+
+      console.log(`🔄 Updating status for product ${id} to ${status}...`);
 
       const response = await retryRequest(() => 
         api.patch(`/admin/products/${id}/status`, { status }, {
@@ -425,6 +478,7 @@ export const productService = {
         message: `Status updated to ${status}`,
       };
     } catch (error) {
+      console.error(`❌ Error updating status for product ${id}:`, error);
       const errorDetails = formatError(error, `updating status for product ${id}`);
       return {
         success: false,
@@ -433,7 +487,6 @@ export const productService = {
     }
   },
 
-  // Get product statistics
   getStats: async () => {
     try {
       const response = await retryRequest(() => 
@@ -448,6 +501,7 @@ export const productService = {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
+      console.error('❌ Error fetching product stats:', error);
       const errorDetails = formatError(error, 'fetching product stats');
       return {
         success: false,
@@ -456,7 +510,6 @@ export const productService = {
     }
   },
 
-  // Upload images separately
   uploadImages: async (id, files, options = {}) => {
     try {
       if (!id) {
@@ -468,19 +521,19 @@ export const productService = {
       }
 
       const formData = new FormData();
-      files.forEach((file, index) => {
+      files.forEach((file) => {
         formData.append('images', file);
       });
 
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: API_CONFIG.TIMEOUT,
-      };
+      console.log(`📸 Uploading ${files.length} images for product ${id}...`);
 
       const response = await retryRequest(() => 
-        api.post(`/admin/products/${id}/images`, formData, config)
+        api.post(`/admin/products/${id}/images`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: API_CONFIG.TIMEOUT,
+        })
       );
 
       return {
@@ -489,6 +542,7 @@ export const productService = {
         message: `${files.length} images uploaded successfully`,
       };
     } catch (error) {
+      console.error(`❌ Error uploading images for product ${id}:`, error);
       const errorDetails = formatError(error, `uploading images for product ${id}`);
       return {
         success: false,
@@ -497,7 +551,6 @@ export const productService = {
     }
   },
 
-  // Delete image
   deleteImage: async (id, imageIndex) => {
     try {
       if (!id) {
@@ -507,6 +560,8 @@ export const productService = {
       if (imageIndex === undefined || imageIndex < 0) {
         throw new Error('Valid image index is required');
       }
+
+      console.log(`🗑️ Deleting image ${imageIndex} for product ${id}...`);
 
       const response = await retryRequest(() => 
         api.delete(`/admin/products/${id}/images/${imageIndex}`, {
@@ -520,6 +575,7 @@ export const productService = {
         message: 'Image deleted successfully',
       };
     } catch (error) {
+      console.error(`❌ Error deleting image for product ${id}:`, error);
       const errorDetails = formatError(error, `deleting image for product ${id}`);
       return {
         success: false,
@@ -528,7 +584,6 @@ export const productService = {
     }
   },
 
-  // Set primary image
   setPrimaryImage: async (id, imageIndex) => {
     try {
       if (!id) {
@@ -538,6 +593,8 @@ export const productService = {
       if (imageIndex === undefined || imageIndex < 0) {
         throw new Error('Valid image index is required');
       }
+
+      console.log(`⭐ Setting image ${imageIndex} as primary for product ${id}...`);
 
       const response = await retryRequest(() => 
         api.put(`/admin/products/${id}/images/${imageIndex}/primary`, {}, {
@@ -551,6 +608,7 @@ export const productService = {
         message: 'Primary image set successfully',
       };
     } catch (error) {
+      console.error(`❌ Error setting primary image for product ${id}:`, error);
       const errorDetails = formatError(error, `setting primary image for product ${id}`);
       return {
         success: false,
@@ -559,7 +617,6 @@ export const productService = {
     }
   },
 
-  // Simple helper to test connection
   testConnection: async () => {
     try {
       const response = await api.get('/health', {
@@ -572,6 +629,7 @@ export const productService = {
         data: response.data
       };
     } catch (error) {
+      console.error('❌ Connection test failed:', error);
       return {
         success: false,
         connected: false,

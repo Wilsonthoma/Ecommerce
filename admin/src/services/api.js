@@ -1,21 +1,19 @@
 import axios from 'axios';
 
-// IMPORTANT: Use the correct backend URL - should be http://localhost:5000
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 console.log('🔗 Admin API connecting to:', API_BASE_URL);
 
 const api = axios.create({
+  // ✅ CORRECT - baseURL includes /api
   baseURL: `${API_BASE_URL}/api`,
   headers: {
     'Content-Type': 'application/json',
   },
   timeout: 15000,
   withCredentials: true,
-  // Prevent axios from automatically following redirects
-  maxRedirects: 0, // This is key - don't follow redirects automatically
+  maxRedirects: 0,
   validateStatus: function (status) {
-    // Accept all status codes, we'll handle 301 manually
     return status >= 200 && status < 500;
   },
 });
@@ -23,14 +21,12 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
     const token = localStorage.getItem('admin_token') || localStorage.getItem('token');
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Add CSRF token if available
     const csrfToken = localStorage.getItem('csrfToken');
     if (csrfToken) {
       config.headers['X-CSRF-Token'] = csrfToken;
@@ -50,21 +46,14 @@ api.interceptors.response.use(
   (response) => {
     console.log(`✅ Admin Response: ${response.status} ${response.config.url}`);
     
-    // Handle 301 redirects
     if (response.status === 301 || response.status === 308) {
       const redirectUrl = response.headers.location;
       console.log(`🔄 301 Redirect detected to: ${redirectUrl}`);
       
-      // If we get a 301, we should retry the request with the correct URL
-      const originalRequest = response.config;
-      
-      // Check if the redirect is just adding/removing a trailing slash
       if (redirectUrl && redirectUrl.includes(originalRequest.url)) {
         console.log('🔄 Redirect appears to be trailing slash issue');
-        // We'll let the individual service handle this
       }
       
-      // Return the response so the service can handle it
       return response;
     }
     
@@ -78,11 +67,9 @@ api.interceptors.response.use(
       code: error.code,
     });
     
-    // Handle network errors
     if (error.code === 'ERR_NETWORK') {
       console.error('🌐 Network Error: Cannot connect to backend');
       
-      // Show user-friendly error
       if (typeof window !== 'undefined') {
         const event = new CustomEvent('admin-network-error', {
           detail: { 
@@ -94,12 +81,10 @@ api.interceptors.response.use(
       }
     }
     
-    // Handle 301 redirects in error handler
     if (error.response?.status === 301 || error.response?.status === 308) {
       const redirectUrl = error.response.headers.location;
       console.log(`🔄 Got 301 redirect to: ${redirectUrl}`);
       
-      // Create a new error with redirect info
       const redirectError = new Error(`Request redirected to ${redirectUrl}`);
       redirectError.isRedirect = true;
       redirectError.redirectUrl = redirectUrl;
@@ -107,7 +92,6 @@ api.interceptors.response.use(
       throw redirectError;
     }
     
-    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       console.warn('⚠️ Admin session expired');
       localStorage.removeItem('admin_token');
@@ -118,12 +102,10 @@ api.interceptors.response.use(
       }
     }
     
-    // Handle 403 Forbidden
     if (error.response?.status === 403) {
       console.error('🚫 Access forbidden - insufficient permissions');
     }
     
-    // Return standardized error
     return Promise.reject({
       message: error.response?.data?.message || 
               error.response?.data?.error || 
@@ -138,7 +120,6 @@ api.interceptors.response.use(
   }
 );
 
-// Special API client that follows redirects
 export const apiWithRedirects = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   headers: {
@@ -146,10 +127,9 @@ export const apiWithRedirects = axios.create({
   },
   timeout: 15000,
   withCredentials: true,
-  maxRedirects: 5, // Allow redirects for this client
+  maxRedirects: 5,
 });
 
-// Test connection function
 export const testConnection = async () => {
   try {
     console.log('🔍 Testing admin connection to:', API_BASE_URL);

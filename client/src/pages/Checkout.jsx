@@ -1,8 +1,7 @@
-// src/pages/Checkout.jsx
-import React, { useState, useEffect, useContext } from 'react';
+// client/src/pages/Checkout.jsx
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CartContext } from '../context/CartContext';
-import { AppContext } from '../context/AppContext';
+import { useCart } from '../context/CartContext';
 import { clientOrderService } from '../services/client/orders';
 import { toast } from 'react-hot-toast';
 import {
@@ -16,14 +15,18 @@ import {
   FiPhone,
   FiMapPin,
   FiPackage,
-  FiShield
+  FiShield,
+  FiClock,
+  FiGlobe,
+  FiDollarSign,
+  FiScale,
+  FiRuler
 } from 'react-icons/fi';
 
 const Checkout = () => {
   const { orderId } = useParams();
   const navigate = useNavigate();
-  const { cart, clearCart } = useContext(CartContext);
-  const { user, isAuthenticated } = useContext(AppContext);
+  const { cart, clearCart } = useCart();
   
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState(null);
@@ -36,54 +39,90 @@ const Checkout = () => {
     city: '',
     state: '',
     zipCode: '',
-    country: '',
-    paymentMethod: 'credit_card',
-    shippingMethod: 'standard'
+    country: 'Kenya',
+    paymentMethod: 'mpesa',
+    shippingMethod: 'standard',
+    notes: ''
   });
   
   const [activeStep, setActiveStep] = useState(1);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [shippingCost, setShippingCost] = useState(0);
   
   const steps = [
     { id: 1, title: 'Shipping', icon: <FiTruck /> },
     { id: 2, title: 'Payment', icon: <FiCreditCard /> },
     { id: 3, title: 'Confirm', icon: <FiCheck /> }
   ];
-  
-  // Initialize form with user data if authenticated
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      setFormData(prev => ({
-        ...prev,
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        phone: user.phone || '',
-        address: user.address || '',
-        city: user.city || '',
-        state: user.state || '',
-        zipCode: user.zipCode || '',
-        country: user.country || 'US'
-      }));
-    }
-  }, [isAuthenticated, user]);
-  
-  // Calculate totals
-  const calculateTotals = () => {
-    const subtotal = cart?.items?.reduce((sum, item) => 
-      sum + (item.price * item.quantity), 0) || 0;
-    
-    const shippingCost = formData.shippingMethod === 'express' ? 15 : 
-                        formData.shippingMethod === 'next_day' ? 25 : 5;
-    
-    const tax = subtotal * 0.08; // 8% tax
-    const total = subtotal + shippingCost + tax;
-    
-    return { subtotal, shippingCost, tax, total };
+
+  // Calculate subtotal
+  const calculateSubtotal = () => {
+    return cart?.items?.reduce((sum, item) => {
+      const price = item.discountPrice || item.price || 0;
+      return sum + (price * item.quantity);
+    }, 0) || 0;
   };
-  
-  const { subtotal, shippingCost, tax, total } = calculateTotals();
-  
+
+  // Calculate shipping cost based on items and selected method
+  const calculateShippingCost = () => {
+    let totalShipping = 0;
+    
+    cart.items.forEach(item => {
+      if (item.freeShipping) return;
+      if (item.flatShippingRate > 0) {
+        totalShipping += item.flatShippingRate * item.quantity;
+      } else {
+        // Default rates based on shipping method
+        switch (formData.shippingMethod) {
+          case 'express':
+            totalShipping += 500 * item.quantity;
+            break;
+          case 'overnight':
+            totalShipping += 1500 * item.quantity;
+            break;
+          default:
+            // Standard shipping free for now
+            break;
+        }
+      }
+    });
+    
+    return totalShipping;
+  };
+
+  // Calculate tax (8%)
+  const calculateTax = () => {
+    return calculateSubtotal() * 0.08;
+  };
+
+  // Calculate total
+  const calculateTotal = () => {
+    return calculateSubtotal() + shippingCost + calculateTax();
+  };
+
+  useEffect(() => {
+    setShippingCost(calculateShippingCost());
+  }, [formData.shippingMethod, cart.items]);
+
+  // Format KES
+  const formatKES = (amount) => {
+    if (!amount && amount !== 0) return "KSh 0";
+    return `KSh ${Math.round(amount).toLocaleString()}`;
+  };
+
+  // Format zone name
+  const formatZoneName = (zone) => {
+    const zoneNames = {
+      'na': 'North America',
+      'eu': 'Europe',
+      'asia': 'Asia',
+      'africa': 'Africa',
+      'sa': 'South America',
+      'oceania': 'Oceania'
+    };
+    return zoneNames[zone] || zone;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -91,7 +130,7 @@ const Checkout = () => {
       [name]: value
     }));
   };
-  
+
   const handleNextStep = () => {
     if (activeStep < 3) {
       // Validate current step before proceeding
@@ -106,38 +145,37 @@ const Checkout = () => {
       setActiveStep(activeStep + 1);
     }
   };
-  
+
   const handlePreviousStep = () => {
     if (activeStep > 1) {
       setActiveStep(activeStep - 1);
     }
   };
-  
+
   const validateShippingInfo = () => {
     const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode'];
     return required.every(field => formData[field]?.trim());
   };
-  
+
   const validatePaymentInfo = () => {
-    // Add payment validation logic here
     return formData.paymentMethod;
   };
-  
+
   const handlePlaceOrder = async () => {
     if (!validateShippingInfo()) {
       toast.error('Please complete all required fields');
       return;
     }
-    
+
     if (cart?.items?.length === 0) {
       toast.error('Your cart is empty');
       navigate('/products');
       return;
     }
-    
+
     setLoading(true);
     setIsProcessingPayment(true);
-    
+
     try {
       const orderData = {
         shippingInfo: {
@@ -151,22 +189,33 @@ const Checkout = () => {
           zipCode: formData.zipCode,
           country: formData.country
         },
-        items: cart.items,
+        items: cart.items.map(item => ({
+          productId: item.id || item.productId,
+          name: item.name,
+          price: item.discountPrice || item.price,
+          quantity: item.quantity,
+          sku: item.sku,
+          weight: item.weight,
+          weightUnit: item.weightUnit,
+          requiresShipping: item.requiresShipping,
+          freeShipping: item.freeShipping,
+          flatShippingRate: item.flatShippingRate
+        })),
         paymentMethod: formData.paymentMethod,
         shippingMethod: formData.shippingMethod,
-        subtotal,
+        subtotal: calculateSubtotal(),
         shippingCost,
-        tax,
-        total,
-        notes: ''
+        tax: calculateTax(),
+        total: calculateTotal(),
+        notes: formData.notes
       };
-      
+
       const response = await clientOrderService.createOrder(orderData);
-      
+
       if (response.success) {
         toast.success('Order placed successfully!');
         clearCart();
-        
+
         // Redirect to order confirmation page
         navigate(`/order-confirmation/${response.order._id}`);
       } else {
@@ -180,7 +229,7 @@ const Checkout = () => {
       setIsProcessingPayment(false);
     }
   };
-  
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 1:
@@ -190,7 +239,7 @@ const Checkout = () => {
               <FiUser className="text-blue-600" />
               Shipping Information
             </h3>
-            
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block mb-1 text-sm font-medium">First Name *</label>
@@ -215,7 +264,7 @@ const Checkout = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className="block mb-1 text-sm font-medium">Email *</label>
@@ -246,7 +295,7 @@ const Checkout = () => {
                 </div>
               </div>
             </div>
-            
+
             <div>
               <label className="block mb-1 text-sm font-medium">Address *</label>
               <div className="flex items-center">
@@ -261,7 +310,7 @@ const Checkout = () => {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
                 <label className="block mb-1 text-sm font-medium">City *</label>
@@ -275,7 +324,7 @@ const Checkout = () => {
                 />
               </div>
               <div>
-                <label className="block mb-1 text-sm font-medium">State *</label>
+                <label className="block mb-1 text-sm font-medium">State/Province *</label>
                 <input
                   type="text"
                   name="state"
@@ -286,7 +335,7 @@ const Checkout = () => {
                 />
               </div>
               <div>
-                <label className="block mb-1 text-sm font-medium">ZIP Code *</label>
+                <label className="block mb-1 text-sm font-medium">ZIP/Postal Code *</label>
                 <input
                   type="text"
                   name="zipCode"
@@ -297,36 +346,100 @@ const Checkout = () => {
                 />
               </div>
             </div>
-            
+
             <div>
-              <label className="block mb-1 text-sm font-medium">Shipping Method</label>
-              <div className="space-y-2">
+              <label className="block mb-1 text-sm font-medium">Country</label>
+              <select
+                name="country"
+                value={formData.country}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="Kenya">Kenya</option>
+                <option value="Uganda">Uganda</option>
+                <option value="Tanzania">Tanzania</option>
+                <option value="Rwanda">Rwanda</option>
+                <option value="Burundi">Burundi</option>
+                <option value="South Sudan">South Sudan</option>
+                <option value="Ethiopia">Ethiopia</option>
+                <option value="Somalia">Somalia</option>
+                <option value="DRC">DR Congo</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* ✅ SHIPPING METHOD SELECTION */}
+            <div>
+              <label className="block mb-3 text-sm font-medium">Shipping Method</label>
+              <div className="space-y-3">
                 {[
-                  { id: 'standard', label: 'Standard Shipping', desc: '5-7 business days', price: '$5.00' },
-                  { id: 'express', label: 'Express Shipping', desc: '2-3 business days', price: '$15.00' },
-                  { id: 'next_day', label: 'Next Day Delivery', desc: 'Next business day', price: '$25.00' }
-                ].map(method => (
-                  <label key={method.id} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="shippingMethod"
-                      value={method.id}
-                      checked={formData.shippingMethod === method.id}
-                      onChange={handleInputChange}
-                      className="mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium">{method.label}</div>
-                      <div className="text-sm text-gray-600">{method.desc}</div>
-                    </div>
-                    <div className="font-semibold">{method.price}</div>
-                  </label>
-                ))}
+                  { 
+                    id: 'standard', 
+                    label: 'Standard Shipping', 
+                    desc: '5-7 business days', 
+                    price: 0,
+                    icon: <FiPackage />
+                  },
+                  { 
+                    id: 'express', 
+                    label: 'Express Shipping', 
+                    desc: '2-3 business days', 
+                    price: 500,
+                    icon: <FiTruck />
+                  },
+                  { 
+                    id: 'overnight', 
+                    label: 'Overnight Shipping', 
+                    desc: 'Next business day', 
+                    price: 1500,
+                    icon: <FiClock />
+                  }
+                ].map(method => {
+                  // Check if any items have free shipping
+                  const hasFreeShippingItems = cart.items.some(i => i.freeShipping);
+                  const methodPrice = hasFreeShippingItems && method.id === 'standard' ? 0 : method.price;
+                  
+                  return (
+                    <label key={method.id} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="shippingMethod"
+                        value={method.id}
+                        checked={formData.shippingMethod === method.id}
+                        onChange={handleInputChange}
+                        className="mr-3"
+                      />
+                      <div className="flex items-center flex-1 gap-3">
+                        <span className="text-gray-600">{method.icon}</span>
+                        <div>
+                          <div className="font-medium">{method.label}</div>
+                          <div className="text-sm text-gray-600">{method.desc}</div>
+                        </div>
+                      </div>
+                      <div className="font-semibold">
+                        {methodPrice === 0 ? 'Free' : formatKES(methodPrice)}
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Order Notes */}
+            <div>
+              <label className="block mb-1 text-sm font-medium">Order Notes (Optional)</label>
+              <textarea
+                name="notes"
+                rows={3}
+                value={formData.notes}
+                onChange={handleInputChange}
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Special instructions for delivery..."
+              />
             </div>
           </div>
         );
-        
+
       case 2:
         return (
           <div className="space-y-6">
@@ -334,12 +447,12 @@ const Checkout = () => {
               <FiCreditCard className="text-blue-600" />
               Payment Information
             </h3>
-            
+
             <div className="space-y-4">
               {[
-                { id: 'credit_card', label: 'Credit Card', icon: <FiCreditCard /> },
-                { id: 'paypal', label: 'PayPal', icon: <FiShield /> },
-                { id: 'apple_pay', label: 'Apple Pay', icon: <FiPackage /> }
+                { id: 'mpesa', label: 'M-Pesa', icon: <FiCreditCard />, desc: 'Pay via M-Pesa (Safaricom)' },
+                { id: 'delivery', label: 'Pay on Delivery', icon: <FiTruck />, desc: 'Cash or card on delivery' },
+                { id: 'paypal', label: 'PayPal', icon: <FiGlobe />, desc: 'Secure PayPal payment' }
               ].map(method => (
                 <label key={method.id} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                   <input
@@ -350,62 +463,43 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     className="mr-3"
                   />
-                  <div className="flex items-center gap-3">
-                    {method.icon}
-                    <span className="font-medium">{method.label}</span>
+                  <div className="flex items-center flex-1 gap-3">
+                    <span className="text-gray-600">{method.icon}</span>
+                    <div>
+                      <div className="font-medium">{method.label}</div>
+                      <div className="text-sm text-gray-600">{method.desc}</div>
+                    </div>
                   </div>
+                  <span className="text-xs text-gray-400">Secure</span>
                 </label>
               ))}
             </div>
-            
-            {formData.paymentMethod === 'credit_card' && (
-              <div className="p-4 space-y-4 border rounded-lg bg-gray-50">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-medium">Card Number</label>
-                    <input
-                      type="text"
-                      placeholder="1234 5678 9012 3456"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-medium">Expiry Date</label>
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block mb-1 text-sm font-medium">CVV</label>
-                    <input
-                      type="text"
-                      placeholder="123"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-medium">Cardholder Name</label>
-                    <input
-                      type="text"
-                      placeholder="John Doe"
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
-                  </div>
-                </div>
+
+            {formData.paymentMethod === 'mpesa' && (
+              <div className="p-4 space-y-4 border rounded-lg bg-blue-50">
+                <h4 className="font-medium text-blue-800">M-Pesa Payment Instructions</h4>
+                <ol className="ml-4 space-y-2 text-sm text-blue-700 list-decimal">
+                  <li>Go to M-Pesa menu on your phone</li>
+                  <li>Select "Lipa Na M-Pesa"</li>
+                  <li>Enter Business No: <strong>123456</strong></li>
+                  <li>Enter Account No: <strong>{Math.random().toString(36).substring(7).toUpperCase()}</strong></li>
+                  <li>Enter Amount: <strong>{formatKES(calculateTotal())}</strong></li>
+                  <li>Enter your M-Pesa PIN and confirm</li>
+                  <li>You'll receive a confirmation SMS</li>
+                </ol>
+                <p className="mt-2 text-xs text-blue-600">
+                  Your order will be processed immediately after payment confirmation
+                </p>
               </div>
             )}
-            
+
             <div className="flex items-center text-sm text-gray-600">
               <FiLock className="mr-2" />
               <span>Your payment information is secure and encrypted</span>
             </div>
           </div>
         );
-        
+
       case 3:
         return (
           <div className="space-y-6">
@@ -413,7 +507,7 @@ const Checkout = () => {
               <FiCheck className="text-green-600" />
               Order Summary
             </h3>
-            
+
             <div className="p-6 rounded-lg bg-gray-50">
               <div className="space-y-4">
                 <div>
@@ -427,27 +521,27 @@ const Checkout = () => {
                     📱 {formData.phone}
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="mb-2 font-semibold">Shipping Method</h4>
                   <p className="text-gray-700">
                     {formData.shippingMethod === 'standard' ? 'Standard Shipping (5-7 days)' :
                      formData.shippingMethod === 'express' ? 'Express Shipping (2-3 days)' :
-                     'Next Day Delivery'}
+                     'Overnight Shipping (Next day)'}
                   </p>
                 </div>
-                
+
                 <div>
                   <h4 className="mb-2 font-semibold">Payment Method</h4>
                   <p className="text-gray-700">
-                    {formData.paymentMethod === 'credit_card' ? 'Credit Card' :
-                     formData.paymentMethod === 'paypal' ? 'PayPal' :
-                     'Apple Pay'}
+                    {formData.paymentMethod === 'mpesa' ? 'M-Pesa' :
+                     formData.paymentMethod === 'delivery' ? 'Pay on Delivery' :
+                     'PayPal'}
                   </p>
                 </div>
               </div>
             </div>
-            
+
             <div className="pt-4 border-t">
               <h4 className="mb-3 font-semibold">Order Items</h4>
               <div className="space-y-3 overflow-y-auto max-h-60">
@@ -455,8 +549,15 @@ const Checkout = () => {
                   <div key={item.id} className="flex items-center justify-between p-3 border rounded">
                     <div className="flex items-center gap-3">
                       <div className="flex items-center justify-center w-12 h-12 bg-gray-200 rounded">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="object-cover w-full h-full rounded" />
+                        {item.images?.[0]?.url ? (
+                          <img 
+                            src={item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:5000${item.images[0].url}`} 
+                            alt={item.name} 
+                            className="object-cover w-full h-full rounded"
+                            onError={(e) => {
+                              e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=50&h=50&fit=crop';
+                            }}
+                          />
                         ) : (
                           <FiPackage className="text-gray-400" />
                         )}
@@ -464,10 +565,30 @@ const Checkout = () => {
                       <div>
                         <div className="font-medium">{item.name}</div>
                         <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
+                        {item.sku && <div className="text-xs text-gray-400">SKU: {item.sku}</div>}
+                        
+                        {/* Shipping info for this item */}
+                        {item.requiresShipping !== false && (
+                          <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
+                            {item.weight > 0 && (
+                              <span className="flex items-center">
+                                <FiScale className="mr-1" /> {item.weight}{item.weightUnit}
+                              </span>
+                            )}
+                            {item.dimensions && (item.dimensions.length || item.dimensions.width || item.dimensions.height) && (
+                              <span className="flex items-center">
+                                <FiRuler className="mr-1" /> {item.dimensions.length || 0}×{item.dimensions.width || 0}×{item.dimensions.height || 0}{item.dimensions.unit || 'cm'}
+                              </span>
+                            )}
+                            {item.freeShipping && (
+                              <span className="text-green-600">Free Shipping</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="font-semibold">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatKES((item.discountPrice || item.price) * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -475,12 +596,12 @@ const Checkout = () => {
             </div>
           </div>
         );
-        
+
       default:
         return null;
     }
   };
-  
+
   if (orderId && !order) {
     // Fetch existing order if orderId is provided
     useEffect(() => {
@@ -494,11 +615,11 @@ const Checkout = () => {
           console.error('Error fetching order:', error);
         }
       };
-      
+
       fetchOrder();
     }, [orderId]);
   }
-  
+
   return (
     <div className="min-h-screen py-8 bg-gray-50">
       <div className="max-w-6xl px-4 mx-auto">
@@ -514,7 +635,7 @@ const Checkout = () => {
           <h1 className="text-3xl font-bold">Checkout</h1>
           <p className="mt-2 text-gray-600">Complete your purchase securely</p>
         </div>
-        
+
         <div className="flex flex-col gap-8 lg:flex-row">
           {/* Left Column - Checkout Form */}
           <div className="lg:w-2/3">
@@ -540,12 +661,12 @@ const Checkout = () => {
                 ))}
               </div>
             </div>
-            
+
             {/* Step Content */}
             <div className="p-6 mb-6 bg-white shadow rounded-xl">
               {renderStepContent()}
             </div>
-            
+
             {/* Navigation Buttons */}
             <div className="flex justify-between">
               {activeStep > 1 && (
@@ -557,7 +678,7 @@ const Checkout = () => {
                   Previous
                 </button>
               )}
-              
+
               {activeStep < 3 ? (
                 <button
                   onClick={handleNextStep}
@@ -586,65 +707,142 @@ const Checkout = () => {
               )}
             </div>
           </div>
-          
+
           {/* Right Column - Order Summary */}
           <div className="lg:w-1/3">
             <div className="sticky p-6 bg-white shadow rounded-xl top-8">
               <h2 className="mb-6 text-xl font-bold">Order Summary</h2>
-              
+
               {/* Order Items Preview */}
               <div className="mb-6 space-y-3 overflow-y-auto max-h-80">
+                {cart.items.map(item => {
+                  const price = item.discountPrice || item.price || 0;
+                  const itemTotal = price * item.quantity;
+                  
+                  return (
+                    <div key={item.id} className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-16 h-16 bg-gray-200 rounded">
+                        {item.images?.[0]?.url ? (
+                          <img 
+                            src={item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:5000${item.images[0].url}`} 
+                            alt={item.name} 
+                            className="object-cover w-full h-full rounded"
+                            onError={(e) => {
+                              e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop';
+                            }}
+                          />
+                        ) : (
+                          <FiPackage className="text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium line-clamp-2">{item.name}</div>
+                        <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
+                      </div>
+                      <div className="font-semibold">
+                        {formatKES(itemTotal)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ✅ SHIPPING DETAILS SUMMARY */}
+              <div className="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h4 className="flex items-center mb-3 font-medium text-gray-700">
+                  <FiTruck className="w-4 h-4 mr-2 text-blue-600" />
+                  Shipping Details
+                </h4>
+                
                 {cart.items.map(item => (
-                  <div key={item.id} className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-16 h-16 bg-gray-200 rounded">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="object-cover w-full h-full rounded" />
-                      ) : (
-                        <FiPackage className="text-gray-400" />
+                  item.requiresShipping !== false && (
+                    <div key={item.id} className="pb-3 mb-3 text-sm border-b border-gray-200 last:border-0 last:pb-0">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{item.name}</span>
+                        {item.freeShipping ? (
+                          <span className="font-medium text-green-600">Free</span>
+                        ) : item.flatShippingRate > 0 ? (
+                          <span className="font-medium">{formatKES(item.flatShippingRate)}</span>
+                        ) : (
+                          <span className="text-gray-500">Calculated</span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
+                        {item.weight > 0 && (
+                          <span className="flex items-center">
+                            <FiScale className="mr-1" /> {item.weight}{item.weightUnit}
+                          </span>
+                        )}
+                        {item.dimensions && (item.dimensions.length || item.dimensions.width || item.dimensions.height) && (
+                          <span className="flex items-center">
+                            <FiRuler className="mr-1" /> {item.dimensions.length || 0}×{item.dimensions.width || 0}×{item.dimensions.height || 0}{item.dimensions.unit || 'cm'}
+                          </span>
+                        )}
+                        {item.estimatedDeliveryMin && item.estimatedDeliveryMax && (
+                          <span className="flex items-center">
+                            <FiClock className="mr-1" /> {item.estimatedDeliveryMin}-{item.estimatedDeliveryMax} days
+                          </span>
+                        )}
+                      </div>
+                      {item.shippingZones && item.shippingZones.length > 0 && (
+                        <div className="mt-1 text-xs text-amber-600" title={`Restricted to: ${item.shippingZones.map(formatZoneName).join(', ')}`}>
+                          ⚠️ Restricted shipping zones apply
+                        </div>
+                      )}
+                      {item.internationalShipping && (
+                        <div className="mt-1 text-xs text-blue-600">
+                          <FiGlobe className="inline mr-1" />
+                          International shipping available
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className="text-sm font-medium line-clamp-2">{item.name}</div>
-                      <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
-                    </div>
-                    <div className="font-semibold">
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </div>
-                  </div>
+                  )
                 ))}
+
+                {/* Selected Shipping Method */}
+                <div className="pt-3 mt-3 border-t border-gray-200">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">Shipping Method:</span>
+                    <span className="capitalize">
+                      {formData.shippingMethod === 'standard' ? 'Standard' :
+                       formData.shippingMethod === 'express' ? 'Express' :
+                       'Overnight'}
+                    </span>
+                  </div>
+                </div>
               </div>
-              
+
               {/* Order Totals */}
               <div className="pt-4 space-y-3 border-t">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatKES(calculateSubtotal())}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>${shippingCost.toFixed(2)}</span>
+                  <span>{shippingCost === 0 ? 'Free' : formatKES(shippingCost)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Tax</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span className="text-gray-600">Tax (8%)</span>
+                  <span>{formatKES(calculateTax())}</span>
                 </div>
                 <div className="flex justify-between pt-3 text-lg font-bold border-t">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span className="text-blue-600">{formatKES(calculateTotal())}</span>
                 </div>
               </div>
-              
+
               {/* Security Badge */}
-              <div className="p-4 mt-6 rounded-lg bg-gray-50">
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <FiShield className="text-green-600" />
+              <div className="p-4 mt-6 rounded-lg bg-blue-50">
+                <div className="flex items-center gap-3 text-sm text-blue-700">
+                  <FiShield className="text-blue-600" />
                   <div>
                     <div className="font-medium">Secure Checkout</div>
-                    <div>Your information is protected</div>
+                    <div className="text-xs">Your information is encrypted and secure</div>
                   </div>
                 </div>
               </div>
-              
+
               {/* Return Policy */}
               <div className="mt-4 text-xs text-center text-gray-500">
                 By placing your order, you agree to our{' '}

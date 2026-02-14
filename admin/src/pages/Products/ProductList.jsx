@@ -1,3 +1,4 @@
+// admin/src/pages/Products/ProductList.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -136,15 +137,24 @@ const ProductList = () => {
         
         setProducts(productArray);
         
-        // Calculate stats
+        // Calculate stats with proper stock logic
         const active = productArray.filter(p => p.status === 'active' || p.status === 'published').length;
         const outOfStock = productArray.filter(p => {
           const stock = p.stock || p.quantity || p.inventory || 0;
-          return stock <= 0;
+          const trackQuantity = p.trackQuantity !== false;
+          const allowOutOfStock = p.allowOutOfStockPurchase || false;
+          
+          // If tracking quantity and out of stock, and not allowing out of stock purchases
+          return trackQuantity && stock <= 0 && !allowOutOfStock;
         }).length;
+        
         const lowStock = productArray.filter(p => {
           const stock = p.stock || p.quantity || p.inventory || 0;
-          return stock > 0 && stock <= 10;
+          const trackQuantity = p.trackQuantity !== false;
+          const threshold = p.lowStockThreshold || 5;
+          
+          // If tracking quantity and stock is above zero but below threshold
+          return trackQuantity && stock > 0 && stock <= threshold;
         }).length;
         
         setStats({
@@ -418,24 +428,50 @@ const ProductList = () => {
     );
   };
 
-  const getStockBadge = (stock) => {
-    const stockValue = stock || 0;
-    if (stockValue <= 0) {
+  // ✅ FIXED: Enhanced stock badge with proper stock status logic
+  const getStockBadge = (product) => {
+    const stock = product.stock || product.quantity || product.inventory || 0;
+    const trackQuantity = product.trackQuantity !== false;
+    const allowOutOfStock = product.allowOutOfStockPurchase || false;
+    const threshold = product.lowStockThreshold || 5;
+    
+    if (!trackQuantity) {
       return (
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-          Out of Stock
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+          <ClockIcon className="w-3 h-3 mr-1" />
+          Not Tracked
         </span>
       );
-    } else if (stockValue <= 10) {
+    }
+    
+    if (stock <= 0) {
+      if (allowOutOfStock) {
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+            <ClockIcon className="w-3 h-3 mr-1" />
+            Backorder
+          </span>
+        );
+      } else {
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+            <ExclamationCircleIcon className="w-3 h-3 mr-1" />
+            Out of Stock
+          </span>
+        );
+      }
+    } else if (stock <= threshold) {
       return (
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-          Low Stock
+          <ExclamationCircleIcon className="w-3 h-3 mr-1" />
+          Low Stock ({stock})
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-          In Stock
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+          <CheckCircleIcon className="w-3 h-3 mr-1" />
+          In Stock ({stock})
         </span>
       );
     }
@@ -493,12 +529,6 @@ const ProductList = () => {
         
         // Convert to full URL
         const fullImageUrl = imageUrl ? getFullImageUrl(imageUrl) : null;
-        
-        console.log(`Rendering image for product "${product.name}":`, {
-          rawImageUrl: imageUrl,
-          fullImageUrl: fullImageUrl,
-          product: product
-        });
         
         const fallbackUrl = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik01MCA2MEM1MCA2Ni42Mjg4IDU1LjM3MTYgNzIgNjIgNzJDNjguNjI4NCA3MiA3NCA2Ni42Mjg0IDc0IDYwQzc0IDUzLjM3MTYgNjguNjI4NCA0OCA2MiA0OEM1NS4zNzE2IDQ4IDUwIDUzLjM3MTYgNTAgNjBaIiBmaWxsPSIjRENEQ0RDIi8+CjxwYXRoIGQ9Ik00Mi41IDEwMEwxMS4yNSAxMDBDMTEuMjUgMTAwIDE4LjUzOTEgNzkuMDMzNyAzMC41MzkxIDc5LjAzMzdDMzYuNDI0OCA3OS4wMzM3IDQxLjg3IDgzLjgxODQgNDIuNSAxMDBaIiBmaWxsPSIjRENEQ0RDIi8+CjxwYXRoIGQ9Ik0xMDcuNSAxMDBMMTM4Ljc1IDEwMEwxMzguNzUgMTAwIDEzMS40NjEgNzkuMDMzNyAxMTkuNDYxIDc5LjAzMzdDMTEzLjU3NSA3OS4wMzM3IDEwOC4xMyA4My44MTg0IDEwNy41IDEwMFoiIGZpbGw9IiNEQ0RDREMiLz4KPHBhdGggZD0iTTc1IDEyMEMzNS45MTUyIDEyMCA1IDEzMy45MTUyIDUgMTYwSDE0NUMxNDUgMTMzLjkxNTIgMTE0LjA4NSAxMjAgNzUgMTIwWiIgZmlsbD0iI0RDREJEQiIvPgo8L3N2Zz4K';
         
@@ -604,7 +634,7 @@ const ProductList = () => {
             <div className="mb-1 font-medium text-gray-900">
               {stockValue.toLocaleString()}
             </div>
-            {getStockBadge(stockValue)}
+            {getStockBadge(product)}
           </div>
         );
       },

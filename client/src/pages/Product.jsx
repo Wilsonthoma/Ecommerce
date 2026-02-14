@@ -15,11 +15,17 @@ import {
   FiPlus,
   FiX,
   FiZoomIn,
-  FiStar
+  FiStar,
+  FiClock,
+  FiGlobe,
+  FiPackage,
+  FiDollarSign,
+  FiMapPin,
+  FiBox,
+  FiLayers
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
-import { cartService } from '../services/client/cart';
 import { useCart } from '../context/CartContext';
 
 // Backend URL
@@ -31,7 +37,7 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505740420928-5e560c06
 const Product = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { refreshCart } = useCart();
+  const { addToCart, refreshCart } = useCart();
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +48,7 @@ const Product = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
+  const [shippingMethod, setShippingMethod] = useState('standard');
 
   // Get stock value from either stock or quantity field
   const getStockValue = (product) => {
@@ -142,6 +149,61 @@ const Product = () => {
     setImageErrors(prev => ({ ...prev, [index]: true }));
   };
 
+  // Calculate total price based on quantity
+  const calculateTotalPrice = () => {
+    if (!product) return 0;
+    const basePrice = product.discountPrice || product.price;
+    return basePrice * quantity;
+  };
+
+  // Calculate savings
+  const calculateSavings = () => {
+    if (!product || !product.discountPrice) return 0;
+    return (product.price - product.discountPrice) * quantity;
+  };
+
+  // Calculate shipping cost
+  const calculateShippingCost = () => {
+    if (!product) return 0;
+    if (product.freeShipping) return 0;
+    if (product.flatShippingRate) return product.flatShippingRate;
+    
+    // Different shipping methods
+    switch (shippingMethod) {
+      case 'express':
+        return 500; // KSh 500 for express
+      case 'overnight':
+        return 1500; // KSh 1500 for overnight
+      default:
+        return 0; // Standard shipping included
+    }
+  };
+
+  // Handle add to cart using context
+  const handleAddToCart = async () => {
+    if (!product) return;
+    
+    setIsAddingToCart(true);
+    const success = await addToCart(product, quantity);
+    if (success) {
+      await refreshCart();
+    }
+    setIsAddingToCart(false);
+  };
+
+  // Format zone name
+  const formatZoneName = (zone) => {
+    const zoneNames = {
+      'na': 'North America',
+      'eu': 'Europe',
+      'asia': 'Asia',
+      'africa': 'Africa',
+      'sa': 'South America',
+      'oceania': 'Oceania'
+    };
+    return zoneNames[zone] || zone;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen py-8 bg-gray-50">
@@ -176,6 +238,11 @@ const Product = () => {
   const discountPercentage = hasDiscount 
     ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100) 
     : 0;
+  
+  const totalPrice = calculateTotalPrice();
+  const totalSavings = calculateSavings();
+  const shippingCost = calculateShippingCost();
+  const grandTotal = totalPrice + shippingCost;
 
   return (
     <div className="min-h-screen py-8 bg-gray-50">
@@ -231,7 +298,7 @@ const Product = () => {
                 </div>
               )}
 
-              {/* ✅ ADDED: Featured Badge */}
+              {/* Featured Badge */}
               {product.featured && (
                 <div className="absolute px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-100 rounded-lg top-3 right-3 sm:px-3 sm:py-1.5">
                   <FiStar className="inline w-3 h-3 mr-1" /> Featured
@@ -275,7 +342,6 @@ const Product = () => {
                 <span className="px-2 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded-full sm:px-3 sm:py-1">
                   {product.category || 'Uncategorized'}
                 </span>
-                {/* ✅ ADDED: Featured badge in info section too */}
                 {product.featured && (
                   <span className="px-2 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full sm:px-3 sm:py-1">
                     <FiStar className="inline w-3 h-3 mr-1" /> Featured
@@ -285,21 +351,33 @@ const Product = () => {
               <h1 className="mb-1 text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">{product.name}</h1>
             </div>
 
-            {/* Price */}
-            <div className="space-y-1">
+            {/* Dynamic Price Display */}
+            <div className="space-y-2">
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                  KSh {Math.round(discountedPrice).toLocaleString()}
+                  KSh {Math.round(totalPrice).toLocaleString()}
                 </span>
                 {hasDiscount && (
                   <>
                     <span className="text-base text-gray-400 line-through sm:text-lg">
-                      KSh {Math.round(originalPrice).toLocaleString()}
+                      KSh {Math.round(originalPrice * quantity).toLocaleString()}
                     </span>
                     <span className="px-1.5 py-0.5 text-xs font-medium text-red-800 bg-red-100 rounded sm:px-2 sm:py-1">
                       -{discountPercentage}%
                     </span>
                   </>
+                )}
+              </div>
+              
+              {/* Show per-unit price and total savings */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-600">
+                  {quantity} × KSh {Math.round(discountedPrice).toLocaleString()} per unit
+                </span>
+                {hasDiscount && totalSavings > 0 && (
+                  <span className="font-medium text-green-600">
+                    Save KSh {Math.round(totalSavings).toLocaleString()}
+                  </span>
                 )}
               </div>
             </div>
@@ -311,7 +389,7 @@ const Product = () => {
                   <FiCheck className="w-4 h-4 text-green-600 sm:w-5 sm:h-5" />
                   <span className="font-medium text-green-600">In Stock</span>
                   <span className="text-gray-600">
-                    ({stockValue} units)
+                    ({stockValue} units available)
                   </span>
                 </>
               ) : (
@@ -354,8 +432,13 @@ const Product = () => {
                     </button>
                   </div>
                   <span className="text-xs text-gray-600 sm:text-sm">
-                    Max: {stockValue}
+                    Max: {stockValue} units
                   </span>
+                </div>
+                
+                {/* Live price update indicator */}
+                <div className="mt-2 text-xs text-blue-600 sm:text-sm">
+                  Total: KSh {Math.round(totalPrice).toLocaleString()}
                 </div>
               </div>
             )}
@@ -364,18 +447,7 @@ const Product = () => {
             <div className="pt-3 space-y-2 border-t border-gray-200">
               <div className="flex items-center gap-2">
                 <button
-                  onClick={async () => {
-                    try {
-                      setIsAddingToCart(true);
-                      await cartService.addToCart(product._id || product.id, quantity);
-                      toast.success(`Added ${quantity} × ${product.name} to cart`);
-                      await refreshCart();
-                    } catch (error) {
-                      toast.error('Failed to add item to cart');
-                    } finally {
-                      setIsAddingToCart(false);
-                    }
-                  }}
+                  onClick={handleAddToCart}
                   disabled={stockValue === 0 || isAddingToCart}
                   className="flex items-center justify-center flex-1 gap-1 px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 sm:gap-2 sm:px-6 sm:py-3"
                 >
@@ -414,7 +486,123 @@ const Product = () => {
               </button>
             </div>
 
-            {/* Shipping Info */}
+            {/* ✅ SHIPPING INFORMATION SECTION */}
+            {product.requiresShipping !== false && (
+              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                <h3 className="flex items-center mb-3 text-lg font-semibold text-gray-800">
+                  <FiTruck className="w-5 h-5 mr-2 text-blue-600" />
+                  Shipping Information
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {/* Free Shipping Badge */}
+                  {product.freeShipping && (
+                    <div className="flex items-center text-green-600">
+                      <FiCheck className="w-4 h-4 mr-2" />
+                      <span className="text-sm font-medium">Free Shipping</span>
+                    </div>
+                  )}
+                  
+                  {/* Flat Rate */}
+                  {product.flatShippingRate > 0 && !product.freeShipping && (
+                    <div className="flex items-center text-gray-700">
+                      <FiDollarSign className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm">Flat Rate: <span className="font-semibold">KSh {product.flatShippingRate.toLocaleString()}</span></span>
+                    </div>
+                  )}
+                  
+                  {/* Weight */}
+                  {product.weight > 0 && (
+                    <div className="flex items-center text-gray-700">
+                      <FiBox className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm">Weight: {product.weight} {product.weightUnit}</span>
+                    </div>
+                  )}
+                  
+                  {/* Dimensions - using FiLayers as substitute for ruler */}
+                  {product.dimensions && (product.dimensions.length > 0 || product.dimensions.width > 0 || product.dimensions.height > 0) && (
+                    <div className="flex items-center text-gray-700">
+                      <FiLayers className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm">
+                        Dimensions: {product.dimensions.length || 0} × {product.dimensions.width || 0} × {product.dimensions.height || 0} {product.dimensions.unit || 'cm'}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Shipping Class */}
+                  {product.shippingClass && product.shippingClass !== 'standard' && (
+                    <div className="flex items-center text-gray-700">
+                      <FiPackage className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm capitalize">Shipping Class: {product.shippingClass}</span>
+                    </div>
+                  )}
+                  
+                  {/* Estimated Delivery */}
+                  {product.estimatedDeliveryMin && product.estimatedDeliveryMax && (
+                    <div className="flex items-center text-gray-700">
+                      <FiClock className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="text-sm">
+                        Est. Delivery: {product.estimatedDeliveryMin}-{product.estimatedDeliveryMax} business days
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* International Shipping */}
+                  {product.internationalShipping && (
+                    <div className="flex items-center col-span-2 text-blue-600">
+                      <FiGlobe className="w-4 h-4 mr-2" />
+                      <span className="text-sm">Available for international shipping</span>
+                    </div>
+                  )}
+                  
+                  {/* Shipping Restrictions */}
+                  {product.shippingZones && product.shippingZones.length > 0 && (
+                    <div className="col-span-2 pt-2 mt-2 text-xs border-t border-gray-200 text-amber-600">
+                      <span className="font-medium">⚠️ Shipping restricted to:</span>{' '}
+                      {product.shippingZones.map(zone => formatZoneName(zone)).join(', ')}
+                    </div>
+                  )}
+                </div>
+
+                {/* Shipping Method Selection (for variable rates) */}
+                {!product.freeShipping && !product.flatShippingRate && (
+                  <div className="pt-3 mt-4 border-t border-gray-200">
+                    <label className="block mb-2 text-sm font-medium text-gray-700">
+                      Shipping Method
+                    </label>
+                    <select
+                      value={shippingMethod}
+                      onChange={(e) => setShippingMethod(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="standard">Standard Shipping (5-7 days) - Free</option>
+                      <option value="express">Express Shipping (2-3 days) - KSh 500</option>
+                      <option value="overnight">Overnight Shipping (Next day) - KSh 1,500</option>
+                    </select>
+                    
+                    {/* Total with shipping */}
+                    <div className="p-3 mt-3 rounded-lg bg-blue-50">
+                      <div className="flex justify-between text-sm">
+                        <span>Subtotal:</span>
+                        <span className="font-medium">KSh {Math.round(totalPrice).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between mt-1 text-sm">
+                        <span>Shipping:</span>
+                        <span className="font-medium">
+                          {shippingCost === 0 ? 'Free' : `KSh ${shippingCost.toLocaleString()}`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 mt-2 font-bold border-t border-blue-200">
+                        <span>Total:</span>
+                        <span className="text-blue-700">KSh {Math.round(grandTotal).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* General Info Cards */}
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200 sm:grid-cols-4">
               <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
                 <FiTruck className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
@@ -481,7 +669,6 @@ const Product = () => {
                           KSh {Math.round(relatedProduct.price).toLocaleString()}
                         </p>
                       )}
-                      {/* ✅ ADDED: Featured badge for related products */}
                       {relatedProduct.featured && (
                         <span className="inline-block px-1.5 py-0.5 mt-1 text-[8px] font-medium text-yellow-800 bg-yellow-100 rounded sm:text-xs">
                           Featured

@@ -1,3 +1,4 @@
+// server/models/Product.js
 import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
@@ -63,7 +64,17 @@ const productSchema = new mongoose.Schema({
     default: false
   },
 
-  weight: Number,
+  // ✅ SHIPPING FIELDS
+  requiresShipping: {
+    type: Boolean,
+    default: true
+  },
+
+  weight: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
 
   weightUnit: {
     type: String,
@@ -72,14 +83,50 @@ const productSchema = new mongoose.Schema({
   },
 
   dimensions: {
-    length: Number,
-    width: Number,
-    height: Number,
+    length: { type: Number, default: 0, min: 0 },
+    width: { type: Number, default: 0, min: 0 },
+    height: { type: Number, default: 0, min: 0 },
     unit: {
       type: String,
       enum: ['cm', 'm', 'in'],
       default: 'cm'
     }
+  },
+
+  shippingClass: {
+    type: String,
+    enum: ['standard', 'express', 'overnight', 'freight', 'international'],
+    default: 'standard'
+  },
+
+  freeShipping: {
+    type: Boolean,
+    default: false
+  },
+
+  flatShippingRate: {
+    type: Number,
+    min: 0
+  },
+
+  internationalShipping: {
+    type: Boolean,
+    default: false
+  },
+
+  shippingZones: [{
+    type: String,
+    enum: ['na', 'eu', 'asia', 'africa', 'sa', 'oceania']
+  }],
+
+  estimatedDeliveryMin: {
+    type: Number,
+    min: 1
+  },
+
+  estimatedDeliveryMax: {
+    type: Number,
+    min: 1
   },
 
   hasVariants: {
@@ -111,7 +158,7 @@ const productSchema = new mongoose.Schema({
 
   vendor: String,
 
-  collectionName: String, // renamed to avoid using reserved 'collection'
+  collectionName: String,
 
   images: [{
     url: String,
@@ -209,12 +256,30 @@ productSchema.virtual('primaryImage').get(function() {
   return primary ? primary.url : (this.images[0]?.url || null);
 });
 
+// Shipping virtuals
+productSchema.virtual('estimatedDeliveryRange').get(function() {
+  if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
+    return `${this.estimatedDeliveryMin}-${this.estimatedDeliveryMax} days`;
+  }
+  return null;
+});
+
+productSchema.virtual('shippingRate').get(function() {
+  if (this.freeShipping) return 0;
+  if (this.flatShippingRate) return this.flatShippingRate;
+  return null;
+});
+
+productSchema.virtual('hasShippingRestrictions').get(function() {
+  return this.shippingZones && this.shippingZones.length > 0;
+});
+
 // Pre-save hooks
 productSchema.pre('save', function(next) {
   if (this.trackQuantity) {
     if (this.quantity === 0) {
       this.status = 'out_of_stock';
-    } else {
+    } else if (this.status === 'out_of_stock') {
       this.status = 'active';
     }
   }
@@ -233,7 +298,17 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Indexes (no duplicates)
+// Validate estimated delivery
+productSchema.pre('save', function(next) {
+  if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
+    if (this.estimatedDeliveryMin > this.estimatedDeliveryMax) {
+      next(new Error('Minimum delivery days cannot exceed maximum delivery days'));
+    }
+  }
+  next();
+});
+
+// Indexes
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 productSchema.index({ category: 1, subcategory: 1 });
 productSchema.index({ status: 1 });
@@ -242,6 +317,9 @@ productSchema.index({ featured: 1 });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ price: 1 });
 productSchema.index({ totalSold: -1 });
+productSchema.index({ shippingClass: 1 });
+productSchema.index({ freeShipping: 1 });
+productSchema.index({ internationalShipping: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 export default Product;

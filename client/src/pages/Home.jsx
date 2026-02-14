@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - FIXED FLASH SALE PRODUCTS
+// src/pages/Home.jsx - FIXED with proper routing and API endpoints
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -65,10 +65,10 @@ const Home = () => {
       // Fetch categories
       const categoriesResponse = await clientProductService.getCategories();
       
-      // ✅ FIXED: Fetch products with discounts for flash sale
+      // Fetch flash sale products (products with discounts)
       let flashSaleData = [];
       try {
-        // Try to get discounted products first
+        // Try to get discounted products with API endpoint
         const discountedResponse = await clientProductService.getProducts({ 
           hasDiscount: true, 
           limit: 8,
@@ -78,15 +78,15 @@ const Home = () => {
         if (discountedResponse.success && discountedResponse.products?.length > 0) {
           flashSaleData = discountedResponse.products;
         } else {
-          // Fallback to featured products
-          const featuredResponse = await clientProductService.getFeaturedProducts();
-          if (featuredResponse.success && featuredResponse.products?.length > 0) {
-            flashSaleData = featuredResponse.products;
+          // Fallback: filter from regular products
+          if (productsResponse.success && productsResponse.products) {
+            flashSaleData = productsResponse.products
+              .filter(p => p.discountPrice && p.discountPrice < p.price)
+              .slice(0, 8);
           }
         }
       } catch (error) {
         console.log("Using fallback for flash sale products");
-        // If API fails, use products with discountPrice from regular products
         if (productsResponse.success && productsResponse.products) {
           flashSaleData = productsResponse.products
             .filter(p => p.discountPrice && p.discountPrice < p.price)
@@ -107,15 +107,15 @@ const Home = () => {
         setCategories(categoriesData);
       }
 
-      // Set flash sale products
-      setFlashSaleProducts(flashSaleData);
+      // Set flash sale products (ensure unique references)
+      setFlashSaleProducts(flashSaleData.map(p => ({ ...p, section: 'flash' })));
       
-      // Also try to get featured products separately
+      // Fetch featured products separately
       try {
         const featuredResponse = await clientProductService.getFeaturedProducts();
         if (featuredResponse.success) {
           const featuredData = featuredResponse.data?.products || featuredResponse.products || [];
-          setFeaturedProducts(featuredData);
+          setFeaturedProducts(featuredData.map(p => ({ ...p, section: 'featured' })));
         }
       } catch (error) {
         console.log("No featured products found");
@@ -206,9 +206,9 @@ const Home = () => {
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  const handleAddToCart = (product) => {
-    addToCart(product, 1);
-    toast.success(`${product.name} added to cart!`);
+  // Handle add to cart
+  const handleAddToCart = async (product) => {
+    await addToCart(product, 1);
   };
 
   // Theme colors
@@ -228,64 +228,72 @@ const Home = () => {
       title: "Free Shipping", 
       desc: "Orders over KSh 6,000", 
       bg: `bg-gradient-to-r ${themeColors.primary}`,
-      delay: "0ms"
+      link: "/shop?shipping=free"
     },
     { 
       icon: <BsShieldCheck className="w-6 h-6" />, 
       title: "2 Year Warranty", 
       desc: "On all products", 
       bg: `bg-gradient-to-r ${themeColors.success}`,
-      delay: "100ms"
+      link: "/warranty"
     },
     { 
       icon: <BsArrowRepeat className="w-6 h-6" />, 
       title: "30-Day Returns", 
       desc: "Money back guarantee", 
       bg: `bg-gradient-to-r ${themeColors.accent}`,
-      delay: "200ms"
+      link: "/returns"
     },
     { 
       icon: <BsHeadphones className="w-6 h-6" />, 
       title: "24/7 Support", 
       desc: "Dedicated team", 
       bg: `bg-gradient-to-r ${themeColors.secondary}`,
-      delay: "300ms"
+      link: "/support"
     },
   ];
 
-  // Categories
+  // Categories with proper routing
   const productCategories = [
     { 
       id: "electronics", 
+      slug: "electronics",
       name: "Electronics", 
       icon: <FiSmartphone className="w-6 h-6" />, 
       bg: "bg-gradient-to-br from-blue-500 to-cyan-500",
       image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "245+"
+      count: "245+",
+      link: "/shop?category=electronics"
     },
     { 
       id: "audio", 
+      slug: "audio",
       name: "Audio Gear", 
       icon: <FiHeadphones className="w-6 h-6" />, 
       bg: "bg-gradient-to-br from-purple-500 to-pink-500",
       image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "189+"
+      count: "189+",
+      link: "/shop?category=audio"
     },
     { 
       id: "wearables", 
+      slug: "wearables",
       name: "Wearables", 
       icon: <FiWatch className="w-6 h-6" />, 
       bg: "bg-gradient-to-br from-emerald-500 to-green-500",
       image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "156+"
+      count: "156+",
+      link: "/shop?category=wearables"
     },
     { 
       id: "home-appliances", 
+      slug: "home-appliances",
       name: "Home Appliances", 
       icon: <FiPackage className="w-6 h-6" />, 
       bg: "bg-gradient-to-br from-orange-500 to-red-500",
       image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "112+"
+      count: "112+",
+      link: "/shop?category=home-appliances"
     },
   ];
 
@@ -308,7 +316,7 @@ const Home = () => {
     return stars;
   };
 
-  // Determine which products to show in flash sale
+  // Determine which products to show in flash sale (ensure unique references)
   const displayFlashSaleProducts = flashSaleProducts.length > 0 
     ? flashSaleProducts 
     : (featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4));
@@ -403,13 +411,14 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Benefits Bar */}
+      {/* Benefits Bar with Links */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="px-4 py-6 mx-auto max-w-7xl sm:py-8">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:gap-6">
             {benefits.map((benefit, index) => (
-              <div 
-                key={index} 
+              <Link
+                key={index}
+                to={benefit.link}
                 className="flex items-center gap-3 p-2 transition-all rounded-lg hover:shadow-md sm:p-3 group"
               >
                 <div className={`p-2 rounded-lg ${benefit.bg} text-white shadow-md group-hover:scale-110 transition-transform sm:p-2.5`}>
@@ -419,7 +428,7 @@ const Home = () => {
                   <h3 className="text-xs font-bold text-gray-900 sm:text-sm">{benefit.title}</h3>
                   <p className="text-[10px] text-gray-600 sm:text-xs">{benefit.desc}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -447,7 +456,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Flash Sale Products - FIXED */}
+      {/* Flash Sale Products */}
       <section className="px-4 py-12 mx-auto max-w-7xl sm:py-16">
         <div className="flex flex-col items-start justify-between gap-4 mb-8 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
@@ -478,69 +487,8 @@ const Home = () => {
             <div ref={featuredRef} className="flex gap-4 pb-4 overflow-x-auto scrollbar-hide sm:gap-6">
               {displayFlashSaleProducts.length > 0 ? (
                 displayFlashSaleProducts.map((product) => (
-                  <div key={product._id || product.id} className="flex-shrink-0 w-48 sm:w-56">
-                    <div className="p-3 transition-shadow bg-white border border-gray-100 shadow-md rounded-xl hover:shadow-lg sm:p-4">
-                      {/* Product Image */}
-                      <div className="relative mb-3 overflow-hidden rounded-lg aspect-square">
-                        <img 
-                          src={product.images?.[0]?.url || product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'}
-                          alt={product.name}
-                          className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-                          onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop';
-                          }}
-                        />
-                        {product.discountPrice && (
-                          <div className="absolute px-1.5 py-0.5 text-[10px] font-bold text-white bg-red-500 rounded top-2 left-2 sm:px-2 sm:py-1 sm:text-xs">
-                            -{Math.round(((product.price - product.discountPrice) / product.price) * 100)}%
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Product Info */}
-                      <h3 className="mb-1 text-xs font-semibold text-gray-900 line-clamp-1 sm:text-sm">
-                        {product.name}
-                      </h3>
-                      
-                      <div className="flex items-center gap-1 mb-2">
-                        <div className="flex">
-                          {renderStars(product.rating || 4.5)}
-                        </div>
-                        <span className="text-[10px] text-gray-500 sm:text-xs">
-                          ({product.reviews || 0})
-                        </span>
-                      </div>
-                      
-                      {/* Price */}
-                      <div className="mb-3">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          <span className="text-sm font-bold text-gray-900 sm:text-base">
-                            {formatKES(product.discountPrice || product.price)}
-                          </span>
-                          {product.discountPrice && (
-                            <span className="text-[10px] text-gray-500 line-through sm:text-xs">
-                              {formatKES(product.price)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          className="flex-1 py-1.5 text-[10px] font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 sm:py-2 sm:text-xs"
-                        >
-                          Add to Cart
-                        </button>
-                        <Link 
-                          to={`/product/${product._id || product.id}`}
-                          className="px-2 py-1.5 text-gray-600 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 sm:px-3 sm:py-2"
-                        >
-                          <FiArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Link>
-                      </div>
-                    </div>
+                  <div key={`flash-${product._id || product.id}`} className="flex-shrink-0 w-48 sm:w-56">
+                    <ProductCard product={product} />
                   </div>
                 ))
               ) : (
@@ -571,7 +519,7 @@ const Home = () => {
         )}
       </section>
 
-      {/* Shop by Category */}
+      {/* Shop by Category - with proper routing */}
       <section className="py-12 bg-gradient-to-b from-blue-50 to-white sm:py-16">
         <div className="px-4 mx-auto max-w-7xl">
           <div className="mb-8 text-center sm:mb-12">
@@ -588,12 +536,10 @@ const Home = () => {
           <div className="relative">
             <div ref={categoryRef} className="flex gap-4 pb-4 overflow-x-auto scrollbar-hide sm:gap-6">
               {productCategories.map((category) => (
-                <div
+                <Link
                   key={category.id}
-                  onClick={() => setActiveCategory(category.id)}
-                  className={`group flex-shrink-0 w-48 cursor-pointer transition-all sm:w-56 ${
-                    activeCategory === category.id ? 'scale-105 ring-2 ring-blue-500' : ''
-                  }`}
+                  to={category.link}
+                  className="flex-shrink-0 w-48 transition-all cursor-pointer group sm:w-56"
                 >
                   <div className="relative overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-xl hover:shadow-xl">
                     <div className="h-32 overflow-hidden sm:h-40">
@@ -616,7 +562,7 @@ const Home = () => {
                       </div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
             
@@ -649,18 +595,20 @@ const Home = () => {
           </div>
           
           <div className="flex gap-2 pb-2 overflow-x-auto">
-            {["all", "electronics", "audio", "wearables", "home-appliances"].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all sm:px-4 sm:py-2 sm:text-sm ${
-                  activeCategory === cat 
-                    ? `bg-gradient-to-r ${themeColors.primary} text-white shadow-md` 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+            <Link 
+              to="/shop"
+              className="px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all sm:px-4 sm:py-2 sm:text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
+            >
+              All
+            </Link>
+            {productCategories.map((cat) => (
+              <Link
+                key={cat.id}
+                to={cat.link}
+                className="px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-all sm:px-4 sm:py-2 sm:text-sm bg-gray-100 text-gray-700 hover:bg-gray-200"
               >
-                {cat === "all" ? "All" : cat.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </button>
+                {cat.name}
+              </Link>
             ))}
           </div>
         </div>
@@ -675,9 +623,8 @@ const Home = () => {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {filteredProducts.slice(0, 10).map((product) => (
               <ProductCard 
-                key={product._id || product.id} 
+                key={`trending-${product._id || product.id}`} 
                 product={product} 
-                onAddToCart={handleAddToCart}
               />
             ))}
           </div>

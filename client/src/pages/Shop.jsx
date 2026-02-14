@@ -1,4 +1,4 @@
-// src/pages/Shop.jsx - COMPLETE VERSION
+// src/pages/Shop.jsx - FIXED
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { clientProductService } from '../services/client/products';
@@ -30,7 +30,7 @@ import { toast } from 'react-hot-toast';
 const Shop = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const { addToCart } = useCart(); // ✅ Use addToCart from context
   
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -161,9 +161,10 @@ const Shop = () => {
     setShowFilters(false);
   };
 
+  // ✅ FIXED: Just call addToCart, no duplicate toast
   const handleAddToCart = (product) => {
     addToCart(product, 1);
-    toast.success(`${product.name} added to cart!`);
+    // Toast is handled in the CartContext
   };
 
   // Sort options
@@ -405,7 +406,6 @@ const Shop = () => {
                   <ProductCard 
                     key={product._id} 
                     product={product} 
-                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>

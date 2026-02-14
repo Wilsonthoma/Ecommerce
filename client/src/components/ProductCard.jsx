@@ -1,10 +1,9 @@
 // client/src/components/ProductCard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiEye, FiStar } from 'react-icons/fi';
+import { FiShoppingCart, FiEye, FiStar } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
-import { wishlistService } from '../services/client/wishlist';
-import { cartService } from '../services/client/cart';
+import { useCart } from '../context/CartContext';
 import { toast } from 'react-toastify';
 
 // Backend URL
@@ -13,50 +12,52 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop';
 
-const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
+const ProductCard = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
-  const [cartLoading, setCartLoading] = useState(false);
+  const { addToCart, loading: cartLoading } = useCart();
 
-  // Get stock value from either stock or quantity field
-  const stockValue = product.stock || product.quantity || 0;
-  
-  // Get real rating and review count
+  // Safety check - ensure product exists
+  if (!product) {
+    console.error('❌ ProductCard received null product');
+    return null;
+  }
+
+  // Log the product being rendered
+  console.log('🖼️ Rendering ProductCard for:', {
+    id: product._id || product.id,
+    name: product.name,
+    price: product.price
+  });
+
+  // Extract product data with all fields
+  const productId = product._id || product.id;
+  const productName = product.name || 'Product';
+  const productPrice = product.price || 0;
+  const productDiscountPrice = product.discountPrice || null;
+  const productImage = product.images?.[0]?.url || product.image || null;
+  const productImages = product.images || [];
+  const productDescription = product.description || '';
+  const productCategory = product.category || '';
+  const productBrand = product.brand || '';
   const productRating = product.rating || 0;
-  const reviewCount = product.reviews || product.reviewCount || 0;
+  const productReviews = product.reviews || product.reviewCount || 0;
+  const productStock = product.stock || product.quantity || 0;
+  const productWeight = product.weight || 1;
+  const productFeatured = product.featured || false;
 
-  // Check if product is in wishlist on mount
-  useEffect(() => {
-    const checkWishlistStatus = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        
-        const productId = product._id || product.id;
-        const response = await wishlistService.checkInWishlist(productId);
-        if (response.success) {
-          setIsInWishlist(response.inWishlist);
-        }
-      } catch (error) {
-        console.error('Error checking wishlist status:', error);
-      }
-    };
-    
-    checkWishlistStatus();
-  }, [product._id, product.id]);
+  const stockValue = productStock;
 
   const formatKES = (price) => {
     if (!price && price !== 0) return "KSh 0";
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  const discountPercentage = product.discountPrice && product.price
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+  const discountPercentage = productDiscountPrice && productPrice
+    ? Math.round(((productPrice - productDiscountPrice) / productPrice) * 100)
     : 0;
 
-  // Proper star rendering with half-star support
+  // Proper star rendering
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
@@ -64,15 +65,8 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
     
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        // Full star
-        stars.push(
-          <AiFillStar
-            key={i}
-            className="w-3 h-3 text-yellow-400 sm:w-4 sm:h-4"
-          />
-        );
+        stars.push(<AiFillStar key={i} className="w-3 h-3 text-yellow-400 sm:w-4 sm:h-4" />);
       } else if (i === fullStars && hasHalfStar) {
-        // Half star
         stars.push(
           <div key={i} className="relative">
             <AiFillStar className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4" />
@@ -82,13 +76,7 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
           </div>
         );
       } else {
-        // Empty star
-        stars.push(
-          <AiFillStar
-            key={i}
-            className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4"
-          />
-        );
+        stars.push(<AiFillStar key={i} className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4" />);
       }
     }
     return stars;
@@ -98,7 +86,7 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
   const getImageUrl = () => {
     if (imageError) return FALLBACK_IMAGE;
     
-    const imagePath = product.images?.[0]?.url || product.images?.[0] || product.image;
+    const imagePath = productImage;
     
     if (!imagePath) return FALLBACK_IMAGE;
     
@@ -124,10 +112,16 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
     e.target.src = FALLBACK_IMAGE;
   };
 
-  // ✅ FIXED: Proper add to cart with API
+  // Add to cart using context with complete product data
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    console.log('🛒 ADD TO CART CLICKED for product:', {
+      id: productId,
+      name: productName,
+      price: productPrice
+    });
     
     const token = localStorage.getItem('token');
     if (!token) {
@@ -135,67 +129,29 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
       return;
     }
     
-    setCartLoading(true);
+    // Create complete product object with all fields
+    const completeProduct = {
+      _id: productId,
+      id: productId,
+      name: productName,
+      price: productPrice,
+      discountPrice: productDiscountPrice,
+      image: productImage,
+      images: productImages,
+      description: productDescription,
+      category: productCategory,
+      brand: productBrand,
+      rating: productRating,
+      reviews: productReviews,
+      stock: productStock,
+      quantity: productStock,
+      weight: productWeight,
+      featured: productFeatured
+    };
     
-    try {
-      const productId = product._id || product.id;
-      const response = await cartService.addToCart(productId, 1);
-      
-      if (response.success) {
-        toast.success(`${product.name} added to cart!`);
-        if (onAddToCart) {
-          onAddToCart(product);
-        }
-      } else {
-        toast.error(response.error || 'Failed to add to cart');
-      }
-    } catch (error) {
-      console.error('Cart error:', error);
-      toast.error('Failed to add to cart');
-    } finally {
-      setCartLoading(false);
-    }
-  };
-
-  // ✅ FIXED: Proper wishlist toggle with API
-  const toggleWishlist = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    console.log('🛒 Sending to cart:', completeProduct);
     
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Please login to add items to wishlist');
-      return;
-    }
-    
-    setWishlistLoading(true);
-    
-    try {
-      const productId = product._id || product.id;
-      
-      if (isInWishlist) {
-        const response = await wishlistService.removeFromWishlist(productId);
-        if (response.success) {
-          setIsInWishlist(false);
-          toast.success('Removed from wishlist');
-        } else {
-          toast.error(response.error || 'Failed to remove from wishlist');
-        }
-      } else {
-        const response = await wishlistService.addToWishlist(productId);
-        if (response.success) {
-          setIsInWishlist(true);
-          toast.success('Added to wishlist');
-        } else {
-          toast.error(response.error || 'Failed to add to wishlist');
-        }
-      }
-    } catch (error) {
-      console.error('Wishlist error:', error);
-      toast.error('An error occurred');
-    } finally {
-      setWishlistLoading(false);
-    }
+    await addToCart(completeProduct, 1);
   };
 
   return (
@@ -212,7 +168,7 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
         {/* Image */}
         <img
           src={getImageUrl()}
-          alt={product.name}
+          alt={productName}
           className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
             imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
           } group-hover:scale-110`}
@@ -229,7 +185,7 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
         )}
         
         {/* Featured Badge */}
-        {product.featured && (
+        {productFeatured && (
           <div className="absolute px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-bold text-yellow-800 bg-yellow-100 rounded top-2 left-2 sm:top-3 sm:left-3 shadow-lg z-10">
             <FiStar className="inline w-3 h-3 mr-1" /> Featured
           </div>
@@ -247,62 +203,58 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
              'Out of Stock'}
           </span>
         </div>
-        
-        {/* Quick Actions Overlay - Desktop */}
-        <div className="absolute inset-0 items-center justify-center hidden gap-1 transition-opacity duration-300 opacity-0 sm:flex sm:gap-2 bg-black/40 group-hover:opacity-100">
+
+        {/* Mobile Action Buttons */}
+        <div className="absolute z-20 flex gap-2 bottom-2 right-2 sm:hidden">
+          {/* View Details Button */}
+          <Link
+            to={`/product/${productId}`}
+            className="p-2 text-white transition-all bg-gray-800 rounded-full shadow-lg hover:bg-gray-900"
+            title="View Details"
+          >
+            <FiEye className="w-4 h-4" />
+          </Link>
+          
           {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
             disabled={stockValue === 0 || cartLoading}
-            className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110"
+            className="p-2 text-white transition-all bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Add to Cart"
           >
             {cartLoading ? (
-              <div className="w-4 h-4 border-2 border-blue-600 rounded-full border-t-transparent animate-spin sm:w-5 sm:h-5"></div>
+              <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
             ) : (
-              <FiShoppingCart className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
+              <FiShoppingCart className="w-4 h-4" />
             )}
           </button>
-          
-          {/* View Details Link */}
-          <Link
-            to={`/product/${product._id}`}
-            className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 hover:scale-110"
-            title="View Details"
-          >
-            <FiEye className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
-          </Link>
-          
-          {/* Wishlist Button */}
-          {showWishlist && (
-            <button
-              onClick={toggleWishlist}
-              disabled={wishlistLoading}
-              className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 hover:scale-110 disabled:opacity-50"
-              title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
-            >
-              {wishlistLoading ? (
-                <div className="w-4 h-4 border-2 border-red-600 rounded-full border-t-transparent animate-spin sm:w-5 sm:h-5"></div>
-              ) : (
-                <FiHeart className={`w-4 h-4 sm:w-5 sm:h-5 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} />
-              )}
-            </button>
-          )}
         </div>
 
-        {/* Mobile Quick Add Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={stockValue === 0 || cartLoading}
-          className="absolute z-10 p-2 text-white transition-all bg-blue-600 rounded-full shadow-lg bottom-2 right-2 sm:hidden hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          title="Quick Add"
-        >
-          {cartLoading ? (
-            <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-          ) : (
-            <FiShoppingCart className="w-4 h-4" />
-          )}
-        </button>
+        {/* Desktop Hover Overlay */}
+        <div className="absolute inset-0 items-center justify-center hidden gap-2 transition-opacity duration-300 opacity-0 sm:flex bg-black/40 group-hover:opacity-100">
+          {/* View Details Button */}
+          <Link
+            to={`/product/${productId}`}
+            className="p-3 transition-all bg-white rounded-full hover:bg-gray-100 hover:scale-110"
+            title="View Details"
+          >
+            <FiEye className="w-5 h-5 text-gray-700" />
+          </Link>
+          
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={stockValue === 0 || cartLoading}
+            className="p-3 transition-all bg-white rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110"
+            title="Add to Cart"
+          >
+            {cartLoading ? (
+              <div className="w-5 h-5 border-2 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+            ) : (
+              <FiShoppingCart className="w-5 h-5 text-gray-700" />
+            )}
+          </button>
+        </div>
       </div>
       
       {/* Product Info */}
@@ -310,24 +262,24 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
         {/* Category */}
         <div className="mb-1 sm:mb-2">
           <span className="px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-medium text-blue-600 bg-blue-100 rounded-full">
-            {product.category || 'Uncategorized'}
+            {productCategory || 'Uncategorized'}
           </span>
         </div>
         
         {/* Product Name */}
-        <Link to={`/product/${product._id}`}>
+        <Link to={`/product/${productId}`}>
           <h3 className="mb-1 text-xs font-semibold text-gray-900 transition-colors line-clamp-2 sm:text-sm md:text-base hover:text-blue-600">
-            {product.name}
+            {productName}
           </h3>
         </Link>
         
-        {/* Rating - NOW USING REAL DATA */}
+        {/* Rating */}
         <div className="flex items-center gap-1 mb-2 sm:gap-2 sm:mb-3">
           <div className="flex">
             {renderStars(productRating)}
           </div>
           <span className="text-[10px] sm:text-xs text-gray-500">
-            ({reviewCount})
+            ({productReviews})
           </span>
         </div>
         
@@ -336,40 +288,26 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
           <div className="flex-1">
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="text-sm font-bold text-gray-900 sm:text-base md:text-xl">
-                {formatKES(product.discountPrice || product.price)}
+                {formatKES(productDiscountPrice || productPrice)}
               </span>
-              {product.discountPrice && (
+              {productDiscountPrice && (
                 <span className="text-[10px] sm:text-xs text-gray-500 line-through">
-                  {formatKES(product.price)}
+                  {formatKES(productPrice)}
                 </span>
               )}
             </div>
-            {product.discountPrice && (
+            {productDiscountPrice && (
               <p className="mt-0.5 text-[8px] sm:text-xs text-green-600">
-                Save {formatKES(product.price - product.discountPrice)}
+                Save {formatKES(productPrice - productDiscountPrice)}
               </p>
             )}
           </div>
-          
-          {/* Desktop Quick Add - Hidden on mobile */}
-          <button
-            onClick={handleAddToCart}
-            disabled={stockValue === 0 || cartLoading}
-            className="hidden p-1.5 text-white transition-colors bg-blue-600 rounded-lg sm:block hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:p-2"
-            title="Quick Add to Cart"
-          >
-            {cartLoading ? (
-              <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin sm:w-4 sm:h-4"></div>
-            ) : (
-              <FiShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
-            )}
-          </button>
         </div>
         
         {/* Brand */}
-        {product.brand && (
+        {productBrand && (
           <p className="mt-2 text-[8px] text-gray-500 sm:mt-3 sm:text-xs">
-            Brand: <span className="font-medium">{product.brand}</span>
+            Brand: <span className="font-medium">{productBrand}</span>
           </p>
         )}
       </div>

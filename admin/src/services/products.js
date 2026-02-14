@@ -92,7 +92,7 @@ const formatError = (error, context) => {
   return errorDetails;
 };
 
-// Helper to normalize product data from API
+// Helper to normalize product data from API with stock fields
 const normalizeProductData = (product) => {
   if (!product) return null;
   
@@ -101,7 +101,7 @@ const normalizeProductData = (product) => {
   let imageUrl = '';
   let imagesArray = [];
   
-  // ✅ FIXED: Better image extraction for multiple formats
+  // ✅ Extract images properly for multiple formats
   if (product.images && Array.isArray(product.images)) {
     imagesArray = product.images.map((img, index) => {
       if (typeof img === 'string') {
@@ -149,37 +149,68 @@ const normalizeProductData = (product) => {
     imagesArray = [{ url: imageUrl, altText: product.name || '', isPrimary: true }];
   }
   
+  // ✅ Calculate stock status based on quantity and settings
+  const stockQuantity = parseInt(product.quantity || product.stock || product.inventory || 0);
+  const trackQuantity = product.trackQuantity !== false;
+  const allowOutOfStock = product.allowOutOfStockPurchase || false;
+  const lowStockThreshold = product.lowStockThreshold || 5;
+  
+  let stockStatus = 'available';
+  let inStock = true;
+  
+  if (trackQuantity) {
+    if (stockQuantity <= 0 && !allowOutOfStock) {
+      stockStatus = 'sold';
+      inStock = false;
+    } else if (stockQuantity <= 0 && allowOutOfStock) {
+      stockStatus = 'backorder';
+      inStock = true;
+    } else if (stockQuantity <= lowStockThreshold) {
+      stockStatus = 'low';
+      inStock = true;
+    } else {
+      stockStatus = 'available';
+      inStock = true;
+    }
+  }
+  
   const normalized = {
     id: product._id || product.id,
     _id: product._id || product.id,
     name: product.name || '',
     description: product.description || '',
-    price: product.price || product.unitPrice || 0,
-    cost: product.cost || product.costPerItem || 0,
-    stock: product.quantity || product.stock || product.inventory || 0,
-    quantity: product.quantity || product.stock || product.inventory || 0,
+    price: parseFloat(product.price || product.unitPrice || 0),
+    comparePrice: parseFloat(product.comparePrice || 0),
+    cost: parseFloat(product.cost || product.costPerItem || 0),
+    // Stock fields
+    quantity: stockQuantity,
+    stock: stockQuantity,
+    trackQuantity: trackQuantity,
+    allowOutOfStockPurchase: allowOutOfStock,
+    lowStockThreshold: lowStockThreshold,
+    stockStatus: stockStatus,
+    inStock: inStock,
     category: product.category || '',
     images: imagesArray,
     image: imageUrl || (imagesArray[0]?.url || ''),
     status: product.status || 'draft',
     sku: product.sku || '',
     barcode: product.barcode || '',
-    weight: product.weight || 0,
+    weight: parseFloat(product.weight || 0),
     weightUnit: product.weightUnit || 'kg',
     dimensions: product.dimensions || { length: 0, width: 0, height: 0, unit: 'cm' },
     tags: Array.isArray(product.tags) ? product.tags : (product.tags ? product.tags.split(',').map(t => t.trim()) : []),
     featured: Boolean(product.featured),
     createdAt: product.createdAt || product.createdDate || new Date().toISOString(),
     updatedAt: product.updatedAt || product.modifiedDate || new Date().toISOString(),
-    trackQuantity: product.trackQuantity !== false,
-    allowOutOfStockPurchase: Boolean(product.allowOutOfStockPurchase),
   };
   
   console.log('✅ Normalized product:', {
     id: normalized.id,
     name: normalized.name,
-    imageCount: normalized.images.length,
-    images: normalized.images
+    stock: normalized.quantity,
+    stockStatus: normalized.stockStatus,
+    imageCount: normalized.images.length
   });
   
   return normalized;
@@ -229,6 +260,7 @@ export const productService = {
         search: '',
         category: '',
         status: '',
+        stockStatus: '', // Filter by stock status
         minPrice: '',
         maxPrice: '',
         minStock: '',
@@ -284,7 +316,6 @@ export const productService = {
     }
   },
 
-  // ✅ FIXED: Get by ID with better response handling
   getById: async (id, options = {}) => {
     try {
       if (!id) {
@@ -480,6 +511,37 @@ export const productService = {
     } catch (error) {
       console.error(`❌ Error updating status for product ${id}:`, error);
       const errorDetails = formatError(error, `updating status for product ${id}`);
+      return {
+        success: false,
+        error: errorDetails,
+      };
+    }
+  },
+
+  updateStock: async (id, stockData) => {
+    try {
+      if (!id) {
+        throw new Error('Product ID is required');
+      }
+
+      console.log(`📦 Updating stock for product ${id}:`, stockData);
+
+      const response = await retryRequest(() => 
+        api.patch(`/admin/products/${id}/stock`, stockData, {
+          timeout: API_CONFIG.TIMEOUT,
+        })
+      );
+
+      const normalizedData = normalizeProductData(response.data);
+      
+      return {
+        success: true,
+        data: normalizedData,
+        message: 'Stock updated successfully',
+      };
+    } catch (error) {
+      console.error(`❌ Error updating stock for product ${id}:`, error);
+      const errorDetails = formatError(error, `updating stock for product ${id}`);
       return {
         success: false,
         error: errorDetails,

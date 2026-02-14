@@ -2,8 +2,44 @@ import asyncHandler from 'express-async-handler';
 import Product from '../../models/Product.js'; 
 import Order from '../../models/Order.js';     
 import { generateSKU } from '../../utils/helpers.js'; 
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-// --- Helper function for image URL (Must match your upload.js logic) ---
+// --- Configure multer for file uploads ---
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/products/';
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+  }
+});
+
+// File filter to only allow images
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// Create multer upload instance
+export const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: fileFilter
+});
+
+// --- Helper function for image URL ---
 const getFileUrl = (filename) => `/uploads/products/${filename}`; 
 
 // =========================================================================
@@ -17,7 +53,10 @@ const getFileUrl = (filename) => `/uploads/products/${filename}`;
  */
 export const createProduct = asyncHandler(async (req, res) => { 
   let productData = req.body; 
-  const uploadedFiles = req.files; // Files from Multer
+  const uploadedFiles = req.files; // Files from Multer - expects field name 'images'
+
+  console.log('📦 Creating product with data:', productData);
+  console.log('📸 Uploaded files:', uploadedFiles?.map(f => f.filename));
 
   // 1. Parse Dimensions (comes as JSON string from FormData)
   if (productData.dimensions && typeof productData.dimensions === 'string') {
@@ -44,7 +83,7 @@ export const createProduct = asyncHandler(async (req, res) => {
       delete productData.stock; 
   }
   
-  // ✅ CRITICAL: Set default values for product visibility
+  // Set default values for product visibility
   productData.inStock = true;           // THIS ENABLES THE BUY BUTTONS!
   productData.status = 'active';        // Product is active
   productData.isPublished = true;       // Product is published
@@ -92,7 +131,10 @@ export const updateProduct = asyncHandler(async (req, res) => {
   }
 
   let updateData = req.body; 
-  const uploadedFiles = req.files; 
+  const uploadedFiles = req.files; // Files from Multer - expects field name 'images'
+
+  console.log('📦 Updating product with data:', updateData);
+  console.log('📸 Uploaded files:', uploadedFiles?.map(f => f.filename));
 
   // 1. Parse Dimensions
   if (updateData.dimensions && typeof updateData.dimensions === 'string') {
@@ -145,7 +187,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
       delete updateData.stock; 
   }
   
-  // ✅ Ensure these fields are properly set
+  // Ensure these fields are properly set
   if (updateData.inStock === undefined) {
     updateData.inStock = true; // Default to true if not specified
   }

@@ -1,3 +1,4 @@
+// client/src/services/client/products.js
 import clientApi from './api';
 
 export const clientProductService = {
@@ -101,3 +102,5 @@ export const clientProductService = {
     }
   }
 };
+
+export default clientProductService;

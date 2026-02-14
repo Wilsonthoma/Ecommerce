@@ -14,7 +14,8 @@ import {
   FiMinus,
   FiPlus,
   FiX,
-  FiZoomIn
+  FiZoomIn,
+  FiStar
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
@@ -188,11 +189,11 @@ const Product = () => {
           <span className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[300px]">{product.name}</span>
         </nav>
 
-        {/* Product Main Section - REDUCED IMAGE SIZE */}
+        {/* Product Main Section */}
         <div className="grid grid-cols-1 gap-6 lg:gap-8 lg:grid-cols-2">
-          {/* Product Images - SMALLER SIZE */}
+          {/* Product Images */}
           <div className="space-y-3">
-            {/* Main Image - REDUCED HEIGHT */}
+            {/* Main Image */}
             <div className="relative overflow-hidden bg-white border border-gray-200 rounded-xl" style={{ height: '350px' }}>
               {productImages.length > 0 && !imageErrors[selectedImageIndex] ? (
                 <img
@@ -229,9 +230,16 @@ const Product = () => {
                   {discountPercentage}% OFF
                 </div>
               )}
+
+              {/* ✅ ADDED: Featured Badge */}
+              {product.featured && (
+                <div className="absolute px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-100 rounded-lg top-3 right-3 sm:px-3 sm:py-1.5">
+                  <FiStar className="inline w-3 h-3 mr-1" /> Featured
+                </div>
+              )}
             </div>
 
-            {/* Thumbnail Gallery - SMALLER THUMBNAILS */}
+            {/* Thumbnail Gallery */}
             {productImages.length > 1 && (
               <div className="grid grid-cols-5 gap-2">
                 {productImages.map((image, index) => (
@@ -259,7 +267,7 @@ const Product = () => {
             )}
           </div>
 
-          {/* Product Info - COMPACT */}
+          {/* Product Info */}
           <div className="space-y-4">
             {/* Category */}
             <div>
@@ -267,6 +275,12 @@ const Product = () => {
                 <span className="px-2 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded-full sm:px-3 sm:py-1">
                   {product.category || 'Uncategorized'}
                 </span>
+                {/* ✅ ADDED: Featured badge in info section too */}
+                {product.featured && (
+                  <span className="px-2 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full sm:px-3 sm:py-1">
+                    <FiStar className="inline w-3 h-3 mr-1" /> Featured
+                  </span>
+                )}
               </div>
               <h1 className="mb-1 text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">{product.name}</h1>
             </div>
@@ -308,7 +322,7 @@ const Product = () => {
               )}
             </div>
 
-            {/* Description - COMPACT */}
+            {/* Description */}
             <div className="pt-3 border-t border-gray-200">
               <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
                 {product.description || 'No description available.'}
@@ -346,7 +360,7 @@ const Product = () => {
               </div>
             )}
 
-            {/* Action Buttons - COMPACT */}
+            {/* Action Buttons */}
             <div className="pt-3 space-y-2 border-t border-gray-200">
               <div className="flex items-center gap-2">
                 <button
@@ -400,7 +414,7 @@ const Product = () => {
               </button>
             </div>
 
-            {/* Shipping Info - COMPACT GRID */}
+            {/* Shipping Info */}
             <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200 sm:grid-cols-4">
               <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
                 <FiTruck className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
@@ -426,7 +440,7 @@ const Product = () => {
           </div>
         </div>
 
-        {/* Related Products - SMALLER CARDS */}
+        {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-8 sm:mt-12">
             <h2 className="mb-4 text-lg font-bold text-gray-900 sm:text-xl">You May Also Like</h2>
@@ -467,6 +481,12 @@ const Product = () => {
                           KSh {Math.round(relatedProduct.price).toLocaleString()}
                         </p>
                       )}
+                      {/* ✅ ADDED: Featured badge for related products */}
+                      {relatedProduct.featured && (
+                        <span className="inline-block px-1.5 py-0.5 mt-1 text-[8px] font-medium text-yellow-800 bg-yellow-100 rounded sm:text-xs">
+                          Featured
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -476,7 +496,7 @@ const Product = () => {
         )}
       </div>
 
-      {/* Lightbox Modal - Keep full size for zoom */}
+      {/* Lightbox Modal */}
       {lightboxOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
           <div className="relative flex items-center justify-center w-full h-full">

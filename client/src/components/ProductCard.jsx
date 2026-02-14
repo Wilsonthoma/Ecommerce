@@ -1,8 +1,11 @@
 // client/src/components/ProductCard.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
+import { FiShoppingCart, FiHeart, FiEye, FiStar } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
+import { wishlistService } from '../services/client/wishlist';
+import { cartService } from '../services/client/cart';
+import { toast } from 'react-toastify';
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -14,9 +17,35 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
 
-  // ✅ Get stock value from either stock or quantity field
+  // Get stock value from either stock or quantity field
   const stockValue = product.stock || product.quantity || 0;
+  
+  // Get real rating and review count
+  const productRating = product.rating || 0;
+  const reviewCount = product.reviews || product.reviewCount || 0;
+
+  // Check if product is in wishlist on mount
+  useEffect(() => {
+    const checkWishlistStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const productId = product._id || product.id;
+        const response = await wishlistService.checkInWishlist(productId);
+        if (response.success) {
+          setIsInWishlist(response.inWishlist);
+        }
+      } catch (error) {
+        console.error('Error checking wishlist status:', error);
+      }
+    };
+    
+    checkWishlistStatus();
+  }, [product._id, product.id]);
 
   const formatKES = (price) => {
     if (!price && price !== 0) return "KSh 0";
@@ -27,22 +56,45 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  // Proper star rendering with half-star support
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
+    const hasHalfStar = (rating % 1) >= 0.5;
     
     for (let i = 0; i < 5; i++) {
-      stars.push(
-        <AiFillStar
-          key={i}
-          className={`w-3 h-3 sm:w-4 sm:h-4 ${i < fullStars ? 'text-yellow-400' : 'text-gray-300'}`}
-        />
-      );
+      if (i < fullStars) {
+        // Full star
+        stars.push(
+          <AiFillStar
+            key={i}
+            className="w-3 h-3 text-yellow-400 sm:w-4 sm:h-4"
+          />
+        );
+      } else if (i === fullStars && hasHalfStar) {
+        // Half star
+        stars.push(
+          <div key={i} className="relative">
+            <AiFillStar className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4" />
+            <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+              <AiFillStar className="w-3 h-3 text-yellow-400 sm:w-4 sm:h-4" />
+            </div>
+          </div>
+        );
+      } else {
+        // Empty star
+        stars.push(
+          <AiFillStar
+            key={i}
+            className="w-3 h-3 text-gray-300 sm:w-4 sm:h-4"
+          />
+        );
+      }
     }
     return stars;
   };
 
-  // ✅ Construct image URL
+  // Construct image URL
   const getImageUrl = () => {
     if (imageError) return FALLBACK_IMAGE;
     
@@ -72,18 +124,78 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
     e.target.src = FALLBACK_IMAGE;
   };
 
-  const handleAddToCart = (e) => {
+  // ✅ FIXED: Proper add to cart with API
+  const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (onAddToCart) {
-      onAddToCart(product);
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to cart');
+      return;
+    }
+    
+    setCartLoading(true);
+    
+    try {
+      const productId = product._id || product.id;
+      const response = await cartService.addToCart(productId, 1);
+      
+      if (response.success) {
+        toast.success(`${product.name} added to cart!`);
+        if (onAddToCart) {
+          onAddToCart(product);
+        }
+      } else {
+        toast.error(response.error || 'Failed to add to cart');
+      }
+    } catch (error) {
+      console.error('Cart error:', error);
+      toast.error('Failed to add to cart');
+    } finally {
+      setCartLoading(false);
     }
   };
 
-  const toggleWishlist = (e) => {
+  // ✅ FIXED: Proper wishlist toggle with API
+  const toggleWishlist = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsInWishlist(!isInWishlist);
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to add items to wishlist');
+      return;
+    }
+    
+    setWishlistLoading(true);
+    
+    try {
+      const productId = product._id || product.id;
+      
+      if (isInWishlist) {
+        const response = await wishlistService.removeFromWishlist(productId);
+        if (response.success) {
+          setIsInWishlist(false);
+          toast.success('Removed from wishlist');
+        } else {
+          toast.error(response.error || 'Failed to remove from wishlist');
+        }
+      } else {
+        const response = await wishlistService.addToWishlist(productId);
+        if (response.success) {
+          setIsInWishlist(true);
+          toast.success('Added to wishlist');
+        } else {
+          toast.error(response.error || 'Failed to add to wishlist');
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      toast.error('An error occurred');
+    } finally {
+      setWishlistLoading(false);
+    }
   };
 
   return (
@@ -116,7 +228,14 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
           </div>
         )}
         
-        {/* Stock Status - Using stockValue */}
+        {/* Featured Badge */}
+        {product.featured && (
+          <div className="absolute px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-bold text-yellow-800 bg-yellow-100 rounded top-2 left-2 sm:top-3 sm:left-3 shadow-lg z-10">
+            <FiStar className="inline w-3 h-3 mr-1" /> Featured
+          </div>
+        )}
+        
+        {/* Stock Status */}
         <div className="absolute z-10 top-2 right-2 sm:top-3 sm:right-3">
           <span className={`px-1.5 py-0.5 sm:px-2 sm:py-1 text-[8px] sm:text-xs font-medium rounded-full shadow-lg ${
             stockValue > 10 ? 'bg-green-500 text-white' :
@@ -131,14 +250,21 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
         
         {/* Quick Actions Overlay - Desktop */}
         <div className="absolute inset-0 items-center justify-center hidden gap-1 transition-opacity duration-300 opacity-0 sm:flex sm:gap-2 bg-black/40 group-hover:opacity-100">
+          {/* Add to Cart Button */}
           <button
             onClick={handleAddToCart}
-            disabled={stockValue === 0}
+            disabled={stockValue === 0 || cartLoading}
             className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-110"
             title="Add to Cart"
           >
-            <FiShoppingCart className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
+            {cartLoading ? (
+              <div className="w-4 h-4 border-2 border-blue-600 rounded-full border-t-transparent animate-spin sm:w-5 sm:h-5"></div>
+            ) : (
+              <FiShoppingCart className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
+            )}
           </button>
+          
+          {/* View Details Link */}
           <Link
             to={`/product/${product._id}`}
             className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 hover:scale-110"
@@ -146,13 +272,20 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
           >
             <FiEye className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
           </Link>
+          
+          {/* Wishlist Button */}
           {showWishlist && (
             <button
               onClick={toggleWishlist}
-              className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 hover:scale-110"
-              title="Add to Wishlist"
+              disabled={wishlistLoading}
+              className="p-2 transition-all bg-white rounded-full sm:p-3 hover:bg-gray-100 hover:scale-110 disabled:opacity-50"
+              title={isInWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-              <FiHeart className={`w-4 h-4 sm:w-5 sm:h-5 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} />
+              {wishlistLoading ? (
+                <div className="w-4 h-4 border-2 border-red-600 rounded-full border-t-transparent animate-spin sm:w-5 sm:h-5"></div>
+              ) : (
+                <FiHeart className={`w-4 h-4 sm:w-5 sm:h-5 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} />
+              )}
             </button>
           )}
         </div>
@@ -160,11 +293,15 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
         {/* Mobile Quick Add Button */}
         <button
           onClick={handleAddToCart}
-          disabled={stockValue === 0}
+          disabled={stockValue === 0 || cartLoading}
           className="absolute z-10 p-2 text-white transition-all bg-blue-600 rounded-full shadow-lg bottom-2 right-2 sm:hidden hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Quick Add"
         >
-          <FiShoppingCart className="w-4 h-4" />
+          {cartLoading ? (
+            <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+          ) : (
+            <FiShoppingCart className="w-4 h-4" />
+          )}
         </button>
       </div>
       
@@ -184,13 +321,13 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
           </h3>
         </Link>
         
-        {/* Rating */}
+        {/* Rating - NOW USING REAL DATA */}
         <div className="flex items-center gap-1 mb-2 sm:gap-2 sm:mb-3">
           <div className="flex">
-            {renderStars(product.rating || 4.5)}
+            {renderStars(productRating)}
           </div>
           <span className="text-[10px] sm:text-xs text-gray-500">
-            ({product.reviews || product.reviewCount || 0})
+            ({reviewCount})
           </span>
         </div>
         
@@ -214,14 +351,18 @@ const ProductCard = ({ product, onAddToCart, showWishlist = true }) => {
             )}
           </div>
           
-          {/* Desktop Quick Add */}
+          {/* Desktop Quick Add - Hidden on mobile */}
           <button
             onClick={handleAddToCart}
-            disabled={stockValue === 0}
+            disabled={stockValue === 0 || cartLoading}
             className="hidden p-1.5 text-white transition-colors bg-blue-600 rounded-lg sm:block hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:p-2"
             title="Quick Add to Cart"
           >
-            <FiShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
+            {cartLoading ? (
+              <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin sm:w-4 sm:h-4"></div>
+            ) : (
+              <FiShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
+            )}
           </button>
         </div>
         

@@ -1,13 +1,11 @@
 // client/src/services/client/cart.js
-import api from './api.js';
+import clientApi from './api';
 
-// Cart Services
 export const cartService = {
   // Get cart
   getCart: async () => {
     try {
-      // ✅ FIXED: Remove /api prefix
-      const response = await api.get('/cart/');
+      const response = await clientApi.get('/cart/');
       return response.data;
     } catch (error) {
       console.error('Error fetching cart:', error);
@@ -18,8 +16,7 @@ export const cartService = {
   // Add to cart
   addToCart: async (productId, quantity = 1) => {
     try {
-      // ✅ FIXED: Remove /api prefix
-      const response = await api.post('/cart/items', {
+      const response = await clientApi.post('/cart/items', {
         productId,
         quantity
       });
@@ -33,8 +30,7 @@ export const cartService = {
   // Update cart item
   updateCartItem: async (productId, quantity) => {
     try {
-      // ✅ FIXED: Remove /api prefix
-      const response = await api.put(`/cart/items/${productId}`, {
+      const response = await clientApi.put(`/cart/items/${productId}`, {
         quantity
       });
       return response.data;
@@ -47,8 +43,7 @@ export const cartService = {
   // Remove from cart
   removeFromCart: async (productId) => {
     try {
-      // ✅ FIXED: Remove /api prefix
-      const response = await api.delete(`/cart/items/${productId}`);
+      const response = await clientApi.delete(`/cart/items/${productId}`);
       return response.data;
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -59,12 +54,46 @@ export const cartService = {
   // Clear cart
   clearCart: async () => {
     try {
-      // ✅ FIXED: Remove /api prefix
-      const response = await api.delete('/cart/clear');
+      const response = await clientApi.delete('/cart/clear');
       return response.data;
     } catch (error) {
       console.error('Error clearing cart:', error);
       throw error;
     }
+  },
+
+  // Get cart count
+  getCartCount: async () => {
+    try {
+      const response = await clientApi.get('/cart/count');
+      return response.data;
+    } catch (error) {
+      console.error('Error getting cart count:', error);
+      throw error;
+    }
+  },
+
+  // Apply coupon
+  applyCoupon: async (couponCode) => {
+    try {
+      const response = await clientApi.post('/cart/apply-coupon', { couponCode });
+      return response.data;
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      throw error;
+    }
+  },
+
+  // Remove coupon
+  removeCoupon: async () => {
+    try {
+      const response = await clientApi.delete('/cart/remove-coupon');
+      return response.data;
+    } catch (error) {
+      console.error('Error removing coupon:', error);
+      throw error;
+    }
   }
 };
+
+export default cartService;

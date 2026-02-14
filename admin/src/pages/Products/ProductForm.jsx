@@ -254,43 +254,85 @@ const ProductForm = () => {
     return !error;
   };
 
+  // ✅ FIXED: Enhanced validation with detailed logging
   const validateForm = () => {
+    console.log('🔍 VALIDATING FORM - Current formData:', {
+      name: formData.name,
+      nameType: typeof formData.name,
+      nameLength: formData.name?.length,
+      price: formData.price,
+      priceType: typeof formData.price,
+      stock: formData.stock,
+      stockType: typeof formData.stock,
+      category: formData.category,
+      categoryType: typeof formData.category,
+      imagesCount: formData.images.length,
+      filesToUploadCount: filesToUpload.length,
+      isEditMode
+    });
+
     const newErrors = {};
     
+    // Name validation
     if (!formData.name || String(formData.name).trim() === '') {
       newErrors.name = 'Product name is required';
+      console.log('❌ Name validation failed - empty');
+    } else {
+      console.log('✅ Name validation passed:', formData.name);
     }
     
+    // Price validation
     if (formData.price === '' || formData.price === null || formData.price === undefined) {
       newErrors.price = 'Price is required';
+      console.log('❌ Price validation failed - empty value');
     } else {
       const priceNum = parseFloat(formData.price);
+      console.log('Price parsed:', priceNum, 'isNaN:', isNaN(priceNum));
       if (isNaN(priceNum) || priceNum < 0) {
         newErrors.price = 'Price must be a valid positive number';
+        console.log('❌ Price validation failed - invalid number:', formData.price);
+      } else {
+        console.log('✅ Price validation passed:', priceNum);
       }
     }
     
+    // Stock validation
     if (formData.stock === '' || formData.stock === null || formData.stock === undefined) {
       newErrors.stock = 'Stock is required';
+      console.log('❌ Stock validation failed - empty value');
     } else {
       const stockNum = parseInt(formData.stock);
+      console.log('Stock parsed:', stockNum, 'isNaN:', isNaN(stockNum));
       if (isNaN(stockNum) || stockNum < 0) {
         newErrors.stock = 'Stock must be a valid non-negative number';
+        console.log('❌ Stock validation failed - invalid number:', formData.stock);
+      } else {
+        console.log('✅ Stock validation passed:', stockNum);
       }
     }
     
+    // Category validation
     if (!formData.category || String(formData.category).trim() === '') {
       newErrors.category = 'Category is required';
+      console.log('❌ Category validation failed - empty');
+    } else {
+      console.log('✅ Category validation passed:', formData.category);
     }
     
+    // Images validation for new products
     if (!isEditMode) {
       const totalImages = (formData.images?.length || 0) + filesToUpload.length;
+      console.log('Total images for new product:', totalImages);
       if (totalImages === 0) {
         newErrors.images = 'Please provide at least one image';
+        console.log('❌ Images validation failed - no images');
+      } else {
+        console.log('✅ Images validation passed:', totalImages, 'images');
       }
     }
     
     setErrors(newErrors);
+    console.log('🔍 Validation complete. Errors:', newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -319,6 +361,7 @@ const ProductForm = () => {
     });
 
     if (validFiles.length > 0) {
+      console.log('📸 Files selected:', validFiles.map(f => f.name));
       setFilesToUpload(prev => [...prev, ...validFiles]);
     }
     
@@ -330,6 +373,7 @@ const ProductForm = () => {
   };
 
   const removeFile = (fileIndex) => {
+    console.log('🗑️ Removing file at index:', fileIndex);
     setFilesToUpload(prev => prev.filter((_, index) => index !== fileIndex));
   };
 
@@ -369,12 +413,25 @@ const ProductForm = () => {
     });
   };
 
-  // ✅ FIXED: Handle FormData correctly
+  // ✅ FIXED: Handle FormData correctly with 'images' field
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('📤 FORM SUBMITTED');
+    console.log('Current formData:', formData);
+    console.log('Files to upload:', filesToUpload.length);
+    
     if (!validateForm()) {
+      console.log('❌ FORM VALIDATION FAILED');
       toast.error('Please fix the errors in the form');
+      
+      // Log which fields have errors
+      Object.keys(errors).forEach(key => {
+        if (errors[key]) {
+          console.log(`❌ Field "${key}" error:`, errors[key]);
+        }
+      });
+      
       const firstErrorField = Object.keys(errors)[0];
       if (firstErrorField) {
         const element = document.querySelector(`[name="${firstErrorField}"]`);
@@ -386,6 +443,7 @@ const ProductForm = () => {
       return;
     }
 
+    console.log('✅ FORM VALIDATION PASSED');
     setSaving(true);
     setUploadProgress(0);
     const loadingToast = toast.loading(isEditMode ? 'Updating product...' : 'Creating product...');
@@ -393,11 +451,18 @@ const ProductForm = () => {
     try {
       const formDataObj = new FormData();
       
-      // Add basic fields
+      // Add basic fields - with explicit type conversion
       formDataObj.append('name', String(formData.name || '').trim());
       formDataObj.append('description', String(formData.description || '').trim());
-      formDataObj.append('price', parseFloat(formData.price) || 0);
-      formDataObj.append('stock', parseInt(formData.stock) || 0);
+      
+      // Parse numbers carefully
+      const priceNum = parseFloat(formData.price) || 0;
+      const stockNum = parseInt(formData.stock) || 0;
+      
+      console.log('Parsed numbers:', { priceNum, stockNum });
+      
+      formDataObj.append('price', priceNum);
+      formDataObj.append('stock', stockNum);
       formDataObj.append('category', String(formData.category || '').trim());
       formDataObj.append('status', String(formData.status || 'draft'));
       formDataObj.append('featured', String(formData.isFeatured));
@@ -416,31 +481,47 @@ const ProductForm = () => {
         formDataObj.append('dimensions', JSON.stringify(formData.dimensions));
       }
       
-      // ✅ FIXED: Handle existing images - send as JSON string
+      // Handle existing images - send as JSON string
       if (isEditMode && formData.images.length > 0) {
-        // Extract just the URLs to send to backend
         const imageUrls = formData.images.map(img => img.url || img);
         formDataObj.append('existingImages', JSON.stringify(imageUrls));
+        console.log('Existing images:', imageUrls);
       }
       
-      // ✅ FIXED: Add new images with correct field name
+      // Add new images
+      console.log('Adding files to FormData:', filesToUpload.length);
       filesToUpload.forEach(file => {
-        formDataObj.append('images', file); // Backend expects 'images' field
+        formDataObj.append('images', file);
+        console.log('Added file:', file.name);
       });
+
+      // Log FormData contents
+      console.log('📦 FormData entries:');
+      for (let pair of formDataObj.entries()) {
+        if (pair[0] === 'images' && pair[1] instanceof File) {
+          console.log(`  ${pair[0]}: File - ${pair[1].name} (${pair[1].size} bytes)`);
+        } else {
+          console.log(`  ${pair[0]}: ${pair[1]}`);
+        }
+      }
 
       let response;
       if (isEditMode) {
+        console.log('🔄 Updating product with ID:', id);
         response = await productService.update(id, formDataObj);
       } else {
+        console.log('🔄 Creating new product');
         response = await productService.create(formDataObj);
       }
 
       toast.dismiss(loadingToast);
       
       if (response.success) {
+        console.log('✅ Product saved successfully:', response);
         toast.success(isEditMode ? 'Product updated successfully!' : 'Product created successfully!');
         navigate('/products');
       } else {
+        console.error('❌ API Error:', response.error);
         toast.error(response.error?.message || 'Operation failed');
         if (response.error?.validationErrors) {
           setErrors(response.error.validationErrors);
@@ -448,7 +529,7 @@ const ProductForm = () => {
       }
     } catch (error) {
       toast.dismiss(loadingToast);
-      console.error('Product submission error:', error);
+      console.error('❌ Product submission error:', error);
       toast.error(error.message || 'An unexpected error occurred');
     } finally {
       setSaving(false);

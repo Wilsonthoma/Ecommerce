@@ -31,6 +31,7 @@ import { AiFillStar } from 'react-icons/ai';
 import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext'; // ✅ ADDED
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -42,6 +43,7 @@ const Product = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, refreshCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist(); // ✅ ADDED
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,6 @@ const Product = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
   const [shippingMethod, setShippingMethod] = useState('standard');
@@ -87,6 +88,12 @@ const Product = () => {
   // Get stock value from either stock or quantity field
   const getStockValue = (product) => {
     return product?.stock || product?.quantity || 0;
+  };
+
+  // Format KES currency
+  const formatKES = (price) => {
+    if (!price && price !== 0) return "KSh 0";
+    return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
   // Construct full image URL
@@ -150,7 +157,7 @@ const Product = () => {
   };
 
   // Render stars for display
-  const renderStars = (rating, size = "w-4 h-4") => {
+  const renderStars = (rating, size = "w-3 h-3 md:w-4 md:h-4") => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
     const hasHalfStar = (rating % 1) >= 0.5;
@@ -175,7 +182,7 @@ const Product = () => {
   };
 
   // Rating Stars Component for interactive rating
-  const RatingStars = ({ interactive = false, size = "w-8 h-8" }) => {
+  const RatingStars = ({ interactive = false, size = "w-4 h-4 md:w-5 md:h-5" }) => {
     const stars = [];
     const currentRating = interactive ? (hoverRating || userRating) : (product?.rating || 0);
 
@@ -220,9 +227,6 @@ const Product = () => {
         const productData = response.product || response.data;
         setProduct(productData);
         setRelatedProducts(response.relatedProducts || []);
-        
-        const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-        setIsInWishlist(wishlist.includes(productData._id || productData.id));
       } else {
         toast.error('Product not found');
         navigate('/shop');
@@ -300,6 +304,17 @@ const Product = () => {
     setIsAddingToCart(false);
   };
 
+  // Handle wishlist toggle
+  const handleWishlistToggle = async () => {
+    if (!isLoggedIn) {
+      toast.error('Please login to use wishlist');
+      navigate('/login');
+      return;
+    }
+    
+    await toggleWishlist(product);
+  };
+
   // Handle review submission
   const handleSubmitReview = async () => {
     if (!isLoggedIn) {
@@ -341,8 +356,8 @@ const Product = () => {
         setReviewText('');
         setShowReviewForm(false);
         setEditingReview(null);
-        fetchReviews(); // Refresh reviews
-        fetchProductData(); // Refresh product to get updated rating
+        fetchReviews();
+        fetchProductData();
       } else {
         toast.error(response.message || 'Failed to submit review');
       }
@@ -374,8 +389,8 @@ const Product = () => {
       
       if (response.success) {
         toast.success('Review deleted successfully');
-        fetchReviews(); // Refresh reviews
-        fetchProductData(); // Refresh product to get updated rating
+        fetchReviews();
+        fetchProductData();
       } else {
         toast.error(response.message || 'Failed to delete review');
       }
@@ -387,25 +402,25 @@ const Product = () => {
 
   // Format date
   const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen py-8 bg-gray-50">
-        <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="min-h-screen py-4 bg-gray-50 md:py-8">
+        <div className="container px-3 mx-auto md:px-4">
           <div className="animate-pulse">
-            <div className="w-1/4 h-4 mb-6 bg-gray-200 rounded"></div>
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <div className="bg-gray-200 rounded-2xl" style={{ height: '350px' }}></div>
-              <div className="space-y-4">
-                <div className="w-3/4 h-6 bg-gray-200 rounded"></div>
-                <div className="w-1/2 h-4 bg-gray-200 rounded"></div>
-                <div className="w-1/3 h-8 bg-gray-200 rounded"></div>
+            <div className="w-24 h-3 mb-4 bg-gray-200 rounded md:h-4 md:w-32 md:mb-6"></div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
+              <div className="bg-gray-200 rounded-lg aspect-square md:rounded-xl"></div>
+              <div className="space-y-3 md:space-y-4">
+                <div className="w-3/4 h-4 bg-gray-200 rounded md:h-6"></div>
+                <div className="w-1/2 h-3 bg-gray-200 rounded md:h-4"></div>
+                <div className="w-1/3 h-6 bg-gray-200 rounded md:h-8"></div>
                 <div className="space-y-2">
-                  <div className="h-3 bg-gray-200 rounded"></div>
-                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-2 bg-gray-200 rounded md:h-3"></div>
+                  <div className="h-2 bg-gray-200 rounded md:h-3"></div>
                 </div>
               </div>
             </div>
@@ -437,24 +452,27 @@ const Product = () => {
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
     : product.rating?.toFixed(1) || '0.0';
 
+  // Check if product is in wishlist
+  const inWishlist = isInWishlist(product._id || product.id);
+
   return (
-    <div className="min-h-screen py-8 bg-gray-50">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 mb-6 text-xs text-gray-600 sm:text-sm">
-          <button onClick={() => navigate('/')} className="hover:text-blue-600">Home</button>
-          <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-          <button onClick={() => navigate('/shop')} className="hover:text-blue-600">Shop</button>
-          <FiChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="font-medium text-gray-900 truncate max-w-[150px] sm:max-w-[300px]">{product.name}</span>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container px-3 py-4 mx-auto md:px-4 md:py-8">
+        {/* Breadcrumb - responsive */}
+        <nav className="flex items-center gap-1 mb-4 text-xs text-gray-600 md:gap-2 md:mb-6 md:text-sm">
+          <button onClick={() => navigate('/')} className="hover:text-blue-600 whitespace-nowrap">Home</button>
+          <FiChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+          <button onClick={() => navigate('/shop')} className="hover:text-blue-600 whitespace-nowrap">Shop</button>
+          <FiChevronRight className="w-3 h-3 md:w-4 md:h-4" />
+          <span className="font-medium text-gray-900 truncate">{product.name}</span>
         </nav>
 
-        {/* Product Main Section */}
-        <div className="grid grid-cols-1 gap-6 lg:gap-8 lg:grid-cols-2">
-          {/* Product Images */}
-          <div className="space-y-3">
+        {/* Product Main Section - Fixed 2-column layout for all screens */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:gap-8">
+          {/* Left Column - Images (always 50% width) */}
+          <div className="space-y-2 md:space-y-3">
             {/* Main Image */}
-            <div className="relative overflow-hidden bg-white border border-gray-200 rounded-xl" style={{ height: '350px' }}>
+            <div className="relative overflow-hidden bg-white border border-gray-200 rounded-lg aspect-square md:rounded-xl">
               {productImages.length > 0 && !imageErrors[selectedImageIndex] ? (
                 <img
                   src={productImages[selectedImageIndex]?.url}
@@ -477,49 +495,61 @@ const Product = () => {
               {productImages.length > 0 && !imageErrors[selectedImageIndex] && (
                 <button
                   onClick={() => setLightboxOpen(true)}
-                  className="absolute p-1.5 transition-colors bg-white rounded-full shadow-md bottom-2 right-2 hover:bg-gray-100 sm:p-2"
+                  className="absolute p-1.5 bg-white rounded-full shadow-md bottom-2 right-2 md:p-2 hover:bg-gray-100"
                   title="Zoom image"
                 >
-                  <FiZoomIn className="w-4 h-4 text-gray-700 sm:w-5 sm:h-5" />
+                  <FiZoomIn className="w-3 h-3 text-gray-700 md:w-4 md:h-4" />
                 </button>
               )}
 
-              {/* Discount Badge */}
-              {hasDiscount && (
-                <div className="absolute px-2 py-1 text-xs font-bold text-white bg-red-500 rounded-lg top-3 left-3 sm:px-3 sm:py-1.5 sm:text-sm">
-                  {discountPercentage}% OFF
-                </div>
+              {/* Wishlist Button on Image */}
+              {isLoggedIn && (
+                <button
+                  onClick={handleWishlistToggle}
+                  className="absolute p-2 transition-transform bg-white rounded-full shadow-md top-2 right-2 hover:scale-110"
+                  title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                >
+                  <FiHeart
+                    className={`w-5 h-5 ${
+                      inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600'
+                    }`}
+                  />
+                </button>
               )}
 
-              {/* Featured Badge */}
-              {product.featured && (
-                <div className="absolute px-2 py-1 text-xs font-bold text-yellow-800 bg-yellow-100 rounded-lg top-3 right-3 sm:px-3 sm:py-1.5">
-                  <FiStar className="inline w-3 h-3 mr-1" /> Featured
-                </div>
-              )}
+              {/* Badges */}
+              <div className="absolute flex gap-1 top-2 left-2 md:gap-2">
+                {hasDiscount && (
+                  <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-red-500 rounded md:px-2 md:py-1">
+                    {discountPercentage}% OFF
+                  </span>
+                )}
+                {product.featured && (
+                  <span className="px-1.5 py-0.5 text-xs font-bold text-yellow-800 bg-yellow-100 rounded md:px-2 md:py-1">
+                    <FiStar className="inline w-2 h-2 mr-0.5 md:w-3 md:h-3" /> Featured
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Thumbnail Gallery */}
             {productImages.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-5 gap-1 md:gap-2">
                 {productImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`relative overflow-hidden bg-white border-2 rounded-lg transition-all ${
+                    className={`relative overflow-hidden bg-white border rounded-lg transition-all aspect-square ${
                       selectedImageIndex === index 
-                        ? 'border-blue-600 ring-2 ring-blue-200' 
+                        ? 'border-blue-600 ring-1 ring-blue-200' 
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    style={{ height: '70px' }}
                   >
                     <img
                       src={image.url}
                       alt={`${product.name} - view ${index + 1}`}
                       className="object-cover w-full h-full"
-                      onError={(e) => {
-                        e.target.src = FALLBACK_IMAGE;
-                      }}
+                      onError={(e) => e.target.src = FALLBACK_IMAGE}
                     />
                   </button>
                 ))}
@@ -527,344 +557,240 @@ const Product = () => {
             )}
           </div>
 
-          {/* Product Info */}
-          <div className="space-y-4">
-            {/* Category */}
+          {/* Right Column - Product Details (always 50% width) */}
+          <div className="space-y-3 md:space-y-4">
+            {/* Category and Title */}
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded-full sm:px-3 sm:py-1">
+              <div className="flex flex-wrap items-center gap-1 mb-1 md:gap-2">
+                <span className="px-1.5 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded-full md:px-2 md:py-1">
                   {product.category || 'Uncategorized'}
                 </span>
                 {product.featured && (
-                  <span className="px-2 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full sm:px-3 sm:py-1">
-                    <FiStar className="inline w-3 h-3 mr-1" /> Featured
+                  <span className="px-1.5 py-0.5 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-full md:px-2 md:py-1">
+                    <FiStar className="inline w-2 h-2 mr-0.5" /> Featured
                   </span>
                 )}
               </div>
-              <h1 className="mb-1 text-xl font-bold text-gray-900 sm:text-2xl lg:text-3xl">{product.name}</h1>
+              <h1 className="text-lg font-bold text-gray-900 md:text-xl lg:text-2xl">{product.name}</h1>
             </div>
 
-            {/* Rating Display */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                {renderStars(parseFloat(averageRating), "w-5 h-5")}
+            {/* Rating */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5">
+                {renderStars(parseFloat(averageRating))}
               </div>
-              <span className="text-sm text-gray-600">
-                {averageRating} ({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})
+              <span className="text-xs text-gray-600 md:text-sm">
+                {averageRating} ({totalReviews})
               </span>
             </div>
 
-            {/* Dynamic Price Display */}
-            <div className="space-y-2">
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-gray-900 sm:text-3xl">
-                  KSh {Math.round(totalPrice).toLocaleString()}
-                </span>
-                {hasDiscount && (
-                  <>
-                    <span className="text-base text-gray-400 line-through sm:text-lg">
-                      KSh {Math.round(originalPrice * quantity).toLocaleString()}
-                    </span>
-                    <span className="px-1.5 py-0.5 text-xs font-medium text-red-800 bg-red-100 rounded sm:px-2 sm:py-1">
-                      -{discountPercentage}%
-                    </span>
-                  </>
-                )}
-              </div>
-              
-              {/* Show per-unit price and total savings */}
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600">
-                  {quantity} × KSh {Math.round(discountedPrice).toLocaleString()} per unit
-                </span>
-                {hasDiscount && totalSavings > 0 && (
-                  <span className="font-medium text-green-600">
-                    Save KSh {Math.round(totalSavings).toLocaleString()}
+            {/* Price */}
+            <div className="flex items-baseline gap-2">
+              <span className="text-xl font-bold text-gray-900 md:text-2xl">
+                {formatKES(totalPrice)}
+              </span>
+              {hasDiscount && (
+                <>
+                  <span className="text-xs text-gray-400 line-through md:text-sm">
+                    {formatKES(originalPrice * quantity)}
                   </span>
-                )}
-              </div>
+                  <span className="px-1 py-0.5 text-xs font-medium text-red-800 bg-red-100 rounded">
+                    -{discountPercentage}%
+                  </span>
+                </>
+              )}
             </div>
+
+            {/* Per-unit price */}
+            {hasDiscount && (
+              <div className="text-xs text-gray-600">
+                {quantity} × {formatKES(discountedPrice)} per unit
+                <span className="ml-2 font-medium text-green-600">
+                  Save {formatKES(totalSavings)}
+                </span>
+              </div>
+            )}
 
             {/* Stock Status */}
             <div className="flex items-center gap-2 text-sm">
               {stockValue > 0 ? (
                 <>
-                  <FiCheck className="w-4 h-4 text-green-600 sm:w-5 sm:h-5" />
+                  <FiCheck className="w-4 h-4 text-green-600" />
                   <span className="font-medium text-green-600">In Stock</span>
-                  <span className="text-gray-600">
-                    ({stockValue} units available)
-                  </span>
+                  <span className="text-gray-600">({stockValue} units)</span>
                 </>
               ) : (
                 <>
-                  <FiMinus className="w-4 h-4 text-red-600 sm:w-5 sm:h-5" />
+                  <FiMinus className="w-4 h-4 text-red-600" />
                   <span className="font-medium text-red-600">Out of Stock</span>
                 </>
               )}
             </div>
 
             {/* Description */}
-            <div className="pt-3 border-t border-gray-200">
-              <p className="text-sm leading-relaxed text-gray-700 sm:text-base">
+            <div className="pt-2 border-t border-gray-200">
+              <p className="text-sm leading-relaxed text-gray-700 line-clamp-3 md:line-clamp-4">
                 {product.description || 'No description available.'}
               </p>
             </div>
 
-            {/* Quantity Selector */}
+            {/* Quantity and Actions */}
             {stockValue > 0 && (
-              <div className="pt-3 border-t border-gray-200">
-                <h2 className="mb-2 text-base font-semibold text-gray-900 sm:text-lg">Quantity</h2>
-                <div className="flex items-center gap-3">
+              <div className="pt-2 space-y-3 border-t border-gray-200">
+                {/* Quantity */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Quantity:</span>
                   <div className="flex items-center border border-gray-300 rounded-lg">
                     <button
                       onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
                       disabled={quantity <= 1}
-                      className="px-2 py-1.5 text-gray-600 transition-colors hover:text-blue-600 hover:bg-gray-50 disabled:opacity-50 sm:px-3 sm:py-2"
+                      className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 md:px-3"
                     >
-                      <FiMinus className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <FiMinus className="w-3 h-3" />
                     </button>
-                    <span className="w-10 text-sm font-medium text-center text-gray-900 sm:w-12 sm:text-base">
+                    <span className="w-8 text-sm font-medium text-center md:w-10">
                       {quantity}
                     </span>
                     <button
                       onClick={() => setQuantity(prev => Math.min(stockValue, prev + 1))}
                       disabled={quantity >= stockValue}
-                      className="px-2 py-1.5 text-gray-600 transition-colors hover:text-blue-600 hover:bg-gray-50 disabled:opacity-50 sm:px-3 sm:py-2"
+                      className="px-2 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 md:px-3"
                     >
-                      <FiPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <FiPlus className="w-3 h-3" />
                     </button>
                   </div>
-                  <span className="text-xs text-gray-600 sm:text-sm">
-                    Max: {stockValue} units
-                  </span>
                 </div>
                 
-                {/* Live price update indicator */}
-                <div className="mt-2 text-xs text-blue-600 sm:text-sm">
-                  Total: KSh {Math.round(totalPrice).toLocaleString()}
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={stockValue === 0 || isAddingToCart}
+                    className="flex-1 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 md:py-2.5"
+                  >
+                    {isAddingToCart ? 'Adding...' : 'Add to Cart'}
+                  </button>
+                  <button
+                    onClick={() => navigate('/checkout')}
+                    disabled={stockValue === 0}
+                    className="flex-1 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 md:py-2.5"
+                  >
+                    Buy Now
+                  </button>
                 </div>
+                
+                {/* Wishlist Button - Using WishlistContext */}
+                <button
+                  onClick={handleWishlistToggle}
+                  className="flex items-center justify-center w-full gap-2 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 md:py-2.5"
+                >
+                  <FiHeart className={`w-4 h-4 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+                  {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                </button>
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="pt-3 space-y-2 border-t border-gray-200">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={stockValue === 0 || isAddingToCart}
-                  className="flex items-center justify-center flex-1 gap-1 px-4 py-2 text-sm font-medium text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 sm:gap-2 sm:px-6 sm:py-3"
-                >
-                  <FiShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {isAddingToCart ? 'Adding...' : 'Add to Cart'}
-                </button>
-                <button
-                  onClick={() => navigate('/checkout')}
-                  disabled={stockValue === 0}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 sm:px-6 sm:py-3"
-                >
-                  Buy Now
-                </button>
-              </div>
-              
-              <button
-                onClick={() => {
-                  const productId = product._id || product.id;
-                  const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-                  
-                  if (isInWishlist) {
-                    localStorage.setItem('wishlist', JSON.stringify(wishlist.filter(id => id !== productId)));
-                    setIsInWishlist(false);
-                    toast.info('Removed from wishlist');
-                  } else {
-                    wishlist.push(productId);
-                    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-                    setIsInWishlist(true);
-                    toast.success('Added to wishlist');
-                  }
-                }}
-                className="flex items-center justify-center w-full gap-2 px-4 py-2 text-sm font-medium text-gray-700 transition-colors border border-gray-300 rounded-lg hover:bg-gray-50 sm:px-6 sm:py-3"
-              >
-                <FiHeart className={`w-4 h-4 sm:w-5 sm:h-5 ${isInWishlist ? 'fill-red-500 text-red-500' : ''}`} />
-                {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-              </button>
-            </div>
-
-            {/* Shipping Information Section */}
+            {/* Shipping Info */}
             {product.requiresShipping !== false && (
-              <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
-                <h3 className="flex items-center mb-3 text-lg font-semibold text-gray-800">
-                  <FiTruck className="w-5 h-5 mr-2 text-blue-600" />
+              <div className="p-3 border border-gray-200 rounded-lg bg-gray-50 md:p-4">
+                <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold md:text-base">
+                  <FiTruck className="w-4 h-4 text-blue-600" />
                   Shipping Information
                 </h3>
                 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {/* Free Shipping Badge */}
+                <div className="space-y-1 text-xs md:text-sm">
                   {product.freeShipping && (
                     <div className="flex items-center text-green-600">
-                      <FiCheck className="w-4 h-4 mr-2" />
-                      <span className="text-sm font-medium">Free Shipping</span>
+                      <FiCheck className="w-3 h-3 mr-1" />
+                      <span>Free Shipping</span>
                     </div>
                   )}
                   
-                  {/* Flat Rate */}
                   {product.flatShippingRate > 0 && !product.freeShipping && (
                     <div className="flex items-center text-gray-700">
-                      <FiDollarSign className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm">Flat Rate: <span className="font-semibold">KSh {product.flatShippingRate.toLocaleString()}</span></span>
+                      <FiDollarSign className="w-3 h-3 mr-1 text-gray-500" />
+                      <span>Flat Rate: {formatKES(product.flatShippingRate)}</span>
                     </div>
                   )}
                   
-                  {/* Weight */}
                   {product.weight > 0 && (
                     <div className="flex items-center text-gray-700">
-                      <FiBox className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm">Weight: {product.weight} {product.weightUnit}</span>
+                      <FiBox className="w-3 h-3 mr-1 text-gray-500" />
+                      <span>{product.weight}{product.weightUnit}</span>
                     </div>
                   )}
                   
-                  {/* Dimensions */}
-                  {product.dimensions && (product.dimensions.length > 0 || product.dimensions.width > 0 || product.dimensions.height > 0) && (
-                    <div className="flex items-center text-gray-700">
-                      <FiLayers className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm">
-                        Dimensions: {product.dimensions.length || 0} × {product.dimensions.width || 0} × {product.dimensions.height || 0} {product.dimensions.unit || 'cm'}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* Shipping Class */}
-                  {product.shippingClass && product.shippingClass !== 'standard' && (
-                    <div className="flex items-center text-gray-700">
-                      <FiPackage className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm capitalize">Shipping Class: {product.shippingClass}</span>
-                    </div>
-                  )}
-                  
-                  {/* Estimated Delivery */}
                   {product.estimatedDeliveryMin && product.estimatedDeliveryMax && (
                     <div className="flex items-center text-gray-700">
-                      <FiClock className="w-4 h-4 mr-2 text-gray-500" />
-                      <span className="text-sm">
-                        Est. Delivery: {product.estimatedDeliveryMin}-{product.estimatedDeliveryMax} business days
-                      </span>
-                    </div>
-                  )}
-                  
-                  {/* International Shipping */}
-                  {product.internationalShipping && (
-                    <div className="flex items-center col-span-2 text-blue-600">
-                      <FiGlobe className="w-4 h-4 mr-2" />
-                      <span className="text-sm">Available for international shipping</span>
+                      <FiClock className="w-3 h-3 mr-1 text-gray-500" />
+                      <span>{product.estimatedDeliveryMin}-{product.estimatedDeliveryMax} days</span>
                     </div>
                   )}
                 </div>
-
-                {/* Shipping Method Selection */}
-                {!product.freeShipping && !product.flatShippingRate && (
-                  <div className="pt-3 mt-4 border-t border-gray-200">
-                    <label className="block mb-2 text-sm font-medium text-gray-700">
-                      Shipping Method
-                    </label>
-                    <select
-                      value={shippingMethod}
-                      onChange={(e) => setShippingMethod(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="standard">Standard Shipping (5-7 days) - Free</option>
-                      <option value="express">Express Shipping (2-3 days) - KSh 500</option>
-                      <option value="overnight">Overnight Shipping (Next day) - KSh 1,500</option>
-                    </select>
-                    
-                    {/* Total with shipping */}
-                    <div className="p-3 mt-3 rounded-lg bg-blue-50">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span className="font-medium">KSh {Math.round(totalPrice).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between mt-1 text-sm">
-                        <span>Shipping:</span>
-                        <span className="font-medium">
-                          {shippingCost === 0 ? 'Free' : `KSh ${shippingCost.toLocaleString()}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-2 mt-2 font-bold border-t border-blue-200">
-                        <span>Total:</span>
-                        <span className="text-blue-700">KSh {Math.round(grandTotal).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* General Info Cards */}
-            <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200 sm:grid-cols-4">
-              <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
-                <FiTruck className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
-                <span className="text-[10px] font-medium sm:text-xs">Free Shipping</span>
-                <span className="text-[8px] text-gray-500 sm:text-xs">Over KSh 6,000</span>
+            {/* Info Icons - 2x2 grid that becomes 4x1 on larger screens */}
+            <div className="grid grid-cols-2 gap-2 pt-2 md:grid-cols-4 md:gap-3">
+              <div className="flex flex-col items-center p-2 text-center rounded-lg bg-gray-50">
+                <FiTruck className="w-4 h-4 mb-1 text-blue-600" />
+                <span className="text-xs font-medium">Free Shipping</span>
+                <span className="text-[10px] text-gray-500">Over 6K</span>
               </div>
-              <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
-                <FiShield className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
-                <span className="text-[10px] font-medium sm:text-xs">2 Year Warranty</span>
-                <span className="text-[8px] text-gray-500 sm:text-xs">On all products</span>
+              <div className="flex flex-col items-center p-2 text-center rounded-lg bg-gray-50">
+                <FiShield className="w-4 h-4 mb-1 text-blue-600" />
+                <span className="text-xs font-medium">2 Year</span>
+                <span className="text-[10px] text-gray-500">Warranty</span>
               </div>
-              <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
-                <FiRefreshCw className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
-                <span className="text-[10px] font-medium sm:text-xs">30-Day Returns</span>
-                <span className="text-[8px] text-gray-500 sm:text-xs">Money back</span>
+              <div className="flex flex-col items-center p-2 text-center rounded-lg bg-gray-50">
+                <FiRefreshCw className="w-4 h-4 mb-1 text-blue-600" />
+                <span className="text-xs font-medium">30-Day</span>
+                <span className="text-[10px] text-gray-500">Returns</span>
               </div>
-              <div className="flex flex-col items-center p-2 text-center bg-gray-50 rounded-xl sm:p-3">
-                <FiShare2 className="w-4 h-4 mb-1 text-blue-600 sm:w-5 sm:h-5 sm:mb-2" />
-                <span className="text-[10px] font-medium sm:text-xs">24/7 Support</span>
-                <span className="text-[8px] text-gray-500 sm:text-xs">Dedicated team</span>
+              <div className="flex flex-col items-center p-2 text-center rounded-lg bg-gray-50">
+                <FiShare2 className="w-4 h-4 mb-1 text-blue-600" />
+                <span className="text-xs font-medium">24/7</span>
+                <span className="text-[10px] text-gray-500">Support</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <div className="mt-12">
-          <h2 className="mb-6 text-2xl font-bold text-gray-900">Customer Reviews</h2>
+        {/* Reviews Section - Full width */}
+        <div className="mt-6 md:mt-8 lg:mt-12">
+          <h2 className="mb-3 text-lg font-bold md:text-xl">Customer Reviews</h2>
           
-          {/* Overall Rating Summary */}
-          <div className="p-6 mb-8 bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
-              <div className="text-center">
-                <div className="text-5xl font-bold text-gray-900">
-                  {averageRating}
+          {/* Rating Summary */}
+          <div className="p-3 mb-4 bg-white border border-gray-200 rounded-lg md:p-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+              {/* Average Rating */}
+              <div className="text-center md:text-left md:w-1/4">
+                <div className="text-2xl font-bold md:text-3xl">{averageRating}</div>
+                <div className="flex justify-center mt-1 md:justify-start">
+                  {renderStars(parseFloat(averageRating), "w-4 h-4")}
                 </div>
-                <div className="flex mt-2">
-                  {renderStars(parseFloat(averageRating), "w-6 h-6")}
-                </div>
-                <p className="mt-2 text-sm text-gray-600">
-                  Based on {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
-                </p>
+                <p className="mt-1 text-xs text-gray-600">{totalReviews} reviews</p>
               </div>
               
-              {/* Rating Distribution */}
-              <div className="flex-1 space-y-2">
+              {/* Rating Distribution - visible on all screens */}
+              <div className="flex-1 space-y-1">
                 {[5, 4, 3, 2, 1].map((star) => (
                   <div key={star} className="flex items-center gap-2">
-                    <span className="w-3 text-sm">{star}</span>
-                    <FiStar className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <span className="w-2 text-xs">{star}</span>
+                    <FiStar className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                     <div className="flex-1 h-2 overflow-hidden bg-gray-200 rounded-full">
                       <div 
                         className="h-full bg-yellow-400 rounded-full"
-                        style={{ 
-                          width: `${totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}%` 
-                        }}
+                        style={{ width: `${totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}%` }}
                       />
                     </div>
-                    <span className="w-12 text-sm text-gray-600">
-                      {ratingDistribution[star]}
-                    </span>
+                    <span className="w-8 text-xs">{ratingDistribution[star]}</span>
                   </div>
                 ))}
               </div>
               
               {/* Write Review Button */}
-              <div className="flex-1 text-center md:text-right">
+              <div className="text-center md:text-right md:w-1/5">
                 {!showReviewForm ? (
                   <button
                     onClick={() => {
@@ -875,19 +801,14 @@ const Product = () => {
                       }
                       setShowReviewForm(true);
                     }}
-                    className="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 md:w-auto"
                   >
-                    Write a Review
+                    Write Review
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      setShowReviewForm(false);
-                      setEditingReview(null);
-                      setUserRating(0);
-                      setReviewText('');
-                    }}
-                    className="px-6 py-3 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    onClick={() => setShowReviewForm(false)}
+                    className="w-full px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 md:w-auto"
                   >
                     Cancel
                   </button>
@@ -898,35 +819,24 @@ const Product = () => {
 
           {/* Review Form */}
           {showReviewForm && (
-            <div className="p-6 mb-8 bg-white border border-gray-200 shadow-sm rounded-xl">
-              <h3 className="mb-4 text-lg font-semibold">
-                {editingReview ? 'Edit Your Review' : 'Write Your Review'}
+            <div className="p-3 mb-4 bg-white border border-gray-200 rounded-lg md:p-4">
+              <h3 className="mb-3 text-sm font-semibold md:text-base">
+                {editingReview ? 'Edit Review' : 'Write a Review'}
               </h3>
               
-              <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Your Rating *
-                </label>
-                <RatingStars interactive={true} size="w-8 h-8" />
-                {userRating === 0 && hoverRating === 0 && (
-                  <p className="mt-1 text-xs text-gray-500">Click on the stars to rate</p>
-                )}
+              <div className="mb-3">
+                <RatingStars interactive={true} size="w-5 h-5" />
               </div>
 
-              <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700">
-                  Your Review *
-                </label>
-                <textarea
-                  value={reviewText}
-                  onChange={(e) => setReviewText(e.target.value)}
-                  rows="4"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Share your experience with this product..."
-                />
-              </div>
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                rows="3"
+                className="w-full px-3 py-2 mb-3 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500"
+                placeholder="Share your experience with this product..."
+              />
 
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-2">
                 <button
                   onClick={() => {
                     setShowReviewForm(false);
@@ -934,18 +844,18 @@ const Product = () => {
                     setUserRating(0);
                     setReviewText('');
                   }}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmitReview}
                   disabled={submittingReview}
-                  className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   {submittingReview ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                      <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
                       {editingReview ? 'Updating...' : 'Submitting...'}
                     </span>
                   ) : (
@@ -957,28 +867,21 @@ const Product = () => {
           )}
 
           {/* Reviews List */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {reviews.length > 0 ? (
               reviews.map((review) => (
-                <div key={review._id || review.id} className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-full">
-                          <FiUser className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{review.userName}</p>
-                          <div className="flex items-center gap-2">
-                            <FiCalendar className="w-3 h-3 text-gray-400" />
-                            <p className="text-xs text-gray-500">
-                              {formatDate(review.createdAt)}
-                            </p>
-                          </div>
-                        </div>
+                <div key={review._id || review.id} className="p-3 bg-white border border-gray-200 rounded-lg md:p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full md:w-10 md:h-10">
+                        <FiUser className="w-4 h-4 text-blue-600 md:w-5 md:h-5" />
                       </div>
-                      <div className="flex mt-1">
-                        {renderStars(review.rating, "w-4 h-4")}
+                      <div>
+                        <p className="text-sm font-semibold md:text-base">{review.userName}</p>
+                        <div className="flex items-center gap-1">
+                          <FiCalendar className="w-3 h-3 text-gray-400" />
+                          <p className="text-xs text-gray-500">{formatDate(review.createdAt)}</p>
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -992,15 +895,13 @@ const Product = () => {
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleEditReview(review)}
-                            className="p-2 text-gray-500 transition-colors rounded-lg hover:text-blue-600 hover:bg-blue-50"
-                            title="Edit review"
+                            className="p-1 text-gray-500 rounded hover:text-blue-600 hover:bg-blue-50"
                           >
                             <FiEdit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteReview(review._id)}
-                            className="p-2 text-gray-500 transition-colors rounded-lg hover:text-red-600 hover:bg-red-50"
-                            title="Delete review"
+                            className="p-1 text-gray-500 rounded hover:text-red-600 hover:bg-red-50"
                           >
                             <FiTrash2 className="w-4 h-4" />
                           </button>
@@ -1008,54 +909,17 @@ const Product = () => {
                       )}
                     </div>
                   </div>
-                  <p className="text-gray-700">{review.comment}</p>
+                  <div className="flex items-center gap-1 mb-2">
+                    {renderStars(review.rating, "w-3 h-3")}
+                  </div>
+                  <p className="text-sm text-gray-700">{review.comment}</p>
                 </div>
               ))
             ) : (
-              <div className="py-12 text-center bg-white border border-gray-200 shadow-sm rounded-xl">
-                <FiStar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="mb-2 text-lg font-semibold text-gray-700">No reviews yet</h3>
-                <p className="mb-4 text-gray-500">Be the first to review this product!</p>
-                {!showReviewForm && (
-                  <button
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        toast.error('Please login to write a review');
-                        navigate('/login');
-                        return;
-                      }
-                      setShowReviewForm(true);
-                    }}
-                    className="px-6 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                  >
-                    Write a Review
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Pagination */}
-            {reviewPagination.pages > 1 && (
-              <div className="flex justify-center mt-6">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => fetchReviews(reviewPagination.page - 1)}
-                    disabled={reviewPagination.page === 1}
-                    className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FiChevronLeft className="w-5 h-5" />
-                  </button>
-                  <span className="px-4 py-2 text-sm">
-                    Page {reviewPagination.page} of {reviewPagination.pages}
-                  </span>
-                  <button
-                    onClick={() => fetchReviews(reviewPagination.page + 1)}
-                    disabled={reviewPagination.page === reviewPagination.pages}
-                    className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <FiChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
+              <div className="py-8 text-center bg-white border border-gray-200 rounded-lg md:py-12">
+                <FiStar className="w-8 h-8 mx-auto mb-2 text-gray-400 md:w-12 md:h-12" />
+                <h3 className="mb-1 text-sm font-semibold md:text-base">No reviews yet</h3>
+                <p className="text-xs text-gray-500">Be the first to review this product!</p>
               </div>
             )}
           </div>
@@ -1063,13 +927,11 @@ const Product = () => {
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="mt-12">
-            <h2 className="mb-6 text-2xl font-bold text-gray-900">You May Also Like</h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mt-6 md:mt-8 lg:mt-12">
+            <h2 className="mb-3 text-lg font-bold md:text-xl">You May Also Like</h2>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
               {relatedProducts.map((relatedProduct) => {
-                const relatedImage = relatedProduct.images?.[0]?.url || 
-                                    relatedProduct.image || 
-                                    FALLBACK_IMAGE;
+                const relatedImage = relatedProduct.images?.[0]?.url || relatedProduct.image || FALLBACK_IMAGE;
                 
                 return (
                   <div
@@ -1078,33 +940,24 @@ const Product = () => {
                       navigate(`/product/${relatedProduct._id || relatedProduct.id}`);
                       window.scrollTo(0, 0);
                     }}
-                    className="overflow-hidden transition-shadow bg-white border border-gray-200 shadow-sm cursor-pointer rounded-xl hover:shadow-md"
+                    className="overflow-hidden transition-shadow bg-white border border-gray-200 rounded-lg cursor-pointer hover:shadow-md"
                   >
-                    <div className="overflow-hidden bg-gray-100" style={{ height: '150px' }}>
+                    <div className="bg-gray-100 aspect-square">
                       <img
                         src={getFullImageUrl(relatedImage)}
                         alt={relatedProduct.name}
                         className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
-                        onError={(e) => {
-                          e.target.src = FALLBACK_IMAGE;
-                        }}
+                        onError={(e) => e.target.src = FALLBACK_IMAGE}
                       />
                     </div>
-                    <div className="p-2 sm:p-3">
-                      <h3 className="mb-1 text-xs font-medium text-gray-900 line-clamp-2 sm:text-sm">
-                        {relatedProduct.name}
-                      </h3>
-                      <div className="flex items-center gap-1 mb-1">
-                        {renderStars(relatedProduct.rating || 0, "w-3 h-3")}
+                    <div className="p-2">
+                      <h3 className="text-xs font-medium line-clamp-2 md:text-sm">{relatedProduct.name}</h3>
+                      <div className="flex items-center gap-1 mt-1">
+                        {renderStars(relatedProduct.rating || 0, "w-2 h-2 md:w-3 md:h-3")}
                       </div>
-                      <p className="text-sm font-bold text-blue-600 sm:text-base">
-                        KSh {Math.round(relatedProduct.discountedPrice || relatedProduct.price).toLocaleString()}
+                      <p className="text-sm font-bold text-blue-600 md:text-base">
+                        {formatKES(relatedProduct.discountedPrice || relatedProduct.price)}
                       </p>
-                      {relatedProduct.discountedPrice && (
-                        <p className="text-[10px] text-gray-400 line-through sm:text-xs">
-                          KSh {Math.round(relatedProduct.price).toLocaleString()}
-                        </p>
-                      )}
                     </div>
                   </div>
                 );
@@ -1116,42 +969,56 @@ const Product = () => {
 
       {/* Lightbox Modal */}
       {lightboxOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95">
-          <div className="relative flex items-center justify-center w-full h-full">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => setLightboxOpen(false)}
+        >
+          <div 
+            className="relative bg-white rounded-lg shadow-2xl w-[90%] sm:w-3/4 md:w-1/2 lg:w-1/3 xl:w-1/4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setLightboxOpen(false)}
-              className="absolute z-10 p-2 text-white transition-colors rounded-full bg-black/50 top-4 right-4 hover:bg-black/70"
+              className="absolute p-2 bg-white rounded-full shadow-lg -top-3 -right-3 hover:bg-gray-100"
             >
-              <FiX className="w-5 h-5 sm:w-6 sm:h-6" />
+              <FiX className="w-4 h-4" />
             </button>
 
-            {productImages.length > 1 && (
-              <>
-                <button
-                  onClick={() => setSelectedImageIndex(prev => 
-                    prev > 0 ? prev - 1 : productImages.length - 1
-                  )}
-                  className="absolute z-10 p-2 text-white transition-colors rounded-full left-4 bg-black/50 hover:bg-black/70"
-                >
-                  <FiChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-                <button
-                  onClick={() => setSelectedImageIndex(prev => 
-                    prev < productImages.length - 1 ? prev + 1 : 0
-                  )}
-                  className="absolute z-10 p-2 text-white transition-colors rounded-full right-4 bg-black/50 hover:bg-black/70"
-                >
-                  <FiChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
-              </>
-            )}
+            <div className="p-4">
+              <div className="relative aspect-square">
+                <img
+                  src={productImages[selectedImageIndex]?.url}
+                  alt={product.name}
+                  className="object-contain w-full h-full"
+                  onError={() => handleImageError(selectedImageIndex)}
+                />
+              </div>
 
-            <img
-              src={productImages[selectedImageIndex]?.url}
-              alt={product.name}
-              className="object-contain max-w-full max-h-full p-4"
-              onError={() => handleImageError(selectedImageIndex)}
-            />
+              {productImages.length > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <button
+                    onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1)}
+                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                  >
+                    <FiChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {selectedImageIndex + 1} / {productImages.length}
+                  </span>
+                  <button
+                    onClick={() => setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0)}
+                    className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                  >
+                    <FiChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 text-center border-t">
+              <p className="text-sm font-medium truncate">{product.name}</p>
+              <p className="text-sm text-gray-600">{formatKES(product.discountedPrice || product.price)}</p>
+            </div>
           </div>
         </div>
       )}

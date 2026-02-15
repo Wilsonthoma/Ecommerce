@@ -4,6 +4,7 @@ import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext"; // ✅ ADDED
 import axios from "axios";
 import { toast } from "react-toastify";
 import {
@@ -66,6 +67,7 @@ const Navbar = memo(() => {
   } = useContext(AppContext);
 
   const { cart } = useCart();
+  const { wishlistCount } = useWishlist(); // ✅ ADDED
 
   // ==================== STATE ====================
   const [searchQuery, setSearchQuery] = useState("");
@@ -351,8 +353,8 @@ const Navbar = memo(() => {
   const userMenuItems = useMemo(() => [
     { label: "Dashboard", path: API_ENDPOINTS.DASHBOARD, icon: <FiHome className="w-4 h-4" /> },
     { label: "My Orders", path: API_ENDPOINTS.ORDERS, icon: <FiPackage className="w-4 h-4" /> },
-    { label: "Wishlist", path: API_ENDPOINTS.WISHLIST, icon: <FiHeart className="w-4 h-4" /> },
-  ], []);
+    { label: "Wishlist", path: API_ENDPOINTS.WISHLIST, icon: <FiHeart className="w-4 h-4" />, badge: wishlistCount }, // ✅ ADDED badge
+  ], [wishlistCount]); // ✅ Added wishlistCount dependency
 
   // ==================== RENDER ====================
   return (
@@ -636,6 +638,11 @@ const Navbar = memo(() => {
                             >
                               <span className="text-gray-500 group-hover:text-blue-900">{item.icon}</span>
                               <span className="flex-1 text-left">{item.label}</span>
+                              {item.badge > 0 && ( // ✅ Show badge if > 0
+                                <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full">
+                                  {item.badge}
+                                </span>
+                              )}
                               <FiChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-900" />
                             </button>
                           ))}
@@ -675,12 +682,19 @@ const Navbar = memo(() => {
                 )}
               </div>
 
-              {/* Wishlist */}
+              {/* Wishlist - UPDATED with badge */}
               <button
                 onClick={() => navigate(API_ENDPOINTS.WISHLIST)}
                 className="relative flex-col items-center hidden p-2 text-gray-600 transition-colors rounded-lg sm:flex hover:text-red-500 hover:bg-gray-100"
               >
-                <FiHeart className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+                <div className="relative">
+                  <FiHeart className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
+                  {wishlistCount > 0 && ( // ✅ Show badge
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1rem] h-4 px-1 text-[8px] font-bold text-white bg-red-500 rounded-full">
+                      {wishlistCount > 9 ? '9+' : wishlistCount}
+                    </span>
+                  )}
+                </div>
                 <span className="hidden lg:block text-xs mt-0.5">Wishlist</span>
               </button>
 
@@ -738,7 +752,7 @@ const Navbar = memo(() => {
         </div>
       </nav>
 
-      {/* ========== MOBILE MENU - 1/3 TO 1/4 SCREEN WIDTH, CONTENT-DRIVEN HEIGHT ========== */}
+      {/* ========== MOBILE MENU - UPDATED WITH WISHLIST BADGE ========== */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
@@ -856,7 +870,27 @@ const Navbar = memo(() => {
                 Shop
               </h3>
               <div className="space-y-0.5">
-                {/* Track Order - Proper Endpoint */}
+                {/* Wishlist - ADDED to mobile menu */}
+                <button
+                  onClick={() => {
+                    navigate(API_ENDPOINTS.WISHLIST);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center w-full gap-2 px-2 py-1.5 text-xs text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="relative">
+                    <FiHeart className="w-3 h-3 text-blue-900" />
+                    {wishlistCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[0.875rem] h-3.5 px-1 text-[6px] font-bold text-white bg-red-500 rounded-full">
+                        {wishlistCount > 9 ? '9+' : wishlistCount}
+                      </span>
+                    )}
+                  </div>
+                  <span className="flex-1 text-left">Wishlist</span>
+                  <FiChevronRight className="w-3 h-3 text-gray-400" />
+                </button>
+
+                {/* Track Order */}
                 <button
                   onClick={() => {
                     navigate(API_ENDPOINTS.TRACK_ORDER);
@@ -869,7 +903,7 @@ const Navbar = memo(() => {
                   <FiChevronRight className="w-3 h-3 text-gray-400" />
                 </button>
                 
-                {/* Sell on Kwetu Shop - Proper Endpoint */}
+                {/* Sell on Kwetu Shop */}
                 <button
                   onClick={() => {
                     navigate(API_ENDPOINTS.SELL);
@@ -944,6 +978,11 @@ const Navbar = memo(() => {
                       >
                         <span className="text-gray-500">{item.icon}</span>
                         <span className="flex-1 text-left">{item.label}</span>
+                        {item.badge > 0 && (
+                          <span className="px-1 py-0.5 text-[8px] font-medium text-white bg-red-500 rounded-full">
+                            {item.badge}
+                          </span>
+                        )}
                         <FiChevronRight className="w-3 h-3 text-gray-400" />
                       </button>
                     ))}
@@ -979,7 +1018,7 @@ const Navbar = memo(() => {
                   Support
                 </h3>
                 <div className="space-y-1.5">
-                  {/* Phone - Proper href */}
+                  {/* Phone */}
                   <a 
                     href="tel:0700KWEƬU" 
                     className="flex items-center gap-1.5 text-[10px] text-gray-700 hover:text-blue-900 transition-colors"
@@ -988,7 +1027,7 @@ const Navbar = memo(() => {
                     <FiPhone className="w-3 h-3 text-blue-900" />
                     <span className="font-medium">0700 KWEƬU</span>
                   </a>
-                  {/* Email - Proper href */}
+                  {/* Email */}
                   <a 
                     href="mailto:support@kwetushop.com" 
                     className="flex items-center gap-1.5 text-[10px] text-gray-700 hover:text-blue-900 transition-colors"
@@ -1012,7 +1051,7 @@ const Navbar = memo(() => {
               </div>
             </div>
 
-            {/* Footer - Compact with dynamic current year */}
+            {/* Footer */}
             <div className="sticky bottom-0 p-2 text-[8px] text-center text-gray-500 bg-white border-t border-gray-100">
               © {currentYear} KwetuShop
             </div>

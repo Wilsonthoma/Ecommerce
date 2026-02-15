@@ -1,9 +1,10 @@
 // client/src/components/ProductCard.jsx
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiEye, FiStar } from 'react-icons/fi';
+import { FiShoppingCart, FiEye, FiStar, FiHeart } from 'react-icons/fi'; // ✅ ADDED FiHeart
 import { AiFillStar } from 'react-icons/ai';
 import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext'; // ✅ ADDED
 import { toast } from 'react-toastify';
 
 // Backend URL
@@ -16,12 +17,22 @@ const ProductCard = ({ product }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const { addToCart, loading: cartLoading } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist(); // ✅ ADDED
 
   // Safety check - ensure product exists
   if (!product) {
     console.error('❌ ProductCard received null product');
     return null;
   }
+
+  // Check if user is logged in
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check login status
+  useState(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
 
   // Extract product data with all fields
   const productId = product._id || product.id;
@@ -54,6 +65,9 @@ const ProductCard = ({ product }) => {
   const discountPercentage = productDiscountedPrice && productPrice
     ? Math.round(((productPrice - productDiscountedPrice) / productPrice) * 100)
     : 0;
+
+  // Check if product is in wishlist
+  const inWishlist = isInWishlist(productId);
 
   // Proper star rendering - DISPLAY ONLY
   const renderStars = (rating) => {
@@ -108,6 +122,42 @@ const ProductCard = ({ product }) => {
   const handleImageError = (e) => {
     setImageError(true);
     e.target.src = FALLBACK_IMAGE;
+  };
+
+  // Handle wishlist toggle
+  const handleWishlistToggle = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isLoggedIn) {
+      toast.error('Please login to use wishlist');
+      return;
+    }
+    
+    // Create complete product object with all fields
+    const completeProduct = {
+      _id: productId,
+      id: productId,
+      name: productName,
+      price: productPrice,
+      discountPrice: productDiscountedPrice,
+      discountedPrice: productDiscountedPrice,
+      image: productImage,
+      images: productImages,
+      description: productDescription,
+      category: productCategory,
+      brand: productBrand,
+      rating: productRating,
+      reviews: productReviews,
+      stock: productStock,
+      quantity: productStock,
+      weight: productWeight,
+      featured: productFeatured,
+      isOnSale: isOnSale,
+      discountPercentage: discountPercentage
+    };
+    
+    await toggleWishlist(completeProduct);
   };
 
   // Add to cart using context with complete product data
@@ -178,6 +228,21 @@ const ProductCard = ({ product }) => {
           loading="lazy"
         />
         
+        {/* Wishlist Button */}
+        {isLoggedIn && (
+          <button
+            onClick={handleWishlistToggle}
+            className="absolute z-30 p-1.5 bg-white rounded-full shadow-md top-2 right-2 sm:top-3 sm:right-3 hover:scale-110 transition-transform"
+            title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <FiHeart
+              className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600'
+              }`}
+            />
+          </button>
+        )}
+        
         {/* Discount Badge */}
         {discountPercentage > 0 && (
           <div className="absolute px-1.5 py-0.5 sm:px-2 sm:py-1 text-[10px] sm:text-xs font-bold text-white bg-red-500 rounded top-2 left-2 sm:top-3 sm:left-3 shadow-lg z-10">
@@ -207,6 +272,19 @@ const ProductCard = ({ product }) => {
 
         {/* Mobile Action Buttons */}
         <div className="absolute z-20 flex gap-2 bottom-2 right-2 sm:hidden">
+          {/* Wishlist Button for Mobile */}
+          {isLoggedIn && (
+            <button
+              onClick={handleWishlistToggle}
+              className={`p-2 text-white transition-all rounded-full shadow-lg ${
+                inWishlist ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-800 hover:bg-gray-900'
+              }`}
+              title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <FiHeart className={`w-4 h-4 ${inWishlist ? 'fill-white' : ''}`} />
+            </button>
+          )}
+          
           {/* View Details Button */}
           <Link
             to={`/product/${productId}`}
@@ -233,6 +311,23 @@ const ProductCard = ({ product }) => {
 
         {/* Desktop Hover Overlay */}
         <div className="absolute inset-0 items-center justify-center hidden gap-2 transition-opacity duration-300 opacity-0 sm:flex bg-black/40 group-hover:opacity-100">
+          {/* Wishlist Button */}
+          {isLoggedIn && (
+            <button
+              onClick={handleWishlistToggle}
+              className={`p-3 transition-all bg-white rounded-full hover:scale-110 ${
+                inWishlist ? 'hover:bg-red-50' : 'hover:bg-gray-100'
+              }`}
+              title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <FiHeart
+                className={`w-5 h-5 ${
+                  inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-700'
+                }`}
+              />
+            </button>
+          )}
+          
           {/* View Details Button */}
           <Link
             to={`/product/${productId}`}

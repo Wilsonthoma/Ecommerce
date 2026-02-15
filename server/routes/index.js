@@ -16,6 +16,7 @@ import publicProductRoutes from './public/products.js';
 import publicCategoryRoutes from './public/categories.js';
 // ❌ REMOVED: import userAuthRoutes from './public/auth.js'; (file deleted)
 import cartRoutes from './public/cart.js';
+import reviewRoutes from './public/reviews.js'; // ✅ ADDED: Review routes
 // -------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------
@@ -47,6 +48,7 @@ import authRouter from './authRoutes.js'; // ✅ Comprehensive auth with Google 
 router.use('/products', publicProductRoutes);
 router.use('/categories', publicCategoryRoutes);
 router.use('/cart', cartRoutes);
+router.use('/reviews', reviewRoutes); // ✅ ADDED: Mount review routes
 
 // ------------------
 // Mount COMPREHENSIVE auth routes (Google OAuth + traditional auth)
@@ -79,9 +81,10 @@ router.get('/test-products', (req, res) => {
       'GET /api/products',
       'GET /api/products/featured',
       'GET /api/products/:id',
-      'GET /api/categories'
+      'GET /api/categories',
+      'GET /api/reviews/products/:productId/reviews' // ✅ ADDED
     ],
-    note: 'Make sure public/products.js and public/categories.js are properly imported'
+    note: 'Make sure public routes are properly imported'
   });
 });
 
@@ -218,11 +221,11 @@ router.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     version: packageJson.version || '1.0.0',
     endpoints: {
-      // ✅ UPDATED: Now correctly reflects the routes
-      auth: '/api/auth', // Comprehensive auth with Google OAuth
+      auth: '/api/auth',
       products: '/api/products',
       categories: '/api/categories',
       cart: '/api/cart',
+      reviews: '/api/reviews', // ✅ ADDED
       admin_users: '/api/admin/users',
       admin_customers: '/api/admin/customers',
       admin_products: '/api/admin/products',
@@ -256,8 +259,14 @@ router.get('/', (req, res) => {
           search: 'GET /api/products?search=:query'
         },
         categories: 'GET /api/categories',
+        reviews: { // ✅ ADDED
+          list: 'GET /api/reviews/products/:productId/reviews',
+          summary: 'GET /api/reviews/products/:productId/summary',
+          add: 'POST /api/reviews/products/:productId/reviews',
+          update: 'PUT /api/reviews/reviews/:reviewId',
+          delete: 'DELETE /api/reviews/reviews/:reviewId'
+        },
         auth: {
-          // ✅ UPDATED: Now all auth endpoints are in one place
           google_login: 'GET /api/auth/google',
           google_callback: 'GET /api/auth/google/callback',
           login: 'POST /api/auth/login',
@@ -352,7 +361,8 @@ router.use('*', (req, res) => {
     '/api/order': '/api/admin/orders',
     '/api/notification': '/api/admin/notifications',
     '/api/admin/notification': '/api/admin/notifications',
-    // ✅ UPDATED: Suggestions for auth endpoints
+    '/api/review': '/api/reviews', // ✅ ADDED
+    '/api/reviews/product': '/api/reviews/products/:productId/reviews',
     '/api/auth-new/i/send-reset-otp': '/api/auth/send-reset-otp',
     '/api/auth-new/i/verify-reset-otp': '/api/auth/verify-reset-otp',
     '/api/auth-new/i/reset-password': '/api/auth/reset-password',
@@ -365,7 +375,6 @@ router.use('*', (req, res) => {
     '/api/auth-new/i/register': '/api/auth/register',
     '/api/auth-new/i/login': '/api/auth/login',
     '/api/auth-new/i/csrf-token': '/api/auth/csrf-token',
-    // Add suggestions for product endpoints
     '/products/featured': '/api/products/featured',
     '/products': '/api/products',
     '/categories': '/api/categories'
@@ -391,10 +400,11 @@ router.use('*', (req, res) => {
   }
   
   response.available_endpoints = {
-    auth: '/api/auth', // ✅ All auth endpoints now unified here
+    auth: '/api/auth',
     products: '/api/products',
     categories: '/api/categories',
     cart: '/api/cart',
+    reviews: '/api/reviews', // ✅ ADDED
     admin_users: '/api/admin/users',
     admin_customers: '/api/admin/customers',
     admin_products: '/api/admin/products',

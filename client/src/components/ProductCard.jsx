@@ -23,28 +23,26 @@ const ProductCard = ({ product }) => {
     return null;
   }
 
-  // Log the product being rendered
-  console.log('🖼️ Rendering ProductCard for:', {
-    id: product._id || product.id,
-    name: product.name,
-    price: product.price
-  });
-
   // Extract product data with all fields
   const productId = product._id || product.id;
   const productName = product.name || 'Product';
   const productPrice = product.price || 0;
-  const productDiscountPrice = product.discountPrice || null;
+  // Backend returns discountedPrice, not discountPrice
+  const productDiscountedPrice = product.discountedPrice || product.discountPrice || null;
   const productImage = product.images?.[0]?.url || product.image || null;
   const productImages = product.images || [];
   const productDescription = product.description || '';
   const productCategory = product.category || '';
   const productBrand = product.brand || '';
+  // Backend returns rating field
   const productRating = product.rating || 0;
-  const productReviews = product.reviews || product.reviewCount || 0;
+  // Backend doesn't have reviews count in product object
+  const productReviews = product.reviewsCount || product.reviews || 0;
   const productStock = product.stock || product.quantity || 0;
   const productWeight = product.weight || 1;
   const productFeatured = product.featured || false;
+  // Check if product is on sale
+  const isOnSale = product.isOnSale || product.discountPercentage > 0 || !!productDiscountedPrice;
 
   const stockValue = productStock;
 
@@ -53,11 +51,11 @@ const ProductCard = ({ product }) => {
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  const discountPercentage = productDiscountPrice && productPrice
-    ? Math.round(((productPrice - productDiscountPrice) / productPrice) * 100)
+  const discountPercentage = productDiscountedPrice && productPrice
+    ? Math.round(((productPrice - productDiscountedPrice) / productPrice) * 100)
     : 0;
 
-  // Proper star rendering
+  // Proper star rendering - DISPLAY ONLY
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
@@ -135,7 +133,8 @@ const ProductCard = ({ product }) => {
       id: productId,
       name: productName,
       price: productPrice,
-      discountPrice: productDiscountPrice,
+      discountPrice: productDiscountedPrice,
+      discountedPrice: productDiscountedPrice,
       image: productImage,
       images: productImages,
       description: productDescription,
@@ -146,7 +145,9 @@ const ProductCard = ({ product }) => {
       stock: productStock,
       quantity: productStock,
       weight: productWeight,
-      featured: productFeatured
+      featured: productFeatured,
+      isOnSale: isOnSale,
+      discountPercentage: discountPercentage
     };
     
     console.log('🛒 Sending to cart:', completeProduct);
@@ -273,7 +274,7 @@ const ProductCard = ({ product }) => {
           </h3>
         </Link>
         
-        {/* Rating */}
+        {/* Rating - DISPLAY ONLY */}
         <div className="flex items-center gap-1 mb-2 sm:gap-2 sm:mb-3">
           <div className="flex">
             {renderStars(productRating)}
@@ -288,17 +289,17 @@ const ProductCard = ({ product }) => {
           <div className="flex-1">
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="text-sm font-bold text-gray-900 sm:text-base md:text-xl">
-                {formatKES(productDiscountPrice || productPrice)}
+                {formatKES(productDiscountedPrice || productPrice)}
               </span>
-              {productDiscountPrice && (
+              {productDiscountedPrice && (
                 <span className="text-[10px] sm:text-xs text-gray-500 line-through">
                   {formatKES(productPrice)}
                 </span>
               )}
             </div>
-            {productDiscountPrice && (
+            {productDiscountedPrice && (
               <p className="mt-0.5 text-[8px] sm:text-xs text-green-600">
-                Save {formatKES(productPrice - productDiscountPrice)}
+                Save {formatKES(productPrice - productDiscountedPrice)}
               </p>
             )}
           </div>

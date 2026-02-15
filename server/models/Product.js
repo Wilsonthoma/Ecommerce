@@ -206,6 +206,20 @@ const productSchema = new mongoose.Schema({
     default: 0
   },
 
+  // ✅ RATING FIELDS (updated structure to match frontend expectations)
+  rating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+
+  reviewsCount: {
+    type: Number,
+    default: 0
+  },
+
+  // Keep for backward compatibility
   ratings: {
     average: {
       type: Number,
@@ -231,7 +245,7 @@ const productSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtuals
+// ✅ VIRTUAL: Discount percentage
 productSchema.virtual('discountPercentage').get(function() {
   if (this.comparePrice && this.comparePrice > this.price) {
     return Math.round(((this.comparePrice - this.price) / this.comparePrice) * 100);
@@ -239,24 +253,41 @@ productSchema.virtual('discountPercentage').get(function() {
   return 0;
 });
 
+// ✅ VIRTUAL: In stock
 productSchema.virtual('inStock').get(function() {
   return !this.trackQuantity || this.quantity > 0;
 });
 
+// ✅ VIRTUAL: Low stock
 productSchema.virtual('lowStock').get(function() {
   return this.trackQuantity && this.quantity <= this.lowStockThreshold && this.quantity > 0;
 });
 
+// ✅ VIRTUAL: Out of stock
 productSchema.virtual('outOfStock').get(function() {
   return this.trackQuantity && this.quantity === 0;
 });
 
+// ✅ VIRTUAL: Primary image
 productSchema.virtual('primaryImage').get(function() {
   const primary = this.images.find(img => img.isPrimary);
   return primary ? primary.url : (this.images[0]?.url || null);
 });
 
-// Shipping virtuals
+// ✅ VIRTUAL: Is on sale
+productSchema.virtual('isOnSale').get(function() {
+  return this.discountPercentage > 0;
+});
+
+// ✅ VIRTUAL: Discounted price
+productSchema.virtual('discountedPrice').get(function() {
+  if (this.discountPercentage > 0) {
+    return this.price * (1 - this.discountPercentage / 100);
+  }
+  return this.price;
+});
+
+// ✅ VIRTUAL: Estimated delivery range
 productSchema.virtual('estimatedDeliveryRange').get(function() {
   if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
     return `${this.estimatedDeliveryMin}-${this.estimatedDeliveryMax} days`;
@@ -264,17 +295,19 @@ productSchema.virtual('estimatedDeliveryRange').get(function() {
   return null;
 });
 
+// ✅ VIRTUAL: Shipping rate
 productSchema.virtual('shippingRate').get(function() {
   if (this.freeShipping) return 0;
   if (this.flatShippingRate) return this.flatShippingRate;
   return null;
 });
 
+// ✅ VIRTUAL: Has shipping restrictions
 productSchema.virtual('hasShippingRestrictions').get(function() {
   return this.shippingZones && this.shippingZones.length > 0;
 });
 
-// Pre-save hooks
+// ✅ PRE-SAVE: Update status based on stock
 productSchema.pre('save', function(next) {
   if (this.trackQuantity) {
     if (this.quantity === 0) {
@@ -286,6 +319,7 @@ productSchema.pre('save', function(next) {
   next();
 });
 
+// ✅ PRE-SAVE: Generate slug from name
 productSchema.pre('save', function(next) {
   if (this.name && !this.slug) {
     this.slug = this.name
@@ -298,7 +332,17 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Validate estimated delivery
+// ✅ PRE-SAVE: Sync rating fields for backward compatibility
+productSchema.pre('save', function(next) {
+  // Sync the new rating fields with old ratings object
+  this.ratings = {
+    average: this.rating,
+    count: this.reviewsCount
+  };
+  next();
+});
+
+// ✅ PRE-SAVE: Validate estimated delivery
 productSchema.pre('save', function(next) {
   if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
     if (this.estimatedDeliveryMin > this.estimatedDeliveryMax) {
@@ -308,7 +352,7 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Indexes
+// ✅ INDEXES
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 productSchema.index({ category: 1, subcategory: 1 });
 productSchema.index({ status: 1 });
@@ -317,6 +361,7 @@ productSchema.index({ featured: 1 });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ price: 1 });
 productSchema.index({ totalSold: -1 });
+productSchema.index({ rating: -1 }); // For sorting by rating
 productSchema.index({ shippingClass: 1 });
 productSchema.index({ freeShipping: 1 });
 productSchema.index({ internationalShipping: 1 });

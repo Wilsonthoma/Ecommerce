@@ -1,4 +1,4 @@
-// src/pages/Shop.jsx - FIXED
+// src/pages/Shop.jsx - CORRECTED to match backend
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { clientProductService } from '../services/client/products';
@@ -9,93 +9,112 @@ import {
   FiSearch, 
   FiChevronLeft, 
   FiChevronRight,
-  FiGrid,
-  FiList,
   FiStar,
   FiTrendingUp,
   FiClock,
   FiDollarSign,
-  FiCheck,
   FiPackage
 } from 'react-icons/fi';
 import { 
   BsGridFill, 
   BsListUl,
-  BsLightningFill,
-  BsFire
+  BsLightningFill
 } from 'react-icons/bs';
 import { useCart } from '../context/CartContext';
-import { toast } from 'react-hot-toast';
 
 const Shop = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart(); // ✅ Use addToCart from context
+  const { addToCart } = useCart();
   
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    category: searchParams.get('category') ? [searchParams.get('category')] : [],
-    minPrice: searchParams.get('minPrice') || 0,
-    maxPrice: searchParams.get('maxPrice') || 100000,
-    minRating: searchParams.get('minRating') || 0,
-    inStock: searchParams.get('inStock') === 'true',
-    onSale: searchParams.get('onSale') === 'true',
+    category: searchParams.get('category') ? searchParams.get('category').split(',') : [],
+    minPrice: searchParams.get('minPrice') ? parseFloat(searchParams.get('minPrice')) : '',
+    maxPrice: searchParams.get('maxPrice') ? parseFloat(searchParams.get('maxPrice')) : '',
     search: searchParams.get('search') || '',
-    sortBy: searchParams.get('sortBy') || 'featured',
+    sort: searchParams.get('sort') || '-createdAt',
     page: parseInt(searchParams.get('page')) || 1,
     limit: 12
   });
   
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalProducts: 0,
+    count: 0
+  });
+  
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState({
-    min: 0,
-    max: 100000
-  });
 
-  // Fetch categories and initial products
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await clientProductService.getCategories();
-        setCategories(response.categories || response.data?.categories || []);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    
-    fetchCategories();
-  }, []);
+  // Sort options mapping to backend sort format
+  const sortOptions = [
+    { value: '-createdAt', label: 'Newest', icon: <FiClock /> },
+    { value: 'price', label: 'Price: Low to High', icon: <FiDollarSign /> },
+    { value: '-price', label: 'Price: High to Low', icon: <FiDollarSign /> },
+    { value: '-rating', label: 'Highest Rated', icon: <FiStar /> },
+    { value: '-salesCount', label: 'Best Selling', icon: <FiTrendingUp /> },
+    { value: '-discountPercentage', label: 'Biggest Discount', icon: <BsLightningFill /> }
+  ];
 
   // Fetch products when filters change
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
-      // Prepare query params
-      const queryParams = { ...filters };
+      console.log('📤 Fetching products with filters:', filters);
       
-      // Convert array to string for API
+      // Prepare query params to match backend
+      const queryParams = {
+        page: filters.page,
+        limit: filters.limit,
+        sort: filters.sort
+      };
+
+      // Add category if selected
       if (filters.category.length > 0) {
         queryParams.category = filters.category.join(',');
       }
-      
-      // Remove empty values
-      Object.keys(queryParams).forEach(key => {
-        if (queryParams[key] === '' || queryParams[key] === null || queryParams[key] === undefined) {
-          delete queryParams[key];
-        }
-      });
+
+      // Add price range if set
+      if (filters.minPrice) {
+        queryParams.minPrice = filters.minPrice;
+      }
+      if (filters.maxPrice) {
+        queryParams.maxPrice = filters.maxPrice;
+      }
+
+      // Add search if present
+      if (filters.search) {
+        queryParams.search = filters.search;
+      }
+
+      console.log('📤 Query params:', queryParams);
       
       const response = await clientProductService.getProducts(queryParams);
+      console.log('📥 Products response:', response);
       
       if (response.success) {
-        setProducts(response.products || response.data?.products || []);
-        setTotalPages(response.pages || response.data?.pages || 1);
-        setTotalProducts(response.total || response.data?.total || 0);
+        setProducts(response.products || []);
+        setPagination({
+          currentPage: response.currentPage || 1,
+          totalPages: response.pages || 1,
+          totalProducts: response.total || 0,
+          count: response.count || 0
+        });
+
+        // Extract unique categories from products for filter sidebar
+        if (response.products && response.products.length > 0) {
+          const uniqueCategories = [...new Set(response.products.map(p => p.category).filter(Boolean))];
+          const categoryOptions = uniqueCategories.map(cat => ({
+            value: cat,
+            label: cat.charAt(0).toUpperCase() + cat.slice(1),
+            count: response.products.filter(p => p.category === cat).length
+          }));
+          setCategories(categoryOptions);
+        }
         
         // Update URL with current filters
         const params = new URLSearchParams();
@@ -109,10 +128,25 @@ const Shop = () => {
           }
         });
         navigate(`/shop?${params.toString()}`, { replace: true });
+      } else {
+        console.error('❌ Failed to fetch products');
+        setProducts([]);
+        setPagination({
+          currentPage: 1,
+          totalPages: 1,
+          totalProducts: 0,
+          count: 0
+        });
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('❌ Error fetching products:', error);
       setProducts([]);
+      setPagination({
+        currentPage: 1,
+        totalPages: 1,
+        totalProducts: 0,
+        count: 0
+      });
     } finally {
       setLoading(false);
     }
@@ -131,11 +165,11 @@ const Shop = () => {
     }));
   };
   
-  const toggleCategory = (categorySlug) => {
+  const toggleCategory = (categoryValue) => {
     setFilters(prev => {
-      const newCategories = prev.category.includes(categorySlug)
-        ? prev.category.filter(c => c !== categorySlug)
-        : [...prev.category, categorySlug];
+      const newCategories = prev.category.includes(categoryValue)
+        ? prev.category.filter(c => c !== categoryValue)
+        : [...prev.category, categoryValue];
       return {
         ...prev,
         category: newCategories,
@@ -147,13 +181,10 @@ const Shop = () => {
   const clearFilters = () => {
     setFilters({
       category: [],
-      minPrice: 0,
-      maxPrice: 100000,
-      minRating: 0,
-      inStock: false,
-      onSale: false,
+      minPrice: '',
+      maxPrice: '',
       search: '',
-      sortBy: 'featured',
+      sort: '-createdAt',
       page: 1,
       limit: 12
     });
@@ -161,22 +192,9 @@ const Shop = () => {
     setShowFilters(false);
   };
 
-  // ✅ FIXED: Just call addToCart, no duplicate toast
   const handleAddToCart = (product) => {
     addToCart(product, 1);
-    // Toast is handled in the CartContext
   };
-
-  // Sort options
-  const sortOptions = [
-    { value: 'featured', label: 'Featured', icon: <FiStar /> },
-    { value: 'newest', label: 'Newest', icon: <FiClock /> },
-    { value: 'price_low', label: 'Price: Low to High', icon: <FiDollarSign /> },
-    { value: 'price_high', label: 'Price: High to Low', icon: <FiDollarSign /> },
-    { value: 'rating', label: 'Highest Rated', icon: <FiStar /> },
-    { value: 'trending', label: 'Trending', icon: <FiTrendingUp /> },
-    { value: 'discount', label: 'Biggest Discount', icon: <BsLightningFill /> }
-  ];
 
   // Format price to Kenyan Shillings
   const formatKES = (price) => {
@@ -203,7 +221,7 @@ const Shop = () => {
             <div>
               <h1 className="mb-2 text-3xl font-bold md:text-4xl">Our Collection</h1>
               <p className="max-w-2xl text-blue-100">
-                Discover premium tech products at amazing prices. {totalProducts} products available.
+                Discover premium products at amazing prices. {pagination.totalProducts} products available.
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -252,21 +270,25 @@ const Shop = () => {
               {/* Categories */}
               <div className="mb-6">
                 <h3 className="mb-3 font-semibold">Categories</h3>
-                <div className="space-y-2">
-                  {categories.map((category) => (
-                    <label key={category._id || category.slug} className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={filters.category.includes(category.slug)}
-                        onChange={() => toggleCategory(category.slug)}
-                        className="w-4 h-4 text-blue-600 rounded"
-                      />
-                      <span className="ml-2 text-sm">{category.name}</span>
-                      <span className="ml-auto text-xs text-gray-500">
-                        ({category.productCount || 0})
-                      </span>
-                    </label>
-                  ))}
+                <div className="space-y-2 overflow-y-auto max-h-60">
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <label key={category.value} className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={filters.category.includes(category.value)}
+                          onChange={() => toggleCategory(category.value)}
+                          className="w-4 h-4 text-blue-600 rounded"
+                        />
+                        <span className="ml-2 text-sm">{category.label}</span>
+                        <span className="ml-auto text-xs text-gray-500">
+                          ({category.count})
+                        </span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No categories available</p>
+                  )}
                 </div>
               </div>
 
@@ -275,69 +297,32 @@ const Shop = () => {
                 <h3 className="mb-3 font-semibold">Price Range</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Min: {formatKES(filters.minPrice)}</span>
-                    <span className="text-sm text-gray-600">Max: {formatKES(filters.maxPrice)}</span>
+                    <span className="text-sm text-gray-600">
+                      {filters.minPrice ? formatKES(filters.minPrice) : 'Min: Any'}
+                    </span>
+                    <span className="text-sm text-gray-600">
+                      {filters.maxPrice ? formatKES(filters.maxPrice) : 'Max: Any'}
+                    </span>
                   </div>
                   <div className="flex gap-2">
                     <input
                       type="number"
                       placeholder="Min"
                       value={filters.minPrice}
-                      onChange={(e) => updateFilter('minPrice', parseInt(e.target.value) || 0)}
+                      onChange={(e) => updateFilter('minPrice', e.target.value ? parseFloat(e.target.value) : '')}
                       className="w-full px-3 py-2 border rounded-lg"
+                      min="0"
                     />
                     <input
                       type="number"
                       placeholder="Max"
                       value={filters.maxPrice}
-                      onChange={(e) => updateFilter('maxPrice', parseInt(e.target.value) || 100000)}
+                      onChange={(e) => updateFilter('maxPrice', e.target.value ? parseFloat(e.target.value) : '')}
                       className="w-full px-3 py-2 border rounded-lg"
+                      min="0"
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Rating */}
-              <div className="mb-6">
-                <h3 className="mb-3 font-semibold">Minimum Rating</h3>
-                <div className="flex items-center gap-2">
-                  {[4, 3, 2, 1, 0].map(rating => (
-                    <button
-                      key={rating}
-                      onClick={() => updateFilter('minRating', rating)}
-                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
-                        filters.minRating === rating
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      <FiStar className={filters.minRating === rating ? 'fill-current' : ''} />
-                      <span>{rating}+</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Other Filters */}
-              <div className="space-y-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.inStock}
-                    onChange={(e) => updateFilter('inStock', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="ml-2 text-sm">In Stock Only</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={filters.onSale}
-                    onChange={(e) => updateFilter('onSale', e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="ml-2 text-sm">On Sale</span>
-                </label>
               </div>
             </div>
           </div>
@@ -349,7 +334,7 @@ const Shop = () => {
               <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
                 <div className="text-sm text-gray-600">
                   Showing <span className="font-semibold">{products.length}</span> of{' '}
-                  <span className="font-semibold">{totalProducts}</span> products
+                  <span className="font-semibold">{pagination.totalProducts}</span> products
                 </div>
                 
                 <div className="flex items-center gap-4">
@@ -358,12 +343,14 @@ const Shop = () => {
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+                      title="Grid view"
                     >
                       <BsGridFill />
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
                       className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-600'}`}
+                      title="List view"
                     >
                       <BsListUl />
                     </button>
@@ -371,8 +358,8 @@ const Shop = () => {
                   
                   {/* Sort */}
                   <select
-                    value={filters.sortBy}
-                    onChange={(e) => updateFilter('sortBy', e.target.value)}
+                    value={filters.sort}
+                    onChange={(e) => updateFilter('sort', e.target.value)}
                     className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     {sortOptions.map(option => (
@@ -404,7 +391,7 @@ const Shop = () => {
               <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-3">
                 {products.map((product) => (
                   <ProductCard 
-                    key={product._id} 
+                    key={product._id || product.id} 
                     product={product} 
                   />
                 ))}
@@ -412,12 +399,12 @@ const Shop = () => {
             ) : (
               <div className="space-y-4">
                 {products.map((product) => (
-                  <div key={product._id} className="overflow-hidden bg-white shadow-sm rounded-xl">
+                  <div key={product._id || product.id} className="overflow-hidden bg-white shadow-sm rounded-xl">
                     <div className="flex flex-col md:flex-row">
                       {/* Product Image */}
                       <div className="h-48 bg-gray-100 md:w-48">
                         <img
-                          src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'}
+                          src={product.images?.[0]?.url || product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'}
                           alt={product.name}
                           className="object-cover w-full h-full"
                         />
@@ -428,7 +415,7 @@ const Shop = () => {
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="mb-2 text-lg font-semibold text-gray-900">
-                              <Link to={`/product/${product._id}`} className="hover:text-blue-600">
+                              <Link to={`/product/${product._id || product.id}`} className="hover:text-blue-600">
                                 {product.name}
                               </Link>
                             </h3>
@@ -437,7 +424,7 @@ const Shop = () => {
                             </p>
                             <div className="flex items-center gap-4 mb-4">
                               <div className="flex items-center gap-1">
-                                <FiStar className="text-yellow-400" />
+                                <FiStar className="text-yellow-400 fill-current" />
                                 <span className="text-sm">{product.rating || 0}</span>
                               </div>
                               <div className="text-sm text-gray-500">
@@ -447,9 +434,9 @@ const Shop = () => {
                           </div>
                           <div className="text-right">
                             <div className="mb-2 text-xl font-bold text-gray-900">
-                              {formatKES(product.discountPrice || product.price)}
+                              {formatKES(product.discountedPrice || product.price)}
                             </div>
-                            {product.discountPrice && (
+                            {product.discountPercentage > 0 && (
                               <div className="text-sm text-gray-500 line-through">
                                 {formatKES(product.price)}
                               </div>
@@ -466,7 +453,7 @@ const Shop = () => {
                             Add to Cart
                           </button>
                           <Link
-                            to={`/product/${product._id}`}
+                            to={`/product/${product._id || product.id}`}
                             className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                           >
                             View Details
@@ -480,7 +467,7 @@ const Shop = () => {
             )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {pagination.totalPages > 1 && (
               <div className="flex justify-center mt-8">
                 <div className="flex items-center gap-2">
                   <button
@@ -491,14 +478,14 @@ const Shop = () => {
                     <FiChevronLeft />
                   </button>
                   
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                     let pageNum;
-                    if (totalPages <= 5) {
+                    if (pagination.totalPages <= 5) {
                       pageNum = i + 1;
                     } else if (filters.page <= 3) {
                       pageNum = i + 1;
-                    } else if (filters.page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
+                    } else if (filters.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
                     } else {
                       pageNum = filters.page - 2 + i;
                     }
@@ -519,8 +506,8 @@ const Shop = () => {
                   })}
                   
                   <button
-                    onClick={() => updateFilter('page', Math.min(totalPages, filters.page + 1))}
-                    disabled={filters.page === totalPages}
+                    onClick={() => updateFilter('page', Math.min(pagination.totalPages, filters.page + 1))}
+                    disabled={filters.page === pagination.totalPages}
                     className="p-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FiChevronRight />

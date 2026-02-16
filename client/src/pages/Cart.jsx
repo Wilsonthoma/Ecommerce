@@ -1,4 +1,4 @@
-// client/src/pages/Cart.jsx
+// src/pages/Cart.jsx - TRANSFORMED with oraimo black gradients and glowing effects
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -21,8 +21,10 @@ import {
   ChevronRight as ChevronRightIcon,
   MapPin,
   RefreshCw,
-  Clock
+  Clock,
+  Heart
 } from 'lucide-react';
+import { BsLightningCharge, BsArrowRight } from 'react-icons/bs';
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -230,11 +232,11 @@ const Cart = () => {
   // Get stock badge
   const getStockBadge = (item) => {
     if (item.stockStatus === 'sold') {
-      return { bg: 'bg-red-100', text: 'text-red-800', label: 'Sold Out', icon: <AlertCircle className="w-3 h-3" /> };
+      return { bg: 'bg-gradient-to-r from-red-600 to-pink-600', label: 'Sold Out', icon: <AlertCircle className="w-3 h-3" /> };
     } else if (item.stockStatus === 'low') {
-      return { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Low Stock', icon: <AlertCircle className="w-3 h-3" /> };
+      return { bg: 'bg-gradient-to-r from-yellow-600 to-orange-600', label: 'Low Stock', icon: <AlertCircle className="w-3 h-3" /> };
     } else {
-      return { bg: 'bg-green-100', text: 'text-green-800', label: 'In Stock', icon: <CheckCircle className="w-3 h-3" /> };
+      return { bg: 'bg-gradient-to-r from-green-600 to-emerald-600', label: 'In Stock', icon: <CheckCircle className="w-3 h-3" /> };
     }
   };
 
@@ -244,12 +246,12 @@ const Cart = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen py-8 bg-gray-50">
-        <div className="max-w-6xl px-4 mx-auto">
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+        <div className="max-w-6xl px-4 py-8 mx-auto">
           <div className="animate-pulse">
-            <div className="w-32 h-6 mb-4 bg-gray-200 rounded"></div>
-            <div className="p-4 bg-white shadow rounded-xl">
-              <div className="h-40 bg-gray-200 rounded"></div>
+            <div className="w-32 h-6 mb-4 bg-gray-700 rounded"></div>
+            <div className="p-4 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+              <div className="h-40 bg-gray-700 rounded"></div>
             </div>
           </div>
         </div>
@@ -259,14 +261,27 @@ const Cart = () => {
 
   if (cart.items.length === 0) {
     return (
-      <div className="min-h-screen py-8 bg-gray-50">
-        <div className="max-w-6xl px-4 mx-auto text-center">
-          <div className="p-8 bg-white shadow rounded-xl">
-            <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-            <h2 className="mb-2 text-xl font-semibold">Cart empty</h2>
-            <Link to="/shop" className="inline-block px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700">
-              Shop Now
-            </Link>
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+        <div className="max-w-6xl px-4 py-8 mx-auto text-center">
+          <div className="relative p-8 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-20 blur-xl"></div>
+            <div className="relative">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                <ShoppingCart className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="mb-2 text-xl font-semibold text-white glow-text">Cart empty</h2>
+              <Link 
+                to="/shop" 
+                className="group relative inline-flex items-center gap-2 px-6 py-3 mt-4 font-medium text-white transition-all rounded-full overflow-hidden"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="relative flex items-center gap-2">
+                  Shop Now
+                  <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -274,36 +289,38 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen py-6 bg-gray-50">
-      <div className="max-w-6xl px-3 mx-auto">
-        {/* Breadcrumbs - smaller */}
-        <nav className="flex mb-4 text-xs">
-          <Link to="/" className="text-gray-500">Home</Link>
-          <ChevronRight className="w-3 h-3 mx-1 text-gray-400" />
-          <Link to="/shop" className="text-gray-500">Shop</Link>
-          <ChevronRight className="w-3 h-3 mx-1 text-gray-400" />
-          <span className="font-medium text-gray-900">Cart</span>
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
+      
+      <div className="max-w-6xl px-3 py-6 mx-auto">
+        {/* Breadcrumbs */}
+        <nav className="flex items-center mb-4 text-xs">
+          <Link to="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
+          <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
+          <Link to="/shop" className="text-gray-400 hover:text-white transition-colors">Shop</Link>
+          <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
+          <span className="font-medium text-white glow-text">Cart</span>
         </nav>
 
-        <h1 className="mb-1 text-2xl font-bold">Cart</h1>
-        <p className="mb-4 text-sm text-gray-600">{cart.items.length} items</p>
+        <h1 className="mb-1 text-2xl font-bold text-white">Cart</h1>
+        <p className="mb-4 text-sm text-gray-400">{cart.items.length} items</p>
         
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white shadow rounded-xl">
-              <div className="flex items-center justify-between px-4 py-3 border-b">
-                <h2 className="font-semibold">Items ({cart.items.length})</h2>
+            <div className="overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+                <h2 className="font-semibold text-white">Items ({cart.items.length})</h2>
                 <button 
                   onClick={handleClearCart}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-red-600 rounded hover:bg-red-50"
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-red-500 transition-colors rounded hover:bg-red-500/10"
                 >
                   <Trash2 className="w-3 h-3" />
                   Clear
                 </button>
               </div>
               
-              <div className="divide-y">
+              <div className="divide-y divide-gray-700">
                 {cart.items.map((item) => {
                   const price = item.discountPrice || item.price || 0;
                   const itemTotal = price * item.quantity;
@@ -318,25 +335,30 @@ const Cart = () => {
                   const currentImage = images[currentImageIndex] || { url: FALLBACK_IMAGE };
                   
                   return (
-                    <div key={item.id} className="p-3">
+                    <div key={item.id} className="p-3 transition-colors hover:bg-white/5">
                       <div className="flex gap-3">
-                        {/* Image - smaller */}
-                        <div className="relative flex-shrink-0 w-20 h-20">
+                        {/* Image with glow on hover */}
+                        <div className="relative flex-shrink-0 w-20 h-20 group/image">
+                          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded opacity-0 group-hover/image:opacity-30 blur transition-opacity"></div>
                           <img 
                             src={getFullImageUrl(currentImage.url)} 
                             alt={item.name}
-                            className="object-contain w-full h-full rounded cursor-pointer"
+                            className="relative object-contain w-full h-full rounded cursor-pointer"
                             onClick={() => handleImageClick(item, currentImageIndex)}
                           />
                           
-                          {/* Thumbnails row - tiny */}
+                          {/* Thumbnails row */}
                           {images.length > 1 && (
                             <div className="flex gap-1 mt-1">
                               {images.slice(0, 3).map((img, idx) => (
                                 <button
                                   key={idx}
                                   onClick={() => setSelectedImageIndex(prev => ({ ...prev, [item.id]: idx }))}
-                                  className={`w-5 h-5 rounded overflow-hidden border ${currentImageIndex === idx ? 'border-blue-600' : 'border-gray-200'}`}
+                                  className={`w-5 h-5 rounded overflow-hidden border transition-all ${
+                                    currentImageIndex === idx 
+                                      ? 'border-blue-500 ring-1 ring-blue-500/50' 
+                                      : 'border-gray-700 hover:border-gray-600'
+                                  }`}
                                 >
                                   <img src={getFullImageUrl(img.url)} className="object-cover w-full h-full" />
                                 </button>
@@ -349,37 +371,43 @@ const Cart = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between">
                             <div>
-                              <h3 className="text-sm font-medium truncate">{item.name}</h3>
-                              <p className="text-xs text-gray-500">{formatKES(price)} each</p>
+                              <h3 className="text-sm font-medium text-white truncate">{item.name}</h3>
+                              <p className="text-xs text-gray-400">{formatKES(price)} each</p>
                               
-                              {/* Quantity - smaller */}
+                              {/* Stock Badge */}
+                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 mt-1 text-xs font-medium text-white rounded-full ${stockBadge.bg}`}>
+                                {stockBadge.icon}
+                                {stockBadge.label}
+                              </div>
+                              
+                              {/* Quantity */}
                               <div className="flex items-center gap-2 mt-2">
-                                <div className="flex items-center border rounded">
+                                <div className="flex items-center overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
                                   <button 
                                     onClick={() => handleQuantityChange(item, -1)}
-                                    className="px-1.5 py-1 hover:bg-gray-100 disabled:opacity-50"
+                                    className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                                     disabled={item.quantity <= 1}
                                   >
                                     <Minus className="w-3 h-3" />
                                   </button>
-                                  <span className="w-8 text-xs font-medium text-center">
+                                  <span className="w-8 text-xs font-medium text-center text-white">
                                     {item.quantity}
                                   </span>
                                   <button 
                                     onClick={() => handleQuantityChange(item, 1)}
-                                    className="px-1.5 py-1 hover:bg-gray-100 disabled:opacity-50"
+                                    className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                                     disabled={item.quantity >= (item.stockQuantity || 10)}
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
                                 </div>
-                                <span className="text-xs font-medium">= {formatKES(itemTotal)}</span>
+                                <span className="text-xs font-medium text-blue-500">= {formatKES(itemTotal)}</span>
                               </div>
                             </div>
                             
                             <button 
                               onClick={() => handleRemoveItem(item)}
-                              className="text-gray-400 hover:text-red-500"
+                              className="text-gray-500 transition-colors hover:text-red-500"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -393,7 +421,7 @@ const Cart = () => {
             </div>
             
             <div className="mt-4">
-              <Link to="/shop" className="text-xs text-blue-600 hover:underline">
+              <Link to="/shop" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
                 ← Continue Shopping
               </Link>
             </div>
@@ -401,107 +429,117 @@ const Cart = () => {
           
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky p-4 bg-white border rounded-xl top-4">
-              <h2 className="flex items-center gap-2 mb-4 text-base font-semibold">
-                <Package className="w-4 h-4" />
+            <div className="sticky p-4 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 top-4">
+              <h2 className="flex items-center gap-2 mb-4 text-base font-semibold text-white">
+                <Package className="w-4 h-4 text-blue-500" />
                 Order Summary
               </h2>
               
-              {/* Items - smaller */}
+              {/* Items */}
               <div className="mb-4 space-y-2 text-xs">
                 {cart.items.map((item) => {
                   const price = item.discountPrice || item.price || 0;
                   return (
                     <div key={item.id} className="flex justify-between">
-                      <span className="text-gray-600 truncate max-w-[150px]">{item.name} × {item.quantity}</span>
-                      <span className="font-medium">{formatKES(price * item.quantity)}</span>
+                      <span className="text-gray-400 truncate max-w-[150px]">{item.name} × {item.quantity}</span>
+                      <span className="font-medium text-white">{formatKES(price * item.quantity)}</span>
                     </div>
                   );
                 })}
               </div>
               
-              {/* Delivery - real data */}
-              <div className="p-3 mb-4 text-xs border border-blue-200 rounded-lg bg-blue-50">
-                <h3 className="flex items-center gap-1 mb-2 font-medium text-blue-800">
-                  <Truck className="w-3 h-3" />
-                  Delivery
-                </h3>
+              {/* Delivery - with glow */}
+              <div className="relative p-3 mb-4 text-xs overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-blue-500/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-20 blur"></div>
                 
-                <div className="mb-2">
-                  <select
-                    value={selectedCounty}
-                    onChange={(e) => handleCountyChange(e.target.value)}
-                    className="w-full px-2 py-1 text-xs bg-white border border-blue-200 rounded"
-                  >
-                    {Object.keys(locations).map(county => (
-                      <option key={county} value={county}>{county}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mb-2">
-                  <select
-                    value={selectedPickupStation}
-                    onChange={(e) => handlePickupStationChange(e.target.value)}
-                    className="w-full px-2 py-1 text-xs bg-white border border-blue-200 rounded"
-                  >
-                    {locations[selectedCounty]?.pickupStations.map(station => (
-                      <option key={station} value={station}>{station}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div className="mt-2 space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Fee:</span>
-                    <span className="font-medium text-blue-700">{formatKES(deliveryFees)}</span>
+                <div className="relative">
+                  <h3 className="flex items-center gap-1 mb-2 font-medium text-blue-500">
+                    <Truck className="w-3 h-3" />
+                    Delivery
+                  </h3>
+                  
+                  <div className="mb-2">
+                    <select
+                      value={selectedCounty}
+                      onChange={(e) => handleCountyChange(e.target.value)}
+                      className="w-full px-2 py-1 text-xs text-white rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                    >
+                      {Object.keys(locations).map(county => (
+                        <option key={county} value={county} className="bg-gray-800">{county}</option>
+                      ))}
+                    </select>
                   </div>
-                  <div className="text-gray-600">
-                    Pickup: {pickupDate} - {readyDate}
+                  
+                  <div className="mb-2">
+                    <select
+                      value={selectedPickupStation}
+                      onChange={(e) => handlePickupStationChange(e.target.value)}
+                      className="w-full px-2 py-1 text-xs text-white rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                    >
+                      {locations[selectedCounty]?.pickupStations.map(station => (
+                        <option key={station} value={station} className="bg-gray-800">{station}</option>
+                      ))}
+                    </select>
                   </div>
-                  {timeLeft !== 'Expired' && (
-                    <div className="p-1 text-xs text-yellow-700 rounded bg-yellow-50">
-                      <Clock className="inline w-3 h-3 mr-1" />
-                      Order in {timeLeft}
+                  
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Fee:</span>
+                      <span className="font-medium text-blue-500">{formatKES(deliveryFees)}</span>
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex items-center gap-1 mt-2 text-green-600">
-                  <RefreshCw className="w-3 h-3" />
-                  <span className="text-xs">Easy Returns</span>
+                    <div className="text-gray-400">
+                      Pickup: {pickupDate} - {readyDate}
+                    </div>
+                    {timeLeft !== 'Expired' && (
+                      <div className="p-1 text-xs text-yellow-500 rounded bg-yellow-500/10">
+                        <Clock className="inline w-3 h-3 mr-1" />
+                        Order in {timeLeft}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-1 mt-2 text-green-500">
+                    <RefreshCw className="w-3 h-3" />
+                    <span className="text-xs">Easy Returns</span>
+                  </div>
                 </div>
               </div>
               
               {/* Totals */}
-              <div className="pt-3 space-y-2 text-sm border-t">
+              <div className="pt-3 space-y-2 text-sm border-t border-gray-700">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>{formatKES(subtotal)}</span>
+                  <span className="text-gray-400">Subtotal</span>
+                  <span className="text-white">{formatKES(subtotal)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Delivery</span>
-                  <span className="text-blue-600">{formatKES(deliveryFees)}</span>
+                  <span className="text-gray-400">Delivery</span>
+                  <span className="text-blue-500">{formatKES(deliveryFees)}</span>
                 </div>
-                <div className="pt-2 mt-2 border-t">
+                <div className="pt-2 mt-2 border-t border-gray-700">
                   <div className="flex justify-between font-bold">
-                    <span>Total</span>
-                    <span className="text-blue-600">{formatKES(grandTotal)}</span>
+                    <span className="text-white">Total</span>
+                    <span className="text-blue-500 glow-text">{formatKES(grandTotal)}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Place Order - smaller button */}
+              {/* Place Order */}
               <button
                 onClick={handlePlaceOrder}
                 disabled={cart.items.length === 0}
-                className="w-full py-2 mt-4 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                className="group relative w-full py-2 mt-4 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
               >
-                Place Order
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="relative flex items-center justify-center gap-2">
+                  Place Order
+                  <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </span>
               </button>
               
-              {/* Security - tiny */}
-              <div className="flex items-center gap-1 mt-3 text-xs text-blue-700">
+              {/* Security */}
+              <div className="flex items-center gap-1 mt-3 text-xs text-blue-500">
                 <Shield className="w-3 h-3" />
                 <span>Secure checkout</span>
               </div>
@@ -510,38 +548,59 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* Lightbox - smaller */}
+      {/* Lightbox Modal */}
       {lightboxOpen && lightboxImages.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
-          <div className="relative w-4/5 max-w-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl">
+          <div className="relative w-4/5 max-w-2xl">
+            {/* Close button */}
             <button
               onClick={closeLightbox}
-              className="absolute right-0 z-10 p-1 text-white rounded-full bg-black/50 -top-8"
+              className="absolute p-2 transition-all rounded-full shadow-lg -right-2 -top-12 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] group sm:-right-12 sm:-top-12"
             >
-              <X className="w-4 h-4" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-pink-600 rounded-full opacity-0 group-hover:opacity-50 blur transition-opacity"></div>
+              <X className="relative w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
             </button>
 
+            {/* Navigation */}
             {lightboxImages.length > 1 && (
               <>
                 <button
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute z-10 p-1 text-white rounded-full bg-black/50 -left-8 top-1/2"
+                  className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                 </button>
                 <button
                   onClick={() => navigateLightbox('next')}
-                  className="absolute z-10 p-1 text-white rounded-full bg-black/50 -right-8 top-1/2"
+                  className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronRightIcon className="w-4 h-4" />
+                  <ChevronRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
                 </button>
               </>
             )}
 
-            <img src={getFullImageUrl(lightboxImages[lightboxIndex]?.url)} alt="" className="w-full" />
+            {/* Image */}
+            <div className="relative overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+              <img 
+                src={getFullImageUrl(lightboxImages[lightboxIndex]?.url)} 
+                alt={selectedProduct?.name || 'Product'} 
+                className="w-full"
+              />
+              
+              {/* Image counter */}
+              <div className="absolute px-2 py-1 text-xs font-medium text-white rounded-full bottom-2 right-2 bg-gradient-to-r from-blue-600 to-purple-600">
+                {lightboxIndex + 1} / {lightboxImages.length}
+              </div>
+            </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .glow-text {
+          text-shadow: 0 0 20px currentColor;
+        }
+      `}</style>
     </div>
   );
 };

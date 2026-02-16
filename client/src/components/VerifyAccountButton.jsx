@@ -1,9 +1,11 @@
+// src/components/VerifyAccountButton.jsx - TRANSFORMED with oraimo black gradients and glowing effects
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAppContext } from "../context/AppContext";
-import { FiMail, FiClock, FiX, FiShield } from "react-icons/fi";
+import { FiMail, FiClock, FiX, FiShield, FiCheckCircle } from "react-icons/fi";
 import { MdVerified } from "react-icons/md";
+import { BsLightningCharge, BsArrowRight } from "react-icons/bs";
 
 const VerifyAccountButton = () => {
   const { backendUrl, user, getUserData } = useAppContext();
@@ -16,8 +18,8 @@ const VerifyAccountButton = () => {
   // Already verified badge
   if (user?.isAccountVerified) {
     return (
-      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-full sm:gap-2 sm:px-4 sm:py-2 sm:text-sm">
-        <MdVerified className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-green-500 rounded-full sm:gap-2 sm:px-4 sm:py-2 sm:text-sm bg-green-500/10 border border-green-500/30">
+        <FiCheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         <span>Verified</span>
       </div>
     );
@@ -187,148 +189,168 @@ const VerifyAccountButton = () => {
 
   return (
     <>
-      {/* Verify Button - ResetPassword Color Scheme */}
+      {/* Verify Button - ORAIMO Style with Black Gradient */}
       <button
         onClick={handleSendOtp}
         disabled={isLoading}
-        className="relative flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-green-400 to-emerald-600 rounded-lg hover:from-green-500 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5 sm:w-auto sm:px-5"
+        className="group relative w-full px-5 py-2.5 text-sm font-medium text-white transition-all rounded-full overflow-hidden sm:w-auto"
       >
-        {isLoading ? (
-          <>
-            <FiClock className="w-4 h-4 animate-spin" />
-            <span>Sending...</span>
-          </>
-        ) : (
-          <>
-            <FiMail className="w-4 h-4" />
-            <span>Verify Account</span>
-          </>
-        )}
+        <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
+        <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+        <span className="relative flex items-center justify-center gap-2">
+          {isLoading ? (
+            <>
+              <FiClock className="w-4 h-4 animate-spin" />
+              <span>Sending...</span>
+            </>
+          ) : (
+            <>
+              <FiMail className="w-4 h-4" />
+              <span>Verify Account</span>
+              <BsArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            </>
+          )}
+        </span>
       </button>
 
-      {/* OTP Modal - ResetPassword Color Scheme */}
+      {/* OTP Modal - ORAIMO Style */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md overflow-hidden bg-white shadow-2xl rounded-2xl animate-slideUp">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-md animate-slideUp">
+            {/* Glow Effect */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-30 blur-xl"></div>
             
-            {/* Modal Header - ResetPassword Gradient */}
-            <div className="relative px-6 py-8 bg-gradient-to-br from-green-400 to-emerald-600">
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setOtp(["", "", "", "", "", ""]);
-                }}
-                className="absolute p-1.5 text-white transition-colors rounded-lg top-4 right-4 hover:bg-white/20"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-              
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-white rounded-full shadow-lg">
-                <FiMail className="w-8 h-8 text-green-600" />
-              </div>
-              
-              <h3 className="text-2xl font-bold text-center text-white">
-                Verify Email
-              </h3>
-              <p className="mt-2 text-sm text-center text-green-100">
-                Enter the 6-digit code sent to
-              </p>
-              <p className="text-sm font-semibold text-center text-white break-all">
-                {user?.email}
-              </p>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6">
-              <form onSubmit={handleVerifyOtp}>
-                
-                {/* OTP Inputs - Responsive */}
-                <div
-                  className="flex justify-center mb-6 space-x-2 sm:space-x-3"
-                  onPaste={handlePaste}
+            {/* Modal Content */}
+            <div className="relative overflow-hidden border rounded-2xl bg-gradient-to-br from-gray-900 to-black border-gray-800">
+              {/* Header with Gradient */}
+              <div className="relative px-6 py-8 bg-gradient-to-br from-gray-800 to-gray-900 border-b border-gray-800">
+                <button
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setOtp(["", "", "", "", "", ""]);
+                  }}
+                  className="absolute p-2 transition-all rounded-full shadow-lg top-4 right-4 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] group"
                 >
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      className="w-11 h-12 text-lg font-bold text-center text-gray-900 transition-all border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none shadow-sm hover:border-green-300 sm:w-12 sm:h-14 sm:text-xl"
-                      disabled={isLoading}
-                      autoFocus={index === 0}
-                    />
-                  ))}
-                </div>
-
-                {/* Timer & Resend */}
-                <div className="flex flex-col items-center justify-between gap-3 p-3 mb-5 rounded-lg bg-green-50 sm:flex-row sm:p-4">
-                  <div className="flex items-center gap-2 text-sm text-green-800">
-                    <FiClock className="w-4 h-4" />
-                    <span>
-                      Expires in{" "}
-                      <span className="font-bold text-green-900">
-                        {Math.floor(resendTimer / 60)}:
-                        {(resendTimer % 60).toString().padStart(2, "0")}
-                      </span>
-                    </span>
+                  <FiX className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
+                </button>
+                
+                <div className="relative">
+                  <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                    <FiMail className="w-8 h-8 text-white" />
                   </div>
-                  
-                  {resendTimer > 0 ? (
-                    <span className="text-sm font-medium text-green-700">
-                      Resend in {resendTimer}s
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={isLoading}
-                      className="text-sm font-semibold text-green-700 hover:text-green-800 hover:underline disabled:opacity-50"
-                    >
-                      Resend Code
-                    </button>
-                  )}
+                  <div className="absolute inset-0 w-16 h-16 mx-auto bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50 blur-xl"></div>
                 </div>
+                
+                <h3 className="text-2xl font-bold text-center text-white glow-text">
+                  Verify Email
+                </h3>
+                <p className="mt-2 text-sm text-center text-gray-400">
+                  Enter the 6-digit code sent to
+                </p>
+                <p className="text-sm font-semibold text-center text-blue-500 break-all">
+                  {user?.email}
+                </p>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="submit"
-                    disabled={isLoading || otp.join("").length !== 6}
-                    className="flex-1 px-6 py-3 text-sm font-semibold text-white transition-all bg-gradient-to-r from-green-400 to-emerald-600 rounded-lg hover:from-green-500 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+              {/* Modal Body */}
+              <div className="p-6">
+                <form onSubmit={handleVerifyOtp}>
+                  
+                  {/* OTP Inputs - Glowing */}
+                  <div
+                    className="flex justify-center mb-6 space-x-2 sm:space-x-3"
+                    onPaste={handlePaste}
                   >
-                    {isLoading ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <FiClock className="w-4 h-4 animate-spin" />
-                        Verifying...
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={(el) => (inputRefs.current[index] = el)}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        className="w-11 h-12 text-lg font-bold text-center text-white transition-all border rounded-lg shadow-sm outline-none sm:w-12 sm:h-14 sm:text-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                        disabled={isLoading}
+                        autoFocus={index === 0}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Timer & Resend */}
+                  <div className="flex flex-col items-center justify-between gap-3 p-4 mb-5 border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <FiClock className="w-4 h-4 text-blue-500" />
+                      <span>
+                        Expires in{" "}
+                        <span className="font-bold text-blue-500">
+                          {Math.floor(resendTimer / 60)}:
+                          {(resendTimer % 60).toString().padStart(2, "0")}
+                        </span>
+                      </span>
+                    </div>
+                    
+                    {resendTimer > 0 ? (
+                      <span className="text-sm font-medium text-gray-500">
+                        Resend in {resendTimer}s
                       </span>
                     ) : (
-                      "Verify Email"
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        disabled={isLoading}
+                        className="text-sm font-semibold text-blue-500 hover:text-blue-400 hover:underline disabled:opacity-50 transition-colors"
+                      >
+                        Resend Code
+                      </button>
                     )}
-                  </button>
-                  
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsModalOpen(false);
-                      setOtp(["", "", "", "", "", ""]);
-                    }}
-                    className="px-6 py-3 text-sm font-medium text-gray-700 transition-colors bg-gray-100 rounded-lg hover:bg-gray-200 sm:w-auto"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+                  </div>
 
-              {/* Security Note */}
-              <div className="flex items-start gap-3 p-3 mt-5 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
-                <FiShield className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <p className="text-xs text-green-800">
-                  Never share your verification code. Support will never ask for this.
-                </p>
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="submit"
+                      disabled={isLoading || otp.join("").length !== 6}
+                      className="group relative flex-1 px-6 py-3 text-sm font-semibold text-white transition-all rounded-full overflow-hidden"
+                    >
+                      <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                      <span className="relative flex items-center justify-center gap-2">
+                        {isLoading ? (
+                          <>
+                            <FiClock className="w-4 h-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            Verify Email
+                            <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          </>
+                        )}
+                      </span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsModalOpen(false);
+                        setOtp(["", "", "", "", "", ""]);
+                      }}
+                      className="px-6 py-3 text-sm font-medium text-gray-400 transition-colors border rounded-full border-gray-700 hover:text-white hover:border-gray-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+
+                {/* Security Note */}
+                <div className="flex items-start gap-3 p-4 mt-5 border rounded-lg bg-blue-600/10 border-blue-600/20">
+                  <FiShield className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                  <p className="text-xs text-blue-400">
+                    Never share your verification code. Support will never ask for this.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -353,6 +375,9 @@ const VerifyAccountButton = () => {
         }
         .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        .glow-text {
+          text-shadow: 0 0 20px currentColor;
+        }
       `}</style>
     </>
   );

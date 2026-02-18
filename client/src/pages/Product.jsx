@@ -1,4 +1,4 @@
-// src/pages/Product.jsx - REDUCED IMAGE SIZES
+// src/pages/Product.jsx - FIXED with homepage styling
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -30,7 +30,8 @@ import {
   FiZap,
   FiArrowRight,
   FiMaximize2,
-  FiMinimize2
+  FiMinimize2,
+  FiMapPin
 } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
 import { BsLightningCharge, BsArrowRight, BsShieldCheck } from 'react-icons/bs';
@@ -40,11 +41,210 @@ import { clientProductService } from '../services/client/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 
+// Font styles matching homepage
+const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  .product-title {
+    font-weight: 800;
+    font-size: 2.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    background: linear-gradient(to right, #fff, #e5e5e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .section-header {
+    font-weight: 700;
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #fff, #e5e5e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .price-large {
+    font-weight: 800;
+    font-size: 2.2rem;
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .price-small {
+    font-weight: 500;
+    color: #9CA3AF;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  }
+  
+  .btn-secondary {
+    background: transparent;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .btn-wishlist {
+    background: transparent;
+    color: white;
+    font-weight: 600;
+    padding: 0.75rem 2rem;
+    border-radius: 9999px;
+    transition: all 0.3s ease;
+    border: 2px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  .btn-wishlist:hover {
+    border-color: rgba(239, 68, 68, 0.8);
+    background: rgba(239, 68, 68, 0.1);
+  }
+  
+  .btn-wishlist.active {
+    background: linear-gradient(135deg, #EF4444, #EC4899);
+    border: none;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+  }
+  
+  .info-icon {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5), rgba(17, 24, 39, 0.5));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    transition: all 0.3s ease;
+  }
+  
+  .info-icon:hover {
+    border-color: #3B82F6;
+    transform: translateY(-2px);
+  }
+  
+  .testimonial-card {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5) 0%, rgba(17, 24, 39, 0.5) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 1.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .testimonial-card:hover {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.8) 100%);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
+  }
+  
+  .badge-primary {
+    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+  }
+  
+  .badge-discount {
+    background: linear-gradient(135deg, #EF4444, #F59E0B);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+`;
+
+// Animation styles
+const animationStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+`;
+
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Fallback image
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&h=800&fit=crop';
+const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=800';
+
+// Top Bar Component (matching homepage)
+const TopBar = () => (
+  <div className="py-3 border-b border-gray-800 bg-black/90">
+    <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+      <button className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white">
+        <FiMapPin className="w-4 h-4" />
+        FIND STORE
+      </button>
+      <span className="text-gray-700">|</span>
+      <button className="text-sm text-gray-400 transition-colors hover:text-white">
+        SHOP ONLINE
+      </button>
+    </div>
+  </div>
+);
 
 const Product = () => {
   const { id } = useParams();
@@ -86,6 +286,11 @@ const Product = () => {
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    // Inject font styles
+    const style = document.createElement('style');
+    style.textContent = fontStyles + animationStyles;
+    document.head.appendChild(style);
+    
     // Check login status
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
@@ -93,6 +298,10 @@ const Product = () => {
       setIsLoggedIn(true);
       setCurrentUser(JSON.parse(user));
     }
+
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
   // Get stock value from either stock or quantity field
@@ -190,7 +399,7 @@ const Product = () => {
   };
 
   // Render stars for display
-  const renderStars = (rating, size = "w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5") => {
+  const renderStars = (rating, size = "w-3 h-3 sm:w-4 sm:h-4") => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
     const hasHalfStar = (rating % 1) >= 0.5;
@@ -215,7 +424,7 @@ const Product = () => {
   };
 
   // Rating Stars Component for interactive rating
-  const RatingStars = ({ interactive = false, size = "w-4 h-4 sm:w-5 sm:h-5" }) => {
+  const RatingStars = ({ interactive = false, size = "w-5 h-5" }) => {
     const stars = [];
     const currentRating = interactive ? (hoverRating || userRating) : (product?.rating || 0);
 
@@ -441,19 +650,21 @@ const Product = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-        <div className="container px-3 py-3 mx-auto sm:px-4 md:px-6 md:py-4">
+      <div className="min-h-screen bg-black">
+        <TopBar />
+        <div className="container px-6 py-8 mx-auto">
           <div className="animate-pulse">
-            <div className="w-16 h-2 mb-3 bg-gray-700 rounded sm:w-20 md:h-3 md:w-24"></div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-              <div className="bg-gray-800 rounded-lg aspect-square max-w-md mx-auto w-full md:max-w-sm"></div>
-              <div className="space-y-3">
-                <div className="w-3/4 h-4 bg-gray-700 rounded sm:h-5"></div>
-                <div className="w-1/2 h-3 bg-gray-700 rounded sm:h-4"></div>
-                <div className="w-1/3 h-5 bg-gray-700 rounded sm:h-6"></div>
-                <div className="space-y-2">
-                  <div className="h-2 bg-gray-700 rounded"></div>
-                  <div className="h-2 bg-gray-700 rounded"></div>
+            <div className="w-24 h-4 mb-6 bg-gray-800 rounded"></div>
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div className="bg-gray-800 rounded-2xl aspect-square"></div>
+              <div className="space-y-4">
+                <div className="w-3/4 h-8 bg-gray-800 rounded"></div>
+                <div className="w-1/2 h-6 bg-gray-800 rounded"></div>
+                <div className="w-1/3 h-12 bg-gray-800 rounded"></div>
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-800 rounded"></div>
+                  <div className="h-4 bg-gray-800 rounded"></div>
+                  <div className="h-4 bg-gray-800 rounded"></div>
                 </div>
               </div>
             </div>
@@ -489,42 +700,41 @@ const Product = () => {
   const inWishlist = isInWishlist(product._id || product.id);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
-      
-      <div className="relative container px-3 py-3 mx-auto sm:px-4 md:px-6 md:py-4 lg:py-6">
+    <div className="min-h-screen bg-black">
+      {/* Top Bar */}
+      <TopBar />
+
+      <div className="container px-6 py-8 mx-auto max-w-7xl">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1 mb-3 text-xs text-gray-400 sm:text-sm md:gap-2 md:mb-4">
-          <button onClick={() => navigate('/')} className="hover:text-white hover:glow-text transition-all whitespace-nowrap">Home</button>
-          <FiChevronRight className="w-2.5 h-2.5 text-gray-600 sm:w-3 sm:h-3" />
-          <button onClick={() => navigate('/shop')} className="hover:text-white hover:glow-text transition-all whitespace-nowrap">Shop</button>
-          <FiChevronRight className="w-2.5 h-2.5 text-gray-600 sm:w-3 sm:h-3" />
-          <span className="font-medium text-white truncate glow-text max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
-            {product.name}
-          </span>
+        <nav className="flex items-center gap-2 mb-6 text-sm">
+          <button onClick={() => navigate('/')} className="text-gray-400 transition-colors hover:text-white">Home</button>
+          <FiChevronRight className="w-4 h-4 text-gray-600" />
+          <button onClick={() => navigate('/shop')} className="text-gray-400 transition-colors hover:text-white">Shop</button>
+          <FiChevronRight className="w-4 h-4 text-gray-600" />
+          <span className="max-w-xs font-medium text-white truncate">{product.name}</span>
         </nav>
 
-        {/* Product Main Section - Reduced image size */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-          {/* Left Column - Images - REDUCED SIZE */}
-          <div className="space-y-2 max-w-md mx-auto w-full lg:max-w-sm">
+        {/* Product Main Section */}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+          {/* Left Column - Images */}
+          <div className="space-y-4">
             {/* Main Image */}
             <div 
-              className="group relative overflow-hidden rounded-lg md:rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 aspect-square cursor-zoom-in"
+              className="relative overflow-hidden border border-gray-700 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 aspect-square cursor-zoom-in group"
               onClick={() => setLightboxOpen(true)}
               onMouseMove={handleMouseMove}
               onMouseLeave={() => setIsZooming(false)}
             >
               {/* Glow Effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-0 group-hover:opacity-30 blur-md transition-opacity duration-500"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
               
-              {/* Image with Zoom */}
-              <div className="relative w-full h-full overflow-hidden">
+              {/* Image */}
+              <div className="relative w-full h-full overflow-hidden rounded-2xl">
                 {productImages.length > 0 && !imageErrors[selectedImageIndex] ? (
                   <img
                     src={productImages[selectedImageIndex]?.url}
                     alt={productImages[selectedImageIndex]?.altText || product.name}
-                    className={`w-full h-full transition-transform duration-300 ${
+                    className={`w-full h-full object-contain transition-transform duration-300 ${
                       isZooming ? 'scale-150' : 'scale-100'
                     }`}
                     style={{
@@ -537,91 +747,62 @@ const Product = () => {
                     <img
                       src={FALLBACK_IMAGE}
                       alt="Fallback"
-                      className="object-contain w-2/3 opacity-50 h-2/3"
+                      className="object-contain w-2/3 opacity-50"
                     />
                   </div>
                 )}
               </div>
               
-              {/* Zoom Controls - Smaller */}
-              <div className="absolute bottom-2 right-2 flex gap-1.5">
+              {/* Badges */}
+              <div className="absolute flex gap-2 top-4 left-4">
+                {hasDiscount && (
+                  <span className="badge-discount">
+                    -{discountPercentage}%
+                  </span>
+                )}
+                {product.featured && (
+                  <span className="badge-primary">
+                    <FiStar className="inline w-3 h-3 mr-1" /> Featured
+                  </span>
+                )}
+              </div>
+
+              {/* Zoom Controls */}
+              <div className="absolute flex gap-2 bottom-4 right-4">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleZoom();
                   }}
-                  className="p-1.5 transition-all rounded-full shadow-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] group"
-                  title={isZooming ? 'Zoom out' : 'Zoom in'}
+                  className="p-2 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group/btn"
                 >
                   {isZooming ? (
-                    <FiMinimize2 className="w-3 h-3 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <FiMinimize2 className="w-4 h-4 text-white group-hover/btn:text-blue-500" />
                   ) : (
-                    <FiMaximize2 className="w-3 h-3 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <FiMaximize2 className="w-4 h-4 text-white group-hover/btn:text-blue-500" />
                   )}
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLightboxOpen(true);
-                  }}
-                  className="p-1.5 transition-all rounded-full shadow-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.5)] group"
-                  title="Fullscreen view"
-                >
-                  <FiMaximize2 className="w-3 h-3 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                </button>
-              </div>
-
-              {/* Wishlist Button - Smaller */}
-              {isLoggedIn && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleWishlistToggle();
-                  }}
-                  className="absolute p-1.5 transition-all rounded-full shadow-lg top-2 right-2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] group"
-                  title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <FiHeart
-                    className={`w-3.5 h-3.5 ${
-                      inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-red-500'
-                    } transition-colors`}
-                  />
-                </button>
-              )}
-
-              {/* Badges - Smaller */}
-              <div className="absolute flex flex-wrap gap-1 top-2 left-2">
-                {hasDiscount && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold text-white rounded-full bg-gradient-to-r from-red-600 to-orange-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-                    {discountPercentage}% OFF
-                  </span>
-                )}
-                {product.featured && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold text-yellow-500 rounded-full bg-yellow-500/10 border border-yellow-500/30">
-                    <FiStar className="inline w-2 h-2 mr-0.5" /> Featured
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Thumbnail Gallery - Smaller */}
+            {/* Thumbnail Gallery */}
             {productImages.length > 1 && (
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-5 gap-2">
                 {productImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`group relative overflow-hidden rounded-md transition-all aspect-square ${
+                    className={`relative overflow-hidden rounded-lg transition-all aspect-square ${
                       selectedImageIndex === index 
-                        ? 'ring-1 ring-blue-500 ring-offset-1 ring-offset-gray-900' 
+                        ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-black' 
                         : ''
                     }`}
                   >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-md opacity-0 group-hover:opacity-30 blur transition-opacity"></div>
-                    <div className={`relative w-full h-full rounded-md overflow-hidden border ${
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-0 group-hover:opacity-30 blur transition-opacity"></div>
+                    <div className={`relative w-full h-full rounded-lg overflow-hidden border ${
                       selectedImageIndex === index 
                         ? 'border-blue-500' 
-                        : 'border-gray-700 group-hover:border-gray-600'
+                        : 'border-gray-700 hover:border-gray-600'
                     }`}>
                       <img
                         src={image.url}
@@ -636,244 +817,284 @@ const Product = () => {
             )}
           </div>
 
-          {/* Right Column - Product Details - Compact */}
-          <div className="space-y-3 max-w-lg mx-auto w-full lg:max-w-md">
-            {/* Category and Title */}
+          {/* Right Column - Product Info */}
+          <div className="space-y-6">
+            {/* Category */}
             <div>
-              <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                <span className="px-1.5 py-0.5 text-[10px] font-medium text-blue-500 rounded-full sm:text-xs bg-blue-500/10 border border-blue-500/30">
-                  {product.category || 'Uncategorized'}
-                </span>
-                {product.featured && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium text-yellow-500 rounded-full sm:text-xs bg-yellow-500/10 border border-yellow-500/30">
-                    <FiStar className="inline w-2 h-2 mr-0.5" /> Featured
-                  </span>
-                )}
-              </div>
-              <h1 className="text-base font-bold text-white sm:text-lg md:text-xl lg:text-2xl glow-text">
-                {product.name}
-              </h1>
+              <span className="inline-block px-3 py-1 text-xs font-medium text-blue-500 border rounded-full bg-blue-500/10 border-blue-500/30">
+                {product.category || 'Uncategorized'}
+              </span>
             </div>
 
+            {/* Title */}
+            <h1 className="product-title">{product.name}</h1>
+
             {/* Rating */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-0.5">
-                {renderStars(parseFloat(averageRating))}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {renderStars(parseFloat(averageRating), "w-5 h-5")}
               </div>
-              <span className="text-[10px] text-gray-400 sm:text-xs">
-                {averageRating} ({totalReviews})
+              <span className="text-sm text-gray-400">
+                {averageRating} ({totalReviews} reviews)
               </span>
             </div>
 
             {/* Price */}
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-white sm:text-xl md:text-2xl">
-                {formatKES(totalPrice)}
-              </span>
+            <div className="flex items-baseline gap-4">
+              <span className="price-large">{formatKES(totalPrice)}</span>
               {hasDiscount && (
                 <>
-                  <span className="text-[10px] text-gray-500 line-through sm:text-xs">
+                  <span className="text-lg line-through price-small">
                     {formatKES(originalPrice * quantity)}
                   </span>
-                  <span className="px-1.5 py-0.5 text-[10px] font-medium text-red-500 rounded-full sm:text-xs bg-red-500/10 border border-red-500/30">
-                    -{discountPercentage}%
+                  <span className="badge-discount">
+                    Save {formatKES(totalSavings)}
                   </span>
                 </>
               )}
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {stockValue > 0 ? (
                 <>
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-green-500 sm:text-sm">In Stock</span>
-                  <span className="text-[10px] text-gray-400 sm:text-xs">({stockValue} units)</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium text-green-500">In Stock</span>
+                  <span className="text-sm text-gray-400">({stockValue} units)</span>
                 </>
               ) : (
                 <>
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                  <span className="text-xs font-medium text-red-500 sm:text-sm">Out of Stock</span>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-red-500">Out of Stock</span>
                 </>
               )}
             </div>
 
-            {/* Description - Compact */}
-            <div className="pt-2 border-t border-gray-800">
-              <p className="text-xs leading-relaxed text-gray-400 sm:text-sm line-clamp-2">
+            {/* Description */}
+            <div className="pt-4 border-t border-gray-800">
+              <p className="leading-relaxed text-gray-400">
                 {product.description || 'No description available.'}
               </p>
             </div>
 
-            {/* Quantity and Actions - Compact */}
+            {/* Quantity and Actions */}
             {stockValue > 0 && (
-              <div className="pt-2 space-y-2 border-t border-gray-800">
-                {/* Quantity */}
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-300">Qty:</span>
-                  <div className="flex items-center overflow-hidden border rounded-md bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+              <div className="pt-4 space-y-4 border-t border-gray-800">
+                {/* Quantity Selector */}
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-gray-300">Quantity:</span>
+                  <div className="flex items-center overflow-hidden border border-gray-700 rounded-full bg-gradient-to-br from-gray-800 to-gray-900">
                     <button
                       onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
                       disabled={quantity <= 1}
-                      className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                      className="px-3 py-2 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                     >
-                      <FiMinus className="w-2.5 h-2.5" />
+                      <FiMinus className="w-4 h-4" />
                     </button>
-                    <span className="w-6 text-xs font-medium text-center text-white">
+                    <span className="w-12 font-medium text-center text-white">
                       {quantity}
                     </span>
                     <button
                       onClick={() => setQuantity(prev => Math.min(stockValue, prev + 1))}
                       disabled={quantity >= stockValue}
-                      className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                      className="px-3 py-2 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                     >
-                      <FiPlus className="w-2.5 h-2.5" />
+                      <FiPlus className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
                 
-                {/* Action Buttons - Compact */}
-                <div className="flex gap-2">
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={handleAddToCart}
                     disabled={stockValue === 0 || isAddingToCart}
-                    className="group relative flex-1 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
+                    className="flex items-center justify-center flex-1 gap-2 btn-primary"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                    <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    <span className="relative flex items-center justify-center gap-1">
-                      {isAddingToCart ? (
-                        <>
-                          <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                          <span className="text-[10px]">Adding...</span>
-                        </>
-                      ) : (
-                        <>
-                          <FiShoppingCart className="w-3 h-3" />
-                          <span className="text-[10px]">Add</span>
-                        </>
-                      )}
-                    </span>
+                    {isAddingToCart ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <FiShoppingCart className="w-5 h-5" />
+                        Add to Cart
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => navigate('/checkout')}
                     disabled={stockValue === 0}
-                    className="group relative flex-1 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
+                    className="flex-1 btn-secondary"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600"></span>
-                    <span className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 blur-md opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    <span className="relative flex items-center justify-center gap-1">
-                      <span className="text-[10px]">Buy</span>
-                    </span>
+                    Buy Now
                   </button>
                 </div>
+                
+                {/* Wishlist Button */}
+                <button
+                  onClick={handleWishlistToggle}
+                  className={`w-full ${inWishlist ? 'btn-wishlist active' : 'btn-wishlist'}`}
+                >
+                  <FiHeart className={`w-5 h-5 inline mr-2 ${inWishlist ? 'fill-white' : ''}`} />
+                  {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                </button>
               </div>
             )}
 
-            {/* Shipping Info - Compact */}
+            {/* Shipping Info */}
             {product.requiresShipping !== false && (
-              <div className="p-2 border rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700">
-                <h3 className="flex items-center gap-1 mb-1.5 text-xs font-semibold text-white">
-                  <FiTruck className="w-3 h-3 text-blue-500" />
-                  Shipping
+              <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+                <h3 className="flex items-center gap-2 mb-3 text-sm font-semibold text-white">
+                  <FiTruck className="w-4 h-4 text-blue-500" />
+                  Shipping Information
                 </h3>
                 
-                <div className="space-y-1 text-[10px]">
+                <div className="space-y-2 text-sm">
                   {product.freeShipping && (
                     <div className="flex items-center text-green-500">
-                      <FiCheck className="w-2 h-2 mr-1" />
+                      <FiCheck className="w-4 h-4 mr-2" />
                       <span>Free Shipping</span>
+                    </div>
+                  )}
+                  
+                  {product.flatShippingRate > 0 && !product.freeShipping && (
+                    <div className="flex items-center text-gray-300">
+                      <FiDollarSign className="w-4 h-4 mr-2 text-gray-500" />
+                      <span>Flat Rate: {formatKES(product.flatShippingRate)}</span>
                     </div>
                   )}
                   
                   {product.weight > 0 && (
                     <div className="flex items-center text-gray-300">
-                      <FiBox className="w-2 h-2 mr-1 text-gray-500" />
+                      <FiBox className="w-4 h-4 mr-2 text-gray-500" />
                       <span>{product.weight}{product.weightUnit}</span>
                     </div>
                   )}
+                  
+                  {product.estimatedDeliveryMin && product.estimatedDeliveryMax && (
+                    <div className="flex items-center text-gray-300">
+                      <FiClock className="w-4 h-4 mr-2 text-gray-500" />
+                      <span>{product.estimatedDeliveryMin}-{product.estimatedDeliveryMax} days</span>
+                    </div>
+                  )}
                 </div>
+
+                {/* Shipping Method Selector */}
+                {!product.freeShipping && !product.flatShippingRate && (
+                  <div className="pt-3 mt-3 border-t border-gray-700">
+                    <select
+                      value={shippingMethod}
+                      onChange={(e) => setShippingMethod(e.target.value)}
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50"
+                    >
+                      <option value="standard">Standard Shipping (5-7 days) - Free</option>
+                      <option value="express">Express Shipping (2-3 days) - KSh 500</option>
+                      <option value="overnight">Overnight Shipping (Next day) - KSh 1,500</option>
+                    </select>
+
+                    {/* Total with shipping */}
+                    <div className="p-3 mt-3 border rounded-lg bg-blue-600/10 border-blue-600/20">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-400">Subtotal:</span>
+                        <span className="font-medium text-white">{formatKES(totalPrice)}</span>
+                      </div>
+                      <div className="flex justify-between mt-1 text-sm">
+                        <span className="text-gray-400">Shipping:</span>
+                        <span className="font-medium text-blue-500">
+                          {shippingCost === 0 ? 'Free' : formatKES(shippingCost)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between pt-2 mt-2 font-bold border-t border-blue-600/20">
+                        <span className="text-white">Total:</span>
+                        <span className="text-lg price-large">{formatKES(grandTotal)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Info Icons - Compact Grid */}
-            <div className="grid grid-cols-4 gap-1 pt-1">
-              <div className="flex flex-col items-center p-1 text-center rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
-                <FiTruck className="w-3 h-3 mb-0.5 text-blue-500" />
-                <span className="text-[8px] text-white">Free</span>
+            {/* Info Icons */}
+            <div className="grid grid-cols-4 gap-3">
+              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
+                <FiTruck className="w-5 h-5 mb-2 text-blue-500" />
+                <span className="text-xs font-medium text-white">Free Shipping</span>
+                <span className="text-[10px] text-gray-400">Over 6K</span>
               </div>
-              <div className="flex flex-col items-center p-1 text-center rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
-                <FiShield className="w-3 h-3 mb-0.5 text-green-500" />
-                <span className="text-[8px] text-white">2Y</span>
+              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
+                <FiShield className="w-5 h-5 mb-2 text-green-500" />
+                <span className="text-xs font-medium text-white">2 Year</span>
+                <span className="text-[10px] text-gray-400">Warranty</span>
               </div>
-              <div className="flex flex-col items-center p-1 text-center rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
-                <FiRefreshCw className="w-3 h-3 mb-0.5 text-purple-500" />
-                <span className="text-[8px] text-white">30D</span>
+              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
+                <FiRefreshCw className="w-5 h-5 mb-2 text-purple-500" />
+                <span className="text-xs font-medium text-white">30-Day</span>
+                <span className="text-[10px] text-gray-400">Returns</span>
               </div>
-              <div className="flex flex-col items-center p-1 text-center rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
-                <FiShare2 className="w-3 h-3 mb-0.5 text-orange-500" />
-                <span className="text-[8px] text-white">24/7</span>
+              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
+                <FiShare2 className="w-5 h-5 mb-2 text-orange-500" />
+                <span className="text-xs font-medium text-white">24/7</span>
+                <span className="text-[10px] text-gray-400">Support</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Reviews Section - Compact */}
-        <div className="mt-6 md:mt-8">
-          <h2 className="mb-3 text-base font-bold text-white sm:text-lg md:text-xl glow-text">Reviews</h2>
+        {/* Reviews Section */}
+        <div className="mt-16">
+          <h2 className="mb-8 section-header">— HEAR WHAT PEOPLE SAY —</h2>
           
-          {/* Rating Summary - Compact */}
-          <div className="p-3 mb-3 border rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="text-center sm:text-left sm:w-1/4">
-                <div className="text-xl font-bold text-white sm:text-2xl">{averageRating}</div>
-                <div className="flex justify-center mt-0.5 sm:justify-start">
-                  {renderStars(parseFloat(averageRating), "w-3 h-3")}
+          {/* Rating Summary */}
+          <div className="p-6 mb-6 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+            <div className="flex flex-col gap-8 lg:flex-row">
+              {/* Average Rating */}
+              <div className="text-center lg:w-1/4">
+                <div className="text-5xl font-bold text-white">{averageRating}</div>
+                <div className="flex justify-center mt-2">
+                  {renderStars(parseFloat(averageRating), "w-6 h-6")}
                 </div>
-                <p className="text-[10px] text-gray-400">{totalReviews} reviews</p>
+                <p className="mt-2 text-sm text-gray-400">{totalReviews} reviews</p>
               </div>
               
-              {/* Rating Distribution - Compact */}
-              <div className="flex-1 space-y-1">
+              {/* Rating Distribution */}
+              <div className="flex-1 space-y-2">
                 {[5, 4, 3, 2, 1].map((star) => (
-                  <div key={star} className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-gray-300">{star}</span>
-                    <FiStar className="w-2.5 h-2.5 text-yellow-400 fill-yellow-400" />
-                    <div className="flex-1 h-1 overflow-hidden bg-gray-700 rounded-full">
+                  <div key={star} className="flex items-center gap-3">
+                    <span className="w-2 text-sm text-gray-300">{star}</span>
+                    <FiStar className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <div className="flex-1 h-2 overflow-hidden bg-gray-700 rounded-full">
                       <div 
-                        className="h-full bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full"
+                        className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-orange-500"
                         style={{ width: `${totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}%` }}
                       />
                     </div>
-                    <span className="w-5 text-[10px] text-gray-400">{ratingDistribution[star]}</span>
+                    <span className="w-8 text-sm text-gray-400">{ratingDistribution[star]}</span>
                   </div>
                 ))}
               </div>
               
-              {/* Write Review Button - Compact */}
-              <div className="text-center sm:text-right sm:w-1/5">
+              {/* Write Review Button */}
+              <div className="lg:w-1/5">
                 {!showReviewForm ? (
                   <button
                     onClick={() => {
                       if (!isLoggedIn) {
-                        toast.error('Please login');
+                        toast.error('Please login to write a review');
                         navigate('/login');
                         return;
                       }
                       setShowReviewForm(true);
                     }}
-                    className="group relative w-full px-3 py-1 text-[10px] font-medium text-white transition-all rounded-full overflow-hidden"
+                    className="w-full btn-primary"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                    <span className="relative flex items-center justify-center gap-1">
-                      Write
-                      <BsArrowRight className="w-2 h-2 group-hover:translate-x-0.5 transition-transform" />
-                    </span>
+                    Write Review
                   </button>
                 ) : (
                   <button
                     onClick={() => setShowReviewForm(false)}
-                    className="w-full px-3 py-1 text-[10px] font-medium text-gray-300 bg-gray-800 rounded-full hover:bg-gray-700"
+                    className="w-full btn-secondary"
                   >
                     Cancel
                   </button>
@@ -882,52 +1103,118 @@ const Product = () => {
             </div>
           </div>
 
-          {/* Reviews List - Compact */}
-          <div className="space-y-2">
+          {/* Review Form */}
+          {showReviewForm && (
+            <div className="p-6 mb-6 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
+              <h3 className="mb-4 text-xl font-bold text-white">
+                {editingReview ? 'Edit Review' : 'Write a Review'}
+              </h3>
+              
+              <div className="mb-4">
+                <RatingStars interactive={true} size="w-8 h-8" />
+              </div>
+
+              <textarea
+                value={reviewText}
+                onChange={(e) => setReviewText(e.target.value)}
+                rows="4"
+                className="w-full px-4 py-3 mb-4 text-white border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                placeholder="Share your experience with this product..."
+              />
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowReviewForm(false);
+                    setEditingReview(null);
+                    setUserRating(0);
+                    setReviewText('');
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitReview}
+                  disabled={submittingReview}
+                  className="btn-primary"
+                >
+                  {submittingReview ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                      {editingReview ? 'Updating...' : 'Submitting...'}
+                    </span>
+                  ) : (
+                    editingReview ? 'Update Review' : 'Submit Review'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Reviews List */}
+          <div className="space-y-4">
             {reviews.length > 0 ? (
-              reviews.slice(0, 3).map((review) => (
-                <div key={review._id || review.id} className="p-2 border rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <FiUser className="w-2.5 h-2.5 text-white" />
+              reviews.map((review) => (
+                <div key={review._id || review.id} className="p-6 testimonial-card">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                        <FiUser className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-semibold text-white">{review.userName}</p>
-                        <div className="flex items-center gap-1">
-                          <FiCalendar className="w-2 h-2 text-gray-500" />
-                          <p className="text-[8px] text-gray-400">{formatDate(review.createdAt)}</p>
+                        <p className="font-semibold text-white">{review.userName}</p>
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
+                          <FiCalendar className="w-3 h-3" />
+                          <span>{formatDate(review.createdAt)}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       {review.verified && (
-                        <span className="px-1 py-0.5 text-[8px] font-medium text-green-500 rounded-full bg-green-500/10 border border-green-500/30">
-                          ✓
+                        <span className="text-xs badge-primary">
+                          Verified Purchase
                         </span>
+                      )}
+                      {isLoggedIn && currentUser && currentUser.name === review.userName && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditReview(review)}
+                            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-blue-500 hover:bg-blue-500/10"
+                          >
+                            <FiEdit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReview(review._id)}
+                            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-red-500 hover:bg-red-500/10"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-0.5 mt-1">
-                    {renderStars(review.rating, "w-2 h-2")}
+                  <div className="flex items-center gap-1 mb-3">
+                    {renderStars(review.rating, "w-4 h-4")}
                   </div>
-                  <p className="mt-1 text-[10px] text-gray-300 line-clamp-2">{review.comment}</p>
+                  <p className="leading-relaxed text-gray-300">{review.comment}</p>
                 </div>
               ))
             ) : (
-              <div className="py-4 text-center border rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50 border-gray-700">
-                <FiStar className="w-4 h-4 mx-auto mb-1 text-gray-600" />
-                <p className="text-[10px] text-gray-400">No reviews yet</p>
+              <div className="p-12 text-center testimonial-card">
+                <FiStar className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <h3 className="mb-2 text-xl font-bold text-white">No reviews yet</h3>
+                <p className="text-gray-400">Be the first to review this product!</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Related Products - Compact */}
+        {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="mt-6">
-            <h2 className="mb-2 text-base font-bold text-white sm:text-lg">You May Also Like</h2>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-16">
+            <h2 className="mb-8 section-header">YOU MAY ALSO LIKE</h2>
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
               {relatedProducts.slice(0, 4).map((relatedProduct) => {
                 const relatedImage = relatedProduct.images?.[0]?.url || relatedProduct.image || FALLBACK_IMAGE;
                 
@@ -938,11 +1225,11 @@ const Product = () => {
                       navigate(`/product/${relatedProduct._id || relatedProduct.id}`);
                       window.scrollTo(0, 0);
                     }}
-                    className="group relative cursor-pointer"
+                    className="cursor-pointer group"
                   >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-0 group-hover:opacity-30 blur transition-opacity"></div>
-                    <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
-                      <div className="aspect-square overflow-hidden">
+                    <div className="relative mb-3 overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
+                      <div className="relative overflow-hidden aspect-square">
                         <img
                           src={getFullImageUrl(relatedImage)}
                           alt={relatedProduct.name}
@@ -950,13 +1237,16 @@ const Product = () => {
                           onError={(e) => e.target.src = FALLBACK_IMAGE}
                         />
                       </div>
-                      <div className="p-1.5">
-                        <h3 className="text-[10px] font-medium text-white line-clamp-1">{relatedProduct.name}</h3>
-                        <p className="mt-0.5 text-xs font-bold text-blue-500">
-                          {formatKES(relatedProduct.discountedPrice || relatedProduct.price)}
-                        </p>
-                      </div>
                     </div>
+                    <h3 className="font-medium text-white transition-colors group-hover:text-blue-500 line-clamp-2">
+                      {relatedProduct.name}
+                    </h3>
+                    <div className="flex items-center gap-1 mt-1">
+                      {renderStars(relatedProduct.rating || 0, "w-3 h-3")}
+                    </div>
+                    <p className="mt-1 text-lg font-bold text-blue-500">
+                      {formatKES(relatedProduct.discountedPrice || relatedProduct.price)}
+                    </p>
                   </div>
                 );
               })}
@@ -965,168 +1255,76 @@ const Product = () => {
         )}
       </div>
 
-      {/* LIGHTBOX MODAL - Fullscreen with better styling */}
+      {/* Lightbox Modal */}
       {lightboxOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-xl"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl"
           onClick={() => setLightboxOpen(false)}
         >
           <div 
-            className="relative w-full h-full flex items-center justify-center p-2 md:p-4"
+            className="relative flex items-center justify-center w-full h-full p-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Glow Background */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 blur-3xl"></div>
             
-            {/* Main Content Container */}
-            <div className="relative w-full max-w-5xl mx-auto">
+            <div className="relative w-full max-w-6xl">
               {/* Top Bar */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-                {/* Image Counter */}
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
-                  <span className="text-[10px] font-medium text-white">
+              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
+                <div className="px-3 py-1 border rounded-full bg-black/50 backdrop-blur-md border-white/10">
+                  <span className="text-sm text-white">
                     {selectedImageIndex + 1} / {productImages.length}
                   </span>
                 </div>
+                <button
+                  onClick={() => setLightboxOpen(false)}
+                  className="p-2 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-red-500/50 group"
+                >
+                  <FiX className="w-5 h-5 text-white group-hover:text-red-500" />
+                </button>
+              </div>
 
-                {/* Controls */}
-                <div className="flex items-center gap-1">
-                  {/* Zoom Toggle */}
+              {/* Navigation */}
+              {productImages.length > 1 && (
+                <>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleZoom();
+                      setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1);
+                      setZoomLevel(1);
+                      setIsZooming(false);
                     }}
-                    className="p-1.5 transition-all rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] group"
+                    className="absolute z-20 p-3 transition-all -translate-y-1/2 border rounded-full left-4 top-1/2 bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group"
                   >
-                    {isZooming ? (
-                      <FiMinimize2 className="w-3.5 h-3.5 text-white group-hover:text-blue-500" />
-                    ) : (
-                      <FiMaximize2 className="w-3.5 h-3.5 text-white group-hover:text-blue-500" />
-                    )}
+                    <FiChevronLeft className="w-6 h-6 text-white group-hover:text-blue-500" />
                   </button>
-
-                  {/* Close Button */}
                   <button
-                    onClick={() => setLightboxOpen(false)}
-                    className="p-1.5 transition-all rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] group"
-                  >
-                    <FiX className="w-3.5 h-3.5 text-white group-hover:text-red-500" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Main Image Container */}
-              <div className="relative flex items-center justify-center w-full h-full min-h-[50vh]">
-                {/* Navigation Arrows */}
-                {productImages.length > 1 && (
-                  <>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1);
-                        setZoomLevel(1);
-                        setIsZooming(false);
-                      }}
-                      className="absolute left-2 z-20 p-2 transition-all rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] group"
-                    >
-                      <FiChevronLeft className="w-4 h-4 text-white group-hover:text-blue-500" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0);
-                        setZoomLevel(1);
-                        setIsZooming(false);
-                      }}
-                      className="absolute right-2 z-20 p-2 transition-all rounded-full bg-black/50 backdrop-blur-md border border-white/10 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] group"
-                    >
-                      <FiChevronRight className="w-4 h-4 text-white group-hover:text-blue-500" />
-                    </button>
-                  </>
-                )}
-
-                {/* Image with Zoom */}
-                <div 
-                  className="relative w-full h-full flex items-center justify-center cursor-zoom-in"
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={() => setIsZooming(false)}
-                >
-                  <img
-                    src={productImages[selectedImageIndex]?.url}
-                    alt={productImages[selectedImageIndex]?.altText || product.name}
-                    className={`max-w-full max-h-[70vh] object-contain transition-transform duration-300 ${
-                      isZooming ? 'scale-150' : 'scale-100'
-                    }`}
-                    style={{
-                      transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0);
+                      setZoomLevel(1);
+                      setIsZooming(false);
                     }}
-                    onError={() => handleImageError(selectedImageIndex)}
-                  />
-                </div>
-              </div>
+                    className="absolute z-20 p-3 transition-all -translate-y-1/2 border rounded-full right-4 top-1/2 bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group"
+                  >
+                    <FiChevronRight className="w-6 h-6 text-white group-hover:text-blue-500" />
+                  </button>
+                </>
+              )}
 
-              {/* Bottom Info Bar - Compact */}
-              <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                <div className="flex items-center justify-between">
-                  {/* Product Info */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 overflow-hidden rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-white/10">
-                      <img
-                        src={productImages[selectedImageIndex]?.url}
-                        alt={product.name}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-medium text-white truncate max-w-[150px]">{product.name}</h3>
-                      <p className="text-[10px] text-blue-500">{formatKES(product.discountedPrice || product.price)}</p>
-                    </div>
-                  </div>
-
-                  {/* Thumbnail Strip - Hidden on mobile */}
-                  {productImages.length > 1 && (
-                    <div className="hidden md:flex items-center gap-1">
-                      {productImages.map((img, idx) => (
-                        <button
-                          key={idx}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedImageIndex(idx);
-                          }}
-                          className={`relative w-8 h-8 overflow-hidden rounded border-2 transition-all ${
-                            selectedImageIndex === idx
-                              ? 'border-blue-500 ring-1 ring-blue-500/50'
-                              : 'border-white/10 hover:border-white/30'
-                          }`}
-                        >
-                          <img
-                            src={img.url}
-                            alt={`Thumbnail ${idx + 1}`}
-                            className="object-cover w-full h-full"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Image */}
+              <div className="flex items-center justify-center min-h-[80vh]">
+                <img
+                  src={productImages[selectedImageIndex]?.url}
+                  alt={product.name}
+                  className="max-w-full max-h-[80vh] object-contain"
+                  onError={() => handleImageError(selectedImageIndex)}
+                />
               </div>
             </div>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .glow-text {
-          text-shadow: 0 0 15px currentColor;
-        }
-        
-        @media (max-width: 640px) {
-          .glow-text {
-            text-shadow: 0 0 8px currentColor;
-          }
-        }
-      `}</style>
     </div>
   );
 };

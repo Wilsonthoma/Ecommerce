@@ -1,4 +1,4 @@
-// src/pages/Shop.jsx - TRANSFORMED with oraimo black gradients and glowing effects
+// src/pages/Shop.jsx - FIXED with homepage styling
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { clientProductService } from '../services/client/products';
@@ -25,6 +25,22 @@ import {
   BsArrowRight
 } from 'react-icons/bs';
 import { useCart } from '../context/CartContext';
+
+// Animation styles
+const animationStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+`;
 
 const Shop = () => {
   const [searchParams] = useSearchParams();
@@ -201,6 +217,7 @@ const Shop = () => {
   if (loading && products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+        <style>{animationStyles}</style>
         <div className="relative">
           <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-blue-600 animate-spin"></div>
           <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-xl opacity-20 animate-pulse"></div>
@@ -212,6 +229,7 @@ const Shop = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+      <style>{animationStyles}</style>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
       
       {/* Hero Section */}
@@ -426,7 +444,7 @@ const Shop = () => {
                         {/* Product Image */}
                         <div className="h-48 overflow-hidden bg-gray-800 md:w-48">
                           <img
-                            src={product.images?.[0]?.url || product.image || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop'}
+                            src={product.images?.[0]?.url || product.image || 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400'}
                             alt={product.name}
                             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                           />
@@ -546,21 +564,6 @@ const Shop = () => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .glow-text {
-          text-shadow: 0 0 20px currentColor;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

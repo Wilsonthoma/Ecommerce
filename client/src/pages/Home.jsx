@@ -1,6 +1,6 @@
-// src/pages/Home.jsx - TECH VIDEO + BLACK GRADIENT BORDERS
+// src/pages/Home.jsx - CORRECTED HEADINGS STYLED LIKE SCREENSHOT
 import React, { useEffect, useState, useContext, useRef } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
@@ -54,15 +54,103 @@ import { IoHeadsetOutline, IoWatchOutline, IoFlashOutline } from "react-icons/io
 import { MdOutlineSecurity, MdOutlineLocalShipping } from "react-icons/md";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 
-// UNIQUE background images for each section
-const sectionImages = {
-  hero: "https://images.unsplash.com/photo-1607083206968-13611e3d76db?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-  trust: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-  featured: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-  categories: "https://images.unsplash.com/photo-1607082349566-187342175e2f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-  testimonials: "https://images.unsplash.com/photo-1556742044-3c52d6e88c62?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-  flashSale: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+// Category header images (relevant to each section) - TALLER height
+const categoryHeaderImages = {
+  trust: "https://images.pexels.com/photos/3760067/pexels-photo-3760067.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  featured: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  categories: "https://images.pexels.com/photos/3850213/pexels-photo-3850213.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600"
 };
+
+// Category images for each category - UNIQUE images for each
+const categoryImages = {
+  audio: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600",
+  powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
+  wearables: "https://images.pexels.com/photos/4370372/pexels-photo-4370372.jpeg?auto=compress&cs=tinysrgb&w=600",
+  "hair-clippers": "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  smartphones: "https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600",
+  laptops: "https://images.pexels.com/photos/18105/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600",
+  tablets: "https://images.pexels.com/photos/1334597/pexels-photo-1334597.jpeg?auto=compress&cs=tinysrgb&w=600",
+  accessories: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",
+  electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
+  gaming: "https://images.pexels.com/photos/3945657/pexels-photo-3945657.jpeg?auto=compress&cs=tinysrgb&w=600",
+  cameras: "https://images.pexels.com/photos/51383/photo-camera-subject-photographer-51383.jpeg?auto=compress&cs=tinysrgb&w=600",
+  headphones: "https://images.pexels.com/photos/3394659/pexels-photo-3394659.jpeg?auto=compress&cs=tinysrgb&w=600",
+  speakers: "https://images.pexels.com/photos/257904/pexels-photo-257904.jpeg?auto=compress&cs=tinysrgb&w=600",
+  monitors: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600",
+  keyboards: "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
+  mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
+};
+
+// Font configuration - EXACTLY LIKE SCREENSHOT
+const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: normal;
+  }
+  
+  .nav-link {
+    font-weight: 500;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 2.8rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 0;
+  }
+  
+  .section-subtitle {
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  
+  .section-header-container {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .stat-number {
+    font-weight: 700;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: white;
+  }
+  
+  .stat-label {
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #9CA3AF;
+  }
+  
+  .product-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+  }
+  
+  .product-price {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #9CA3AF;
+  }
+`;
 
 // Beautiful gradient combinations for each section
 const sectionGradients = {
@@ -74,96 +162,258 @@ const sectionGradients = {
   flashSale: "from-orange-600/20 via-red-600/20 to-pink-600/20"
 };
 
+// Animation styles
+const animationStyles = `
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  @keyframes gradient {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
+  }
+  
+  .shimmer {
+    animation: shimmer 2s infinite;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  
+  .glow-text:hover {
+    text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .bg-fixed {
+    background-attachment: fixed;
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
+  }
+  
+  @media (max-width: 768px) {
+    .bg-fixed {
+      background-attachment: scroll;
+    }
+  }
+`;
+
+// Top Bar Component (FIND STORE | SHOP ONLINE) - EXACTLY LIKE SCREENSHOT
+const TopBar = () => (
+  <div className="py-3 border-b border-gray-800 bg-black/90">
+    <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+      <button 
+        onClick={() => navigate('/stores')}
+        className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+      >
+        <FiMapPin className="w-4 h-4" />
+        FIND STORE
+      </button>
+      <span className="text-gray-700">|</span>
+      <button 
+        onClick={() => navigate('/shop')}
+        className="text-sm text-gray-400 transition-colors hover:text-white"
+      >
+        SHOP ONLINE
+      </button>
+    </div>
+  </div>
+);
+
 const Home = () => {
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useContext(AppContext);
   const { addToCart } = useCart();
+  
+  // Product states
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [latestProducts, setLatestProducts] = useState([]);
   const [flashSaleProducts, setFlashSaleProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  // Loading states
   const [loading, setLoading] = useState(true);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingLatest, setLoadingLatest] = useState(true);
+  const [loadingFlashSale, setLoadingFlashSale] = useState(true);
+  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
   
   const categoryRef = useRef(null);
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Fetch real products from API
-  const fetchData = async () => {
+  // Fetch all products
+  const fetchProducts = async () => {
     try {
-      setLoading(true);
-      
-      const productsResponse = await clientProductService.getProducts({ 
+      const response = await clientProductService.getProducts({ 
         limit: 20, 
         sort: '-createdAt' 
       });
       
-      const categoriesResponse = await clientProductService.getCategories();
-      
-      let flashSaleData = [];
-      try {
-        const discountedResponse = await clientProductService.getProducts({ 
-          hasDiscount: true, 
-          limit: 10,
-          sort: '-discountPercentage' 
-        });
-        
-        if (discountedResponse.success && discountedResponse.products?.length > 0) {
-          flashSaleData = discountedResponse.products;
-        } else if (productsResponse.success && productsResponse.products) {
-          flashSaleData = productsResponse.products
-            .filter(p => p.discountPrice && p.discountPrice < p.price)
-            .slice(0, 10);
-        }
-      } catch (error) {
-        console.log("Using fallback for flash sale products");
-        if (productsResponse.success && productsResponse.products) {
-          flashSaleData = productsResponse.products
-            .filter(p => p.discountPrice && p.discountPrice < p.price)
-            .slice(0, 10);
-        }
+      if (response.success) {
+        console.log('✅ Products fetched:', response.products);
+        setProducts(response.products || []);
       }
-
-      if (productsResponse.success) {
-        const productsData = productsResponse.data?.products || productsResponse.products || [];
-        setProducts(productsData);
-        setTrendingProducts(productsData.slice(0, 10));
-      }
-
-      if (categoriesResponse.success) {
-        const categoriesData = categoriesResponse.data?.categories || categoriesResponse.categories || [];
-        setCategories(categoriesData);
-      }
-
-      setFlashSaleProducts(flashSaleData.map(p => ({ ...p, section: 'flash' })));
-      
-      try {
-        const featuredResponse = await clientProductService.getFeaturedProducts();
-        if (featuredResponse.success) {
-          const featuredData = featuredResponse.data?.products || featuredResponse.products || [];
-          setFeaturedProducts(featuredData.map(p => ({ ...p, section: 'featured' })));
-        }
-      } catch (error) {
-        console.log("No featured products found");
-      }
-
     } catch (error) {
-      console.error("Failed to fetch data:", error);
-      toast.error("Failed to load products. Please try again.");
-    } finally {
-      setLoading(false);
+      console.error("Failed to fetch products:", error);
     }
   };
 
+  // Fetch featured products
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoadingFeatured(true);
+      const response = await clientProductService.getFeaturedProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Featured products fetched:', response.products);
+        setFeaturedProducts(response.products || []);
+      } else {
+        // Fallback to regular products
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 8,
+          featured: true 
+        });
+        if (fallbackResponse.success) {
+          setFeaturedProducts(fallbackResponse.products || []);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch featured products:", error);
+    } finally {
+      setLoadingFeatured(false);
+    }
+  };
+
+  // Fetch latest products
+  const fetchLatestProducts = async () => {
+    try {
+      setLoadingLatest(true);
+      const response = await clientProductService.getProducts({ 
+        limit: 8, 
+        sort: '-createdAt' 
+      });
+      
+      if (response.success) {
+        console.log('✅ Latest products fetched:', response.products);
+        setLatestProducts(response.products || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch latest products:", error);
+    } finally {
+      setLoadingLatest(false);
+    }
+  };
+
+  // Fetch flash sale products
+  const fetchFlashSaleProducts = async () => {
+    try {
+      setLoadingFlashSale(true);
+      const response = await clientProductService.getProducts({ 
+        hasDiscount: true, 
+        limit: 10,
+        sort: '-discountPercentage' 
+      });
+      
+      if (response.success) {
+        console.log('✅ Flash sale products fetched:', response.products);
+        setFlashSaleProducts(response.products || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch flash sale products:", error);
+    } finally {
+      setLoadingFlashSale(false);
+    }
+  };
+
+  // Fetch trending products
+  const fetchTrendingProducts = async () => {
+    try {
+      setLoadingTrending(true);
+      const response = await clientProductService.getTopSellingProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Trending products fetched:', response.products);
+        setTrendingProducts(response.products || []);
+      } else {
+        // Fallback to regular products sorted by rating
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 8,
+          sort: '-rating' 
+        });
+        if (fallbackResponse.success) {
+          setTrendingProducts(fallbackResponse.products || []);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch trending products:", error);
+    } finally {
+      setLoadingTrending(false);
+    }
+  };
+
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await clientProductService.getCategories();
+      
+      if (response.success) {
+        console.log('✅ Categories fetched from backend:', response.categories);
+        setCategories(response.categories || []);
+      } else {
+        console.log('❌ No categories from backend');
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Fetch all data
   useEffect(() => {
-    fetchData();
+    const fetchAllData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchProducts(),
+        fetchFeaturedProducts(),
+        fetchLatestProducts(),
+        fetchFlashSaleProducts(),
+        fetchTrendingProducts(),
+        fetchCategories()
+      ]);
+      setLoading(false);
+    };
+    
+    fetchAllData();
   }, []);
 
-  // VIDEO AUTOPLAY - TECH/ELECTRONICS VIDEO
+  // VIDEO AUTOPLAY
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -217,7 +467,7 @@ const Home = () => {
 
   const scrollCategories = (dir) => {
     if (categoryRef.current) {
-      const scrollAmount = dir === "left" ? -300 : 300;
+      const scrollAmount = dir === "left" ? -400 : 400;
       categoryRef.current.scrollBy({ 
         left: scrollAmount, 
         behavior: "smooth" 
@@ -240,95 +490,92 @@ const Home = () => {
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  const handleAddToCart = async (product) => {
+  const handleAddToCart = async (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
     await addToCart(product, 1);
   };
 
-  // Benefits
-  const benefits = [
-    { 
-      icon: <MdOutlineLocalShipping className="w-6 h-6" />, 
-      title: "Free Shipping", 
-      desc: "Orders over KSh 6,000", 
-      gradient: "from-blue-600 to-cyan-600",
-      glow: "shadow-blue-500/50",
-      link: "/shop?shipping=free"
-    },
-    { 
-      icon: <MdOutlineSecurity className="w-6 h-6" />, 
-      title: "2 Year Warranty", 
-      desc: "On all products", 
-      gradient: "from-emerald-600 to-green-600",
-      glow: "shadow-emerald-500/50",
-      link: "/warranty"
-    },
-    { 
-      icon: <FiRefreshCw className="w-6 h-6" />, 
-      title: "30-Day Returns", 
-      desc: "Money back guarantee", 
-      gradient: "from-orange-600 to-red-600",
-      glow: "shadow-orange-500/50",
-      link: "/returns"
-    },
-    { 
-      icon: <FiHeadphones className="w-6 h-6" />, 
-      title: "24/7 Support", 
-      desc: "Dedicated team", 
-      gradient: "from-purple-600 to-pink-600",
-      glow: "shadow-purple-500/50",
-      link: "/support"
-    },
-  ];
+  const handleImageError = (productId) => {
+    console.log(`❌ Image error for product: ${productId}`);
+    setImageErrors(prev => ({ ...prev, [productId]: true }));
+  };
 
-  // Categories
-  const productCategories = [
-    { 
-      id: "audio", 
-      slug: "audio",
-      name: "TWS Earphones", 
-      icon: <IoHeadsetOutline className="w-6 h-6" />, 
-      gradient: "from-blue-600 to-cyan-600",
-      image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "18+",
-      link: "/shop?category=audio"
-    },
-    { 
-      id: "powerbanks", 
-      slug: "powerbanks",
-      name: "Power Banks", 
-      icon: <BsBatteryCharging className="w-6 h-6" />, 
-      gradient: "from-emerald-600 to-green-600",
-      image: "https://images.unsplash.com/photo-1609592424831-7f6c4461e232?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "12+",
-      link: "/shop?category=powerbanks"
-    },
-    { 
-      id: "wearables", 
-      slug: "wearables",
-      name: "Smart Watches", 
-      icon: <IoWatchOutline className="w-6 h-6" />, 
-      gradient: "from-purple-600 to-pink-600",
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "9+",
-      link: "/shop?category=wearables"
-    },
-    { 
-      id: "hair-clippers", 
-      slug: "hair-clippers",
-      name: "Hair Clippers", 
-      icon: <FiZap className="w-6 h-6" />, 
-      gradient: "from-orange-600 to-red-600",
-      image: "https://images.unsplash.com/photo-1621607512214-68297480165e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80",
-      count: "7+",
-      link: "/shop?category=hair-clippers"
-    },
-  ];
+  const getProductImage = (product) => {
+    if (imageErrors[product._id || product.id]) {
+      return null; // Will trigger fallback in ProductCard
+    }
+    return product.images?.[0]?.url || product.image || null;
+  };
+
+  const handleProductClick = (productId) => {
+    if (productId) {
+      navigate(`/product/${productId}`);
+    }
+  };
+
+  // Get category image based on category name
+  const getCategoryImage = (categoryName) => {
+    const name = categoryName?.toLowerCase() || '';
+    
+    if (name.includes('audio') || name.includes('earphone') || name.includes('headphone') || name.includes('headset')) {
+      return categoryImages.headphones || categoryImages.audio;
+    } else if (name.includes('power') || name.includes('battery') || name.includes('bank')) {
+      return categoryImages.powerbanks;
+    } else if (name.includes('watch') || name.includes('wearable') || name.includes('band')) {
+      return categoryImages.wearables;
+    } else if (name.includes('hair') || name.includes('clipper') || name.includes('trimmer')) {
+      return categoryImages['hair-clippers'];
+    } else if (name.includes('phone') || name.includes('smartphone') || name.includes('mobile')) {
+      return categoryImages.smartphones;
+    } else if (name.includes('laptop') || name.includes('computer') || name.includes('notebook')) {
+      return categoryImages.laptops;
+    } else if (name.includes('tablet') || name.includes('ipad')) {
+      return categoryImages.tablets;
+    } else if (name.includes('accessory') || name.includes('charger') || name.includes('cable') || name.includes('adapter')) {
+      return categoryImages.accessories;
+    } else if (name.includes('camera') || name.includes('photo') || name.includes('video')) {
+      return categoryImages.cameras;
+    } else if (name.includes('game') || name.includes('gaming') || name.includes('console')) {
+      return categoryImages.gaming;
+    } else if (name.includes('speaker') || name.includes('sound') || name.includes('audio')) {
+      return categoryImages.speakers || categoryImages.audio;
+    } else if (name.includes('monitor') || name.includes('display') || name.includes('screen')) {
+      return categoryImages.monitors || categoryImages.electronics;
+    } else if (name.includes('keyboard') || name.includes('type')) {
+      return categoryImages.keyboards || categoryImages.accessories;
+    } else if (name.includes('mouse') || name.includes('pointer')) {
+      return categoryImages.mice || categoryImages.accessories;
+    } else {
+      return categoryImages.electronics;
+    }
+  };
+
+  // Build categories from backend only - NO DEFAULT DATA
+  const buildCategories = () => {
+    // If we have categories from API, use them with appropriate images
+    if (categories.length > 0) {
+      return categories.map(cat => ({
+        id: cat._id || cat.id,
+        slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
+        name: cat.name,
+        image: getCategoryImage(cat.name),
+        count: cat.productCount ? `${cat.productCount}+` : "0",
+        link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
+      }));
+    }
+    
+    // Return empty array if no categories from backend
+    return [];
+  };
+
+  const displayCategories = buildCategories();
 
   // Trust stats
   const trustStats = [
-    { number: "200", label: "MILLION+", suffix: "USERS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600" },
-    { number: "60+", label: "", suffix: "COUNTRIES", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600" },
-    { number: "365", label: "", suffix: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600" },
+    { number: "200", label: "MILLION+ USERS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600" },
+    { number: "60+", label: "COUNTRIES", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600" },
+    { number: "365", label: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600" },
   ];
 
   // Testimonials
@@ -336,64 +583,49 @@ const Home = () => {
     {
       name: "Unbox Therapy",
       text: "OpenArc is the ultimate gym companion, from intense workouts to training sessions.",
-      image: "https://images.unsplash.com/photo-1531427186629-2f6d6b1a7b2c?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
+      image: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200",
       rating: 5
     },
     {
       name: "Fisayo Fosudo",
       text: "Vocals and the instrumentals were very outstanding. Here I was impressed.",
-      image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
+      image: "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=200",
       rating: 5
     },
     {
       name: "Chouaib Reviews",
       text: "The sound in music is impressive and the bass is very good and rich.",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80",
+      image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200",
       rating: 4
     }
   ];
 
-  const filteredProducts = activeCategory === "all" 
-    ? products 
-    : products.filter(p => p.category === activeCategory);
-
-  const displayFlashSaleProducts = flashSaleProducts.length > 0 
-    ? flashSaleProducts 
-    : (featuredProducts.length > 0 ? featuredProducts : products.slice(0, 4));
+  // Log products for debugging
+  useEffect(() => {
+    console.log('📦 Current products state:', {
+      products: products.length,
+      featured: featuredProducts.length,
+      latest: latestProducts.length,
+      flashSale: flashSaleProducts.length,
+      trending: trendingProducts.length,
+      categories: categories.length,
+      displayCategories: displayCategories.length
+    });
+  }, [products, featuredProducts, latestProducts, flashSaleProducts, trendingProducts, categories, displayCategories]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      {/* Inject font styles and animations */}
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
+      
       {/* Animated gradient overlay for entire page */}
       <div className="fixed inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 pointer-events-none animate-gradient"></div>
       
-      {/* Top Bar */}
-      <div className="relative border-b border-gray-800 bg-black/90 backdrop-blur-sm z-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-transparent to-purple-600/20"></div>
-        <div className="relative flex items-center justify-between px-4 py-3 mx-auto max-w-7xl">
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              FREE SHIPPING OVER KSh 6,000
-            </span>
-            <span className="text-gray-700">|</span>
-            <span>2 YEAR WARRANTY</span>
-            <span className="hidden text-gray-700 md:inline">|</span>
-            <span className="hidden md:inline">30-DAY RETURNS</span>
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <Link to="/stores" className="flex items-center gap-1 text-gray-400 transition-colors hover:text-white group">
-              <FiMapPin className="w-3 h-3 transition-colors group-hover:text-blue-500" />
-              <span className="group-hover:glow-text">FIND STORE</span>
-            </Link>
-            <Link to="/shop" className="flex items-center gap-1 text-gray-400 transition-colors hover:text-white group">
-              <FiShoppingBag className="w-3 h-3 transition-colors group-hover:text-blue-500" />
-              <span className="group-hover:glow-text">SHOP ONLINE</span>
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Top Bar - FIND STORE | SHOP ONLINE */}
+      <TopBar />
 
-      {/* HERO SECTION - Tech/Electronics video background */}
+      {/* HERO SECTION */}
       <div className="relative h-screen min-h-[800px] overflow-hidden">
         <div className="absolute inset-0">
           <video
@@ -404,76 +636,57 @@ const Home = () => {
             autoPlay
             preload="auto"
             className="object-cover w-full h-full opacity-80"
-            poster={sectionImages.hero}
+            poster="https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600"
           >
-            {/* Tech/Electronics videos */}
-            <source src="https://videos.pexels.com/video-files/5774962/5774962-uhd_2732_1440_25fps.mp4" type="video/mp4" />
-            <source src="https://videos.pexels.com/video-files/5774982/5774982-uhd_2732_1440_25fps.mp4" type="video/mp4" />
-            <source src="https://videos.pexels.com/video-files/5775005/5775005-uhd_2732_1440_25fps.mp4" type="video/mp4" />
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" type="video/mp4" />
           </video>
           
-          {/* Beautiful gradient overlay */}
           <div className={`absolute inset-0 bg-gradient-to-r ${sectionGradients.hero} mix-blend-overlay`}></div>
-          
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
         </div>
 
-        {/* Black-themed gradient border on top */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
 
         {!videoError && (
           <button
             onClick={toggleVideoPlay}
-            className="absolute z-20 p-4 text-white transition-all rounded-full top-6 right-6 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40 shadow-[0_0_30px_rgba(59,130,246,0.5)]"
+            className="absolute z-20 p-4 text-white transition-all rounded-full top-6 right-6 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40"
           >
             {videoPlaying ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
           </button>
         )}
 
         <div className="relative z-10 flex items-center h-full">
-          <div className="w-full px-4 mx-auto max-w-7xl">
+          <div className="w-full px-6 mx-auto max-w-7xl">
             <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 border border-blue-500/30 rounded-full bg-black/50 backdrop-blur-md shadow-[0_0_30px_rgba(59,130,246,0.3)]">
-                <IoFlashOutline className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-medium tracking-wider text-blue-400">ORAIMO</span>
-              </div>
-              
-              <h1 className="mb-4 text-6xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-400 to-purple-400 md:text-7xl lg:text-8xl glow-text">
+              <h1 className="text-6xl font-bold leading-tight text-white md:text-7xl lg:text-8xl">
                 SpaceBuds
-                <span className="block text-5xl md:text-6xl lg:text-7xl text-white/90">Pro</span>
+                <span className="block text-5xl md:text-6xl lg:text-7xl text-gray-300">Pro</span>
               </h1>
               
-              <p className="mb-2 text-2xl font-light text-gray-300 md:text-3xl">
+              <p className="mt-4 text-xl font-medium text-gray-300 md:text-2xl">
                 50dB Adaptive Hybrid ANC
               </p>
               
-              <p className="mb-8 text-lg text-gray-400">
+              <p className="mt-2 text-lg text-gray-400">
                 TWS Earphones with Immersive Sound
               </p>
               
-              <div className="flex flex-wrap gap-6">
-                <Link 
-                  to="/product/spacebuds-pro"
-                  className="relative px-10 py-4 overflow-hidden text-lg font-semibold text-white transition-all rounded-full group"
+              <div className="flex flex-wrap gap-6 mt-8">
+                <button 
+                  onClick={() => navigate('/product/spacebuds-pro')}
+                  className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-50 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
-                  <span className="relative flex items-center gap-2">
-                    EXPLORE NOW
-                    <BsArrowRight className="transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Link>
-                <Link 
-                  to="/shop"
-                  className="relative px-10 py-4 overflow-hidden text-lg font-semibold text-white transition-all rounded-full group"
+                  EXPLORE NOW
+                </button>
+                <button 
+                  onClick={() => navigate('/shop')}
+                  className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-gray-800 to-gray-900"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-50"></span>
-                  <span className="relative flex items-center gap-2 px-8 py-2 border rounded-full border-white/20">
-                    SHOP ALL
-                  </span>
-                </Link>
+                  SHOP ALL
+                </button>
               </div>
             </div>
           </div>
@@ -486,365 +699,396 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUSTED BY SECTION - with black gradient border */}
-      <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-        {/* Black-themed gradient border on top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
-        
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
-          style={{ backgroundImage: `url(${sectionImages.trust})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
-        
-        {/* Beautiful gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${sectionGradients.trust} mix-blend-overlay`}></div>
-        
-        <div className="relative z-10 w-full px-4 mx-auto max-w-7xl">
-          <h2 className="mb-16 text-4xl font-black text-center text-transparent md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 glow-text">
-            TRUSTED BY MILLIONS
-          </h2>
+      {/* TRUST STATS SECTION */}
+      <section className="py-16 bg-black border-b border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.trust}
+              alt="Trusted by millions"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
           
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="section-header-container">
+            <h2 className="section-title">TRUSTED BY MILLIONS</h2>
+          </div>
+          
+          <div className="flex flex-wrap justify-center items-center gap-16 md:gap-24">
             {trustStats.map((stat, index) => (
-              <div 
-                key={index}
-                className="relative p-12 overflow-hidden transition-all duration-500 border border-gray-800 group rounded-2xl bg-black/40 backdrop-blur-sm hover:border-emerald-500/50"
-              >
-                <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 to-cyan-600 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"></div>
-                
-                <div className="relative flex flex-col items-center text-center">
-                  <div className={`p-6 mb-4 rounded-2xl bg-gradient-to-r ${stat.gradient} bg-opacity-20`}>
-                    <div className="text-white w-12 h-12">{stat.icon}</div>
-                  </div>
-                  <div>
-                    <div className="text-5xl font-black text-white">{stat.number}</div>
-                    <div className="text-lg text-gray-300">{stat.label} {stat.suffix}</div>
-                  </div>
-                </div>
+              <div key={index} className="text-center">
+                <div className="stat-number">{stat.number}</div>
+                <div className="stat-label">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS SECTION - with black gradient border */}
-      <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-        {/* Black-themed gradient border on top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
-        
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
-          style={{ backgroundImage: `url(${sectionImages.featured})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
-        
-        {/* Beautiful gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-tr ${sectionGradients.featured} mix-blend-overlay`}></div>
-        
-        <div className="relative z-10 w-full px-4 mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-4xl font-black text-transparent md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400 glow-text">
-              EXPLORE OUR LATEST TECH
-            </h2>
-            <div className="w-24 h-1 mx-auto rounded-full bg-gradient-to-r from-purple-600 to-pink-600"></div>
+      {/* FEATURED PRODUCTS SECTION */}
+      <section className="py-20 bg-black">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.featured}
+              alt="Featured products"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="section-header-container">
+            <h2 className="section-title">FEATURED PRODUCTS</h2>
           </div>
 
-          {loading ? (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-              {[1,2,3,4,5,6,7,8].map(i => (
-                <div key={i} className="relative overflow-hidden h-80 bg-gray-800/30 backdrop-blur-sm rounded-2xl animate-pulse">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent shimmer"></div>
-                </div>
+          {loadingFeatured ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
-              {products.slice(0, 8).map((product) => (
-                <div key={product._id || product.id} className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
-                  <div className="relative overflow-hidden transition-all duration-500 border border-gray-800 bg-black/40 backdrop-blur-sm rounded-2xl group-hover:border-purple-500/50">
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {featuredProducts.slice(0, 4).map((product) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group"
+                    onClick={() => productId && handleProductClick(productId)}
+                  >
                     <ProductCard product={product} />
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No featured products available
             </div>
           )}
         </div>
       </section>
 
-      {/* CATEGORIES SECTION - with black gradient border */}
-      <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-        {/* Black-themed gradient border on top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
-        
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
-          style={{ backgroundImage: `url(${sectionImages.categories})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
-        
-        {/* Beautiful gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-tl ${sectionGradients.categories} mix-blend-overlay`}></div>
-        
-        <div className="relative z-10 w-full px-4 mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-4xl font-black text-transparent md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 glow-text">
-              SHOP BY CATEGORY
-            </h2>
-            <div className="w-24 h-1 mx-auto rounded-full bg-gradient-to-r from-amber-600 to-red-600"></div>
+      {/* LATEST PRODUCTS SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.featured}
+              alt="Latest products"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            {productCategories.map((category, index) => (
-              <Link
-                key={category.id}
-                to={category.link}
-                className="relative group"
-                onMouseEnter={() => setHoveredCategory(index)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-600 to-red-600 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
-                <div className="relative overflow-hidden transition-all duration-500 border border-gray-800 rounded-2xl bg-black/40 backdrop-blur-sm group-hover:border-amber-500/50">
-                  <div className="relative aspect-square">
-                    <img 
-                      src={category.image}
-                      alt={category.name}
-                      className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
-                    
-                    <div className={`absolute inset-0 bg-gradient-to-r ${category.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`}></div>
-                    
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      <div className={`inline-flex p-3 mb-3 bg-gradient-to-r ${category.gradient} rounded-xl shadow-lg`}>
-                        {category.icon}
-                      </div>
-                      <h3 className="mb-1 text-xl font-bold text-white">{category.name}</h3>
-                      <p className="text-sm text-gray-300">{category.count} Products</p>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="section-header-container">
+            <h2 className="section-title">JUST ARRIVED</h2>
           </div>
+
+          {loadingLatest ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              ))}
+            </div>
+          ) : latestProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {latestProducts.slice(0, 4).map((product) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group"
+                    onClick={() => productId && handleProductClick(productId)}
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No latest products available
+            </div>
+          )}
         </div>
       </section>
 
-      {/* TESTIMONIALS SECTION - with black gradient border */}
-      <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-        {/* Black-themed gradient border on top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
-        
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
-          style={{ backgroundImage: `url(${sectionImages.testimonials})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
+      {/* CATEGORIES SECTION - HORIZONTAL SCROLLING CAROUSEL */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.categories}
+              alt="Shop by category"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="section-header-container">
+            <h2 className="section-title">SHOP BY CATEGORY</h2>
+          </div>
+          
+          {loadingCategories ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              ))}
+            </div>
+          ) : displayCategories.length > 0 ? (
+            <div className="relative">
+              {/* Category Carousel - Larger cards for desktop (3 visible) */}
+              <div 
+                ref={categoryRef} 
+                className="flex gap-8 pb-8 overflow-x-auto scrollbar-hide"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                {displayCategories.map((category, index) => (
+                  <div 
+                    key={category.id || index} 
+                    className="flex-shrink-0 w-72 cursor-pointer group"
+                    onClick={() => navigate(category.link)}
+                    onMouseEnter={() => setHoveredCategory(index)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                  >
+                    <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
+                      {/* Glow Effect */}
+                      <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:opacity-30 blur-xl"></div>
+                      
+                      {/* Category Image */}
+                      <img 
+                        src={category.image}
+                        alt={category.name}
+                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+                      />
+                      
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                      
+                      {/* Category Name */}
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-xl font-semibold text-white">{category.name}</h3>
+                        <p className="text-sm text-gray-300">{category.count} Products</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Navigation Buttons */}
+              {displayCategories.length > 3 && (
+                <>
+                  <button 
+                    onClick={() => scrollCategories("left")}
+                    className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                    aria-label="Previous categories"
+                  >
+                    <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                  </button>
+                  <button 
+                    onClick={() => scrollCategories("right")}
+                    className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                    aria-label="Next categories"
+                  >
+                    <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                  </button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No categories available
+            </div>
+          )}
+          
+          {/* View All Categories Link */}
+          {displayCategories.length > 0 && (
+            <div className="mt-8 text-center">
+              <button 
+                onClick={() => navigate('/shop')}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white transition-colors border border-gray-700 rounded-full hover:bg-white/10"
+              >
+                VIEW ALL CATEGORIES
+                <FiArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
-        
-        {/* Beautiful gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-bl ${sectionGradients.testimonials} mix-blend-overlay`}></div>
-        
-        <div className="relative z-10 w-full px-4 mx-auto max-w-7xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-4xl font-black text-transparent md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-indigo-400 via-blue-400 to-cyan-400 glow-text">
-              HEAR WHAT THEY ARE SAYING
-            </h2>
-            <div className="w-24 h-1 mx-auto rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600"></div>
+      </section>
+
+      {/* TRENDING PRODUCTS SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.featured}
+              alt="Trending products"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="section-header-container">
+            <h2 className="section-title">TRENDING NOW</h2>
+          </div>
+
+          {loadingTrending ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              ))}
+            </div>
+          ) : trendingProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {trendingProducts.slice(0, 4).map((product) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group"
+                    onClick={() => productId && handleProductClick(productId)}
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No trending products available
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* TESTIMONIALS SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.testimonials}
+              alt="What people say about us"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="section-header-container">
+            <h2 className="section-title">HEAR WHAT THEY ARE SAYING</h2>
           </div>
           
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
-                <div className="relative p-8 transition-all duration-500 border border-gray-800 rounded-2xl bg-black/40 backdrop-blur-sm group-hover:border-indigo-500/50">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="relative">
-                      <img 
-                        src={testimonial.image}
-                        alt={testimonial.name}
-                        className="w-16 h-16 border-2 rounded-full border-indigo-500/50"
-                      />
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-full opacity-0 group-hover:opacity-50 blur transition-opacity duration-500"></div>
-                    </div>
-                    <div>
-                      <div className="font-bold text-white">{testimonial.name}</div>
-                      <div className="flex gap-1 mt-1">
-                        {[...Array(5)].map((_, i) => (
-                          i < testimonial.rating ? 
-                            <FaStar key={i} className="w-4 h-4 text-yellow-500" /> :
-                            i + 0.5 === testimonial.rating ?
-                              <FaStarHalfAlt key={i} className="w-4 h-4 text-yellow-500" /> :
-                              <FaRegStar key={i} className="w-4 h-4 text-gray-600" />
-                        ))}
-                      </div>
+              <div key={index} className="p-6 bg-gray-900/50 rounded-lg">
+                <div className="flex items-center gap-4 mb-4">
+                  <img 
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <div className="font-medium text-white">{testimonial.name}</div>
+                    <div className="flex gap-1 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        i < testimonial.rating ? 
+                          <FaStar key={i} className="w-4 h-4 text-yellow-500" /> :
+                          <FaRegStar key={i} className="w-4 h-4 text-gray-600" />
+                      ))}
                     </div>
                   </div>
-                  <p className="leading-relaxed text-gray-300">"{testimonial.text}"</p>
                 </div>
+                <p className="text-sm leading-relaxed text-gray-400">"{testimonial.text}"</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FLASH SALE SECTION - with black gradient border */}
-      <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
-        {/* Black-themed gradient border on top */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent"></div>
-        
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
-          style={{ backgroundImage: `url(${sectionImages.flashSale})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
-        
-        {/* Beautiful gradient overlay */}
-        <div className={`absolute inset-0 bg-gradient-to-r ${sectionGradients.flashSale} mix-blend-overlay`}></div>
-        
-        {/* Content */}
-        <div className="relative z-10 w-full px-4 mx-auto max-w-7xl">
-          {/* Flash Sale Banner Card */}
-          <div className="relative p-12 overflow-hidden border border-orange-500/30 rounded-3xl bg-black/40 backdrop-blur-md">
-            {/* Inner gradient glow */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-600/20 via-transparent to-transparent"></div>
-            
-            {/* Banner Content */}
-            <div className="relative flex flex-col items-center justify-between gap-8 md:flex-row">
-              {/* Left side - Text */}
-              <div className="text-center md:text-left">
-                <div className="flex items-center justify-center gap-3 mb-4 md:justify-start">
-                  {/* Fire icon with animation */}
-                  <div className="p-3 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl animate-pulse shadow-[0_0_30px_rgba(249,115,22,0.5)]">
-                    <AiFillFire className="w-8 h-8 text-white" />
-                  </div>
-                  <h2 className="text-4xl font-black text-transparent md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-orange-400 to-red-400 glow-text">
-                    FLASH SALE
-                  </h2>
-                </div>
-                <p className="text-xl text-gray-300">Limited time offers ending soon!</p>
-                <div className="flex flex-wrap justify-center gap-2 mt-4 md:justify-start">
-                  <span className="px-3 py-1 text-sm font-semibold text-orange-500 rounded-full bg-orange-500/10 border border-orange-500/30">
-                    🔥 Up to 50% OFF
-                  </span>
-                  <span className="px-3 py-1 text-sm font-semibold text-red-500 rounded-full bg-red-500/10 border border-red-500/30">
-                    ⚡ 24 Hours Left
-                  </span>
-                </div>
-              </div>
-              
-              {/* Right side - CTA Button */}
-              <Link 
-                to="/shop?sort=discount"
-                className="group relative px-12 py-5 overflow-hidden text-xl font-bold text-white transition-all rounded-full"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600"></span>
-                <span className="absolute inset-0 transition-opacity opacity-50 bg-gradient-to-r from-orange-600 to-red-600 blur-xl group-hover:opacity-100"></span>
-                <span className="relative flex items-center gap-3">
-                  SHOP NOW
-                  <BsArrowRight className="transition-transform group-hover:translate-x-1" />
-                </span>
-              </Link>
-            </div>
+      {/* FLASH SALE SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image */}
+          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+            <img 
+              src={categoryHeaderImages.flashSale}
+              alt="Flash sale"
+              className="object-cover w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="section-header-container">
+            <h2 className="section-title">FLASH SALE</h2>
           </div>
 
-          {/* Flash Sale Products Carousel */}
-          <div className="relative mt-12">
+          <div className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row">
+            <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
+            <button 
+              onClick={() => navigate('/shop?sort=discount')}
+              className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
+            >
+              SHOP NOW
+            </button>
+          </div>
+
+          <div className="relative">
             <div 
               ref={featuredRef} 
-              className="flex gap-6 pb-8 overflow-x-auto scrollbar-hide"
+              className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide"
               style={{ scrollBehavior: 'smooth' }}
             >
-              {displayFlashSaleProducts.length > 0 ? (
-                displayFlashSaleProducts.map((product) => (
-                  <div key={`flash-${product._id || product.id}`} className="relative flex-shrink-0 w-64 group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500"></div>
-                    <div className="relative overflow-hidden transition-all duration-500 border border-gray-800 bg-black/40 backdrop-blur-sm rounded-2xl group-hover:border-orange-500/50">
+              {loadingFlashSale ? (
+                [...Array(4)].map((_, i) => (
+                  <div key={i} className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"></div>
+                ))
+              ) : flashSaleProducts.length > 0 ? (
+                flashSaleProducts.slice(0, 8).map((product) => {
+                  const productId = product._id || product.id;
+                  return (
+                    <div 
+                      key={`flash-${productId}`} 
+                      className="flex-shrink-0 w-48 cursor-pointer group"
+                      onClick={() => productId && handleProductClick(productId)}
+                    >
                       <ProductCard product={product} />
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="py-12 text-center text-gray-400 w-full">
+                <div className="w-full py-12 text-center text-gray-400">
                   No flash sale products available
                 </div>
               )}
             </div>
             
-            {displayFlashSaleProducts.length > 4 && (
+            {flashSaleProducts.length > 4 && (
               <>
                 <button 
                   onClick={() => scrollFeatured("left")}
-                  className="absolute p-4 transition-all -translate-y-1/2 bg-black/40 backdrop-blur-md border border-gray-800 rounded-full shadow-2xl left-0 top-1/2 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] group"
+                  className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
                 >
-                  <FiChevronLeft className="w-6 h-6 text-gray-400 transition-colors group-hover:text-orange-500" />
+                  <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                 </button>
                 <button 
                   onClick={() => scrollFeatured("right")}
-                  className="absolute p-4 transition-all -translate-y-1/2 bg-black/40 backdrop-blur-md border border-gray-800 rounded-full shadow-2xl right-0 top-1/2 hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] group"
+                  className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
                 >
-                  <FiChevronRight className="w-6 h-6 text-gray-400 transition-colors group-hover:text-orange-500" />
+                  <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                 </button>
               </>
             )}
           </div>
         </div>
       </section>
-
-      {/* Global Styles */}
-      <style jsx>{`
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        
-        @keyframes gradient {
-          0% { opacity: 0.1; }
-          50% { opacity: 0.3; }
-          100% { opacity: 0.1; }
-        }
-        
-        .shimmer {
-          animation: shimmer 2s infinite;
-        }
-        
-        .glow-text {
-          text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
-        }
-        
-        .glow-text:hover {
-          text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
-        }
-        
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        
-        .bg-fixed {
-          background-attachment: fixed;
-        }
-        
-        .animate-gradient {
-          animation: gradient 8s ease-in-out infinite;
-        }
-        
-        @media (max-width: 768px) {
-          .bg-fixed {
-            background-attachment: scroll;
-          }
-        }
-      `}</style>
     </div>
   );
 };

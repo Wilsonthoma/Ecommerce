@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - TRANSFORMED with oraimo black gradients and glowing effects
+// src/components/Navbar.jsx - FIXED with proper styling
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +61,45 @@ const API_ENDPOINTS = {
   ABOUT: '/about',
   SELL: '/sell',
 };
+
+// Animation styles as constants
+const animationStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px currentColor;
+  }
+  
+  @media (max-width: 480px) {
+    .xs\\:flex { display: flex; }
+    .xs\\:hidden { display: none; }
+    .xs\\:flex-none { flex: none; }
+    .xs\\:items-center { align-items: center; }
+    .xs\\:w-auto { width: auto; }
+  }
+`;
 
 const Navbar = memo(() => {
   const navigate = useNavigate();
@@ -365,6 +404,8 @@ const Navbar = memo(() => {
   // ==================== RENDER ====================
   return (
     <>
+      <style>{animationStyles}</style>
+      
       {/* ========== ORAIMO STYLE TOP BAR WITH BLACK GRADIENT ========== */}
       <div className="relative bg-gradient-to-r from-gray-900 via-black to-gray-900 border-b border-gray-800">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent"></div>
@@ -1237,44 +1278,6 @@ const Navbar = memo(() => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-out;
-        }
-        
-        .animate-slideUp {
-          animation: slideUp 0.3s ease-out;
-        }
-        
-        .glow-text {
-          text-shadow: 0 0 20px currentColor;
-        }
-        
-        @media (max-width: 480px) {
-          .xs\\:flex { display: flex; }
-          .xs\\:hidden { display: none; }
-          .xs\\:flex-none { flex: none; }
-          .xs\\:items-center { align-items: center; }
-          .xs\\:w-auto { width: auto; }
-        }
-      `}</style>
     </>
   );
 });

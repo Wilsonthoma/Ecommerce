@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx - TRANSFORMED with oraimo black gradients and glowing effects
+// src/pages/Cart.jsx - FIXED with homepage styling
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -26,11 +26,27 @@ import {
 } from 'lucide-react';
 import { BsLightningCharge, BsArrowRight } from 'react-icons/bs';
 
+// Animation styles
+const animationStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+`;
+
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Fallback image
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop';
+const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
 
 // Real locations data from backend
 const fetchLocations = async () => {
@@ -247,6 +263,7 @@ const Cart = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+        <style>{animationStyles}</style>
         <div className="max-w-6xl px-4 py-8 mx-auto">
           <div className="animate-pulse">
             <div className="w-32 h-6 mb-4 bg-gray-700 rounded"></div>
@@ -262,6 +279,7 @@ const Cart = () => {
   if (cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+        <style>{animationStyles}</style>
         <div className="max-w-6xl px-4 py-8 mx-auto text-center">
           <div className="relative p-8 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-20 blur-xl"></div>
@@ -290,6 +308,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+      <style>{animationStyles}</style>
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
       
       <div className="max-w-6xl px-3 py-6 mx-auto">
@@ -595,12 +614,6 @@ const Cart = () => {
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .glow-text {
-          text-shadow: 0 0 20px currentColor;
-        }
-      `}</style>
     </div>
   );
 };

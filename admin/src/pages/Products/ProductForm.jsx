@@ -18,9 +18,10 @@ import {
   ArrowPathIcon,
   PlusIcon,
   EyeIcon,
-  ScaleIcon,
-  BellAlertIcon,
-  GlobeAltIcon
+  FireIcon,
+  BoltIcon,
+  SparklesIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 import { productService } from '../../services/products';
 
@@ -71,14 +72,19 @@ const ProductForm = () => {
     trackQuantity: true,
     allowOutOfStockPurchase: false,
     lowStockThreshold: 5,
-    // Visibility
+    // Product Badges
     isFeatured: false,
+    isTrending: false,
+    isFlashSale: false,
+    isJustArrived: false,
+    flashSaleEndDate: '',
+    // Visibility
     visible: true,
     // SEO
     seoTitle: '',
     seoDescription: '',
     slug: '',
-    // ✅ SHIPPING FIELDS
+    // Shipping (simplified)
     requiresShipping: true,
     weight: '',
     weightUnit: 'kg',
@@ -88,11 +94,8 @@ const ProductForm = () => {
       height: '',
       unit: 'cm'
     },
-    shippingClass: 'standard',
-    freeShipping: false,
     flatShippingRate: '',
-    internationalShipping: false,
-    shippingZones: [],
+    freeShipping: false,
     estimatedDeliveryMin: '',
     estimatedDeliveryMax: '',
     // Notes
@@ -120,29 +123,11 @@ const ProductForm = () => {
 
   const weightUnits = ['kg', 'g', 'lb', 'oz'];
   const dimensionUnits = ['cm', 'm', 'in'];
-  
-  const shippingClasses = [
-    { value: 'standard', label: 'Standard Shipping' },
-    { value: 'express', label: 'Express Shipping' },
-    { value: 'overnight', label: 'Overnight Shipping' },
-    { value: 'freight', label: 'Freight Shipping' },
-    { value: 'international', label: 'International Shipping' }
-  ];
-
-  const shippingZoneOptions = [
-    { value: 'na', label: 'North America' },
-    { value: 'eu', label: 'Europe' },
-    { value: 'asia', label: 'Asia' },
-    { value: 'africa', label: 'Africa' },
-    { value: 'sa', label: 'South America' },
-    { value: 'oceania', label: 'Oceania' }
-  ];
 
   const statusOptions = [
     { value: 'draft', label: 'Draft', color: 'gray' },
     { value: 'active', label: 'Active', color: 'green' },
-    { value: 'archived', label: 'Archived', color: 'slate' },
-    { value: 'out_of_stock', label: 'Out of Stock', color: 'red' }
+    { value: 'archived', label: 'Archived', color: 'slate' }
   ];
 
   // Get full image URL
@@ -215,9 +200,12 @@ const ProductForm = () => {
   const fetchProduct = async () => {
     setLoading(true);
     try {
+      console.log('🔍 Fetching product...');
       const response = await productService.getById(id);
+      console.log('📦 Product fetch response:', response);
+      
       if (response.success) {
-        const product = response.data;
+        const product = response.data || response.product || response;
         
         const extractedImages = extractImagesFromProduct(product);
         
@@ -241,20 +229,20 @@ const ProductForm = () => {
           allowOutOfStockPurchase: Boolean(product.allowOutOfStockPurchase),
           lowStockThreshold: product.lowStockThreshold || 5,
           isFeatured: Boolean(product.featured || product.isFeatured),
+          isTrending: Boolean(product.isTrending),
+          isFlashSale: Boolean(product.isFlashSale),
+          isJustArrived: Boolean(product.isJustArrived),
+          flashSaleEndDate: product.flashSaleEndDate || '',
           visible: product.visible !== false,
           seoTitle: product.seoTitle || '',
           seoDescription: product.seoDescription || '',
           slug: product.slug || '',
-          // Shipping fields
           requiresShipping: product.requiresShipping !== false,
           weight: product.weight?.toString() || '',
           weightUnit: product.weightUnit || 'kg',
           dimensions: product.dimensions || { length: '', width: '', height: '', unit: 'cm' },
-          shippingClass: product.shippingClass || 'standard',
-          freeShipping: Boolean(product.freeShipping),
           flatShippingRate: product.flatShippingRate?.toString() || '',
-          internationalShipping: Boolean(product.internationalShipping),
-          shippingZones: product.shippingZones || [],
+          freeShipping: Boolean(product.freeShipping),
           estimatedDeliveryMin: product.estimatedDeliveryMin?.toString() || '',
           estimatedDeliveryMax: product.estimatedDeliveryMax?.toString() || '',
           notes: product.notes || ''
@@ -268,7 +256,7 @@ const ProductForm = () => {
         navigate('/products');
       }
     } catch (error) {
-      console.error('Error fetching product:', error);
+      console.error('❌ Error fetching product:', error);
       toast.error('Failed to fetch product');
       navigate('/products');
     } finally {
@@ -294,9 +282,6 @@ const ProductForm = () => {
       setTagInput(value);
       const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
       setFormData(prev => ({ ...prev, tags: tagsArray }));
-    } else if (name === 'shippingZones') {
-      const selectedZones = Array.from(e.target.selectedOptions, option => option.value);
-      setFormData(prev => ({ ...prev, shippingZones: selectedZones }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -346,21 +331,9 @@ const ProductForm = () => {
           }
         }
         break;
-      case 'lowStockThreshold':
-        const threshold = parseInt(value);
-        if (isNaN(threshold) || threshold < 0) {
-          error = 'Low stock threshold must be a valid non-negative number';
-        }
-        break;
       case 'category':
         if (!value || String(value).trim() === '') {
           error = 'Category is required';
-        }
-        break;
-      case 'estimatedDeliveryMin':
-      case 'estimatedDeliveryMax':
-        if (value && (parseInt(value) < 1)) {
-          error = 'Estimated delivery must be at least 1 day';
         }
         break;
       case 'flatShippingRate':
@@ -376,18 +349,15 @@ const ProductForm = () => {
     return !error;
   };
 
-  // Enhanced validation with stock tracking
   const validateForm = () => {
     console.log('🔍 VALIDATING FORM - Current formData:', formData);
 
     const newErrors = {};
     
-    // Name validation
     if (!formData.name || String(formData.name).trim() === '') {
       newErrors.name = 'Product name is required';
     }
     
-    // Price validation
     if (formData.price === '' || formData.price === null || formData.price === undefined) {
       newErrors.price = 'Price is required';
     } else {
@@ -397,7 +367,6 @@ const ProductForm = () => {
       }
     }
     
-    // Stock validation (if tracking quantity)
     if (formData.trackQuantity) {
       if (formData.stock === '' || formData.stock === null || formData.stock === undefined) {
         newErrors.stock = 'Stock is required when tracking quantity';
@@ -407,31 +376,16 @@ const ProductForm = () => {
           newErrors.stock = 'Stock must be a valid non-negative number';
         }
       }
-      
-      // Low stock threshold validation
-      const threshold = parseInt(formData.lowStockThreshold);
-      if (isNaN(threshold) || threshold < 0) {
-        newErrors.lowStockThreshold = 'Low stock threshold must be a valid non-negative number';
-      }
     }
     
-    // Category validation
     if (!formData.category || String(formData.category).trim() === '') {
       newErrors.category = 'Category is required';
     }
     
-    // Shipping validation
-    if (formData.requiresShipping) {
-      if (formData.estimatedDeliveryMin && formData.estimatedDeliveryMax) {
-        const min = parseInt(formData.estimatedDeliveryMin);
-        const max = parseInt(formData.estimatedDeliveryMax);
-        if (min > max) {
-          newErrors.estimatedDeliveryMax = 'Maximum days must be greater than minimum days';
-        }
-      }
+    if (formData.flatShippingRate && parseFloat(formData.flatShippingRate) < 0) {
+      newErrors.flatShippingRate = 'Shipping rate cannot be negative';
     }
     
-    // Images validation for new products
     if (!isEditMode) {
       const totalImages = (formData.images?.length || 0) + filesToUpload.length;
       if (totalImages === 0) {
@@ -543,7 +497,7 @@ const ProductForm = () => {
     try {
       const formDataObj = new FormData();
       
-      // Add basic fields
+      // Add only essential fields to avoid overwhelming the server
       formDataObj.append('name', String(formData.name || '').trim());
       formDataObj.append('description', String(formData.description || '').trim());
       formDataObj.append('shortDescription', String(formData.shortDescription || '').trim());
@@ -555,16 +509,33 @@ const ProductForm = () => {
       const stockNum = parseInt(formData.stock) || 0;
       
       formDataObj.append('price', priceNum);
-      formDataObj.append('comparePrice', comparePriceNum);
-      formDataObj.append('costPerItem', costPerItemNum);
+      
+      if (comparePriceNum > 0) {
+        formDataObj.append('comparePrice', comparePriceNum);
+      }
+      
+      if (costPerItemNum > 0) {
+        formDataObj.append('costPerItem', costPerItemNum);
+      }
+      
       formDataObj.append('stock', stockNum);
       formDataObj.append('category', String(formData.category || '').trim());
       formDataObj.append('subcategory', String(formData.subcategory || '').trim());
       formDataObj.append('status', String(formData.status || 'draft'));
+      
+      // Product badges
       formDataObj.append('featured', String(formData.isFeatured));
+      formDataObj.append('isTrending', String(formData.isTrending));
+      formDataObj.append('isFlashSale', String(formData.isFlashSale));
+      formDataObj.append('isJustArrived', String(formData.isJustArrived));
+      
+      if (formData.flashSaleEndDate) {
+        formDataObj.append('flashSaleEndDate', formData.flashSaleEndDate);
+      }
+      
       formDataObj.append('visible', String(formData.visible));
       
-      // Stock management fields
+      // Stock management
       formDataObj.append('trackQuantity', String(formData.trackQuantity));
       formDataObj.append('allowOutOfStockPurchase', String(formData.allowOutOfStockPurchase));
       formDataObj.append('lowStockThreshold', parseInt(formData.lowStockThreshold) || 5);
@@ -599,7 +570,7 @@ const ProductForm = () => {
         formDataObj.append('slug', String(formData.slug).trim());
       }
       
-      // ✅ SHIPPING FIELDS
+      // Shipping fields - simplified
       formDataObj.append('requiresShipping', String(formData.requiresShipping));
       
       if (formData.weight) {
@@ -611,17 +582,10 @@ const ProductForm = () => {
         formDataObj.append('dimensions', JSON.stringify(formData.dimensions));
       }
       
-      formDataObj.append('shippingClass', String(formData.shippingClass || 'standard'));
       formDataObj.append('freeShipping', String(formData.freeShipping));
       
       if (formData.flatShippingRate) {
         formDataObj.append('flatShippingRate', parseFloat(formData.flatShippingRate) || 0);
-      }
-      
-      formDataObj.append('internationalShipping', String(formData.internationalShipping));
-      
-      if (formData.shippingZones && formData.shippingZones.length > 0) {
-        formDataObj.append('shippingZones', JSON.stringify(formData.shippingZones));
       }
       
       if (formData.estimatedDeliveryMin) {
@@ -641,7 +605,6 @@ const ProductForm = () => {
         const imageUrls = formData.images.map(img => img.url || img);
         formDataObj.append('existingImages', JSON.stringify(imageUrls));
         
-        // Add primary image info
         const primaryIndex = formData.images.findIndex(img => img.isPrimary);
         if (primaryIndex !== -1) {
           formDataObj.append('primaryImageIndex', primaryIndex);
@@ -655,8 +618,10 @@ const ProductForm = () => {
 
       let response;
       if (isEditMode) {
+        console.log('📝 Updating product...');
         response = await productService.update(id, formDataObj);
       } else {
+        console.log('📝 Creating product...');
         response = await productService.create(formDataObj);
       }
 
@@ -666,6 +631,7 @@ const ProductForm = () => {
         toast.success(isEditMode ? 'Product updated successfully!' : 'Product created successfully!');
         navigate('/products');
       } else {
+        console.error('❌ Product submission failed:', response.error);
         toast.error(response.error?.message || 'Operation failed');
         if (response.error?.validationErrors) {
           setErrors(response.error.validationErrors);
@@ -1026,7 +992,6 @@ const ProductForm = () => {
                 </div>
                 
                 <div className="space-y-6">
-                  {/* Track Quantity Checkbox */}
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -1044,7 +1009,6 @@ const ProductForm = () => {
 
                   {formData.trackQuantity && (
                     <>
-                      {/* Stock Quantity */}
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div>
                           <label className="block mb-2 text-sm font-medium text-gray-900">
@@ -1080,19 +1044,12 @@ const ProductForm = () => {
                             min="1"
                             value={formData.lowStockThreshold ?? 5}
                             onChange={handleChange}
-                            onBlur={handleBlur}
-                            className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-                              errors.lowStockThreshold && touchedFields.lowStockThreshold ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                            className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="5"
                           />
-                          <p className="mt-1 text-xs text-gray-500">
-                            Alert when stock falls below this number
-                          </p>
                         </div>
                       </div>
 
-                      {/* Allow Out of Stock Purchases */}
                       <div className="flex items-center">
                         <input
                           type="checkbox"
@@ -1105,50 +1062,14 @@ const ProductForm = () => {
                         <label htmlFor="allowOutOfStockPurchase" className="block ml-2 text-sm text-gray-900">
                           Allow out of stock purchases
                         </label>
-                        <p className="ml-4 text-xs text-gray-500">
-                          Customers can still purchase when out of stock (backorders)
-                        </p>
+                        <p className="ml-4 text-xs text-gray-500">Customers can backorder when out of stock</p>
                       </div>
-
-                      {/* Stock Status Preview */}
-                      {isEditMode && (
-                        <div className="p-4 rounded-lg bg-gray-50">
-                          <h3 className="flex items-center text-sm font-medium text-gray-700">
-                            <BellAlertIcon className="w-4 h-4 mr-2" />
-                            Stock Status Preview
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4 mt-3">
-                            <div>
-                              <span className="text-xs text-gray-500">Current Stock</span>
-                              <p className="text-lg font-semibold">{parseInt(formData.stock) || 0}</p>
-                            </div>
-                            <div>
-                              <span className="text-xs text-gray-500">Status</span>
-                              <div className="mt-1">
-                                {parseInt(formData.stock) <= 0 ? (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    {formData.allowOutOfStockPurchase ? 'Backorder' : 'Out of Stock'}
-                                  </span>
-                                ) : parseInt(formData.stock) <= (parseInt(formData.lowStockThreshold) || 5) ? (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    Low Stock
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    In Stock
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </>
                   )}
                 </div>
               </div>
 
-              {/* ✅ SHIPPING INFORMATION SECTION - COMPLETE */}
+              {/* Shipping Section - Simplified */}
               <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
                 <div className="flex items-center mb-6">
                   <TruckIcon className="w-6 h-6 mr-2 text-teal-600" />
@@ -1156,7 +1077,6 @@ const ProductForm = () => {
                 </div>
                 
                 <div className="space-y-6">
-                  {/* Requires Shipping Toggle */}
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -1169,12 +1089,10 @@ const ProductForm = () => {
                     <label htmlFor="requiresShipping" className="block ml-2 text-sm text-gray-900">
                       This product requires shipping
                     </label>
-                    <p className="ml-4 text-xs text-gray-500">Uncheck for digital products or services</p>
                   </div>
 
                   {formData.requiresShipping && (
                     <>
-                      {/* Weight with Unit */}
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                         <div>
                           <label className="block mb-2 text-sm font-medium text-gray-900">
@@ -1202,25 +1120,28 @@ const ProductForm = () => {
                               ))}
                             </select>
                           </div>
-                          <p className="mt-1 text-xs text-gray-500">Used to calculate shipping costs</p>
                         </div>
 
-                        {/* Shipping Class */}
                         <div>
                           <label className="block mb-2 text-sm font-medium text-gray-900">
-                            Shipping Class
+                            Flat Shipping Rate (KSh)
                           </label>
-                          <select
-                            name="shippingClass"
-                            value={formData.shippingClass || ''}
+                          <input
+                            type="number"
+                            name="flatShippingRate"
+                            min="0"
+                            step="0.01"
+                            value={formData.flatShippingRate ?? ''}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            {shippingClasses.map(sc => (
-                              <option key={sc.value} value={sc.value}>{sc.label}</option>
-                            ))}
-                          </select>
-                          <p className="mt-1 text-xs text-gray-500">Determines shipping rates and carriers</p>
+                            onBlur={handleBlur}
+                            className={`w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                              errors.flatShippingRate ? 'border-red-500' : ''
+                            }`}
+                            placeholder="e.g., 500"
+                          />
+                          {errors.flatShippingRate && (
+                            <p className="mt-1 text-xs text-red-600">{errors.flatShippingRate}</p>
+                          )}
                         </div>
                       </div>
 
@@ -1279,12 +1200,10 @@ const ProductForm = () => {
                             </select>
                           </div>
                         </div>
-                        <p className="mt-1 text-xs text-gray-500">Package dimensions for shipping calculations</p>
                       </div>
 
-                      {/* Shipping Options */}
+                      {/* Free Shipping & Delivery Time */}
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        {/* Free Shipping */}
                         <div className="flex items-center">
                           <input
                             type="checkbox"
@@ -1299,148 +1218,37 @@ const ProductForm = () => {
                           </label>
                         </div>
 
-                        {/* Flat Shipping Rate */}
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900">
-                            Flat Shipping Rate (KSh)
-                          </label>
-                          <input
-                            type="number"
-                            name="flatShippingRate"
-                            min="0"
-                            step="0.01"
-                            value={formData.flatShippingRate ?? ''}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="e.g., 500"
-                          />
-                          {errors.flatShippingRate && (
-                            <p className="mt-1 text-xs text-red-600">{errors.flatShippingRate}</p>
-                          )}
-                          <p className="mt-1 text-xs text-gray-500">Leave empty to use carrier rates</p>
-                        </div>
-                      </div>
-
-                      {/* International Shipping */}
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            id="internationalShipping"
-                            name="internationalShipping"
-                            checked={formData.internationalShipping}
-                            onChange={handleChange}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <label htmlFor="internationalShipping" className="block ml-2 text-sm text-gray-900">
-                            Available for International Shipping
-                          </label>
-                        </div>
-
-                        {/* Shipping Zones */}
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900">
-                            Restricted Shipping Zones
-                          </label>
-                          <select
-                            name="shippingZones"
-                            multiple
-                            value={formData.shippingZones || []}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            size="3"
-                          >
-                            {shippingZoneOptions.map(zone => (
-                              <option key={zone.value} value={zone.value}>
-                                {zone.label}
-                              </option>
-                            ))}
-                          </select>
-                          <p className="mt-1 text-xs text-gray-500">
-                            {formData.shippingZones?.length > 0 
-                              ? `Restricted to: ${formData.shippingZones.map(z => 
-                                  shippingZoneOptions.find(opt => opt.value === z)?.label || z
-                                ).join(', ')}`
-                              : 'No restrictions - ships to all zones'}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-400">
-                            Hold Ctrl/Cmd to select multiple zones to restrict
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Estimated Delivery */}
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900">
-                            Estimated Delivery (Min Days)
-                          </label>
-                          <input
-                            type="number"
-                            name="estimatedDeliveryMin"
-                            min="1"
-                            value={formData.estimatedDeliveryMin ?? ''}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            className={`w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                              errors.estimatedDeliveryMin ? 'border-red-500' : ''
-                            }`}
-                            placeholder="e.g., 3"
-                          />
-                          {errors.estimatedDeliveryMin && (
-                            <p className="mt-1 text-xs text-red-600">{errors.estimatedDeliveryMin}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block mb-2 text-sm font-medium text-gray-900">
-                            Estimated Delivery (Max Days)
-                          </label>
-                          <input
-                            type="number"
-                            name="estimatedDeliveryMax"
-                            min="1"
-                            value={formData.estimatedDeliveryMax ?? ''}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            className={`w-full px-4 py-2.5 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                              errors.estimatedDeliveryMax ? 'border-red-500' : ''
-                            }`}
-                            placeholder="e.g., 7"
-                          />
-                          {errors.estimatedDeliveryMax && (
-                            <p className="mt-1 text-xs text-red-600">{errors.estimatedDeliveryMax}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Shipping Preview */}
-                      {(formData.weight || formData.flatShippingRate || formData.freeShipping) && (
-                        <div className="p-4 rounded-lg bg-blue-50">
-                          <h3 className="flex items-center text-sm font-medium text-blue-800">
-                            <GlobeAltIcon className="w-4 h-4 mr-2" />
-                            Shipping Preview
-                          </h3>
-                          <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                            {formData.freeShipping && (
-                              <div className="text-blue-700">✓ Free Shipping available</div>
-                            )}
-                            {formData.flatShippingRate > 0 && !formData.freeShipping && (
-                              <div className="text-blue-700">Flat Rate: KSh {formData.flatShippingRate}</div>
-                            )}
-                            {formData.weight > 0 && (
-                              <div className="text-blue-700">Weight: {formData.weight} {formData.weightUnit}</div>
-                            )}
-                            {formData.internationalShipping && (
-                              <div className="text-blue-700">✈️ International shipping available</div>
-                            )}
-                            {formData.estimatedDeliveryMin && formData.estimatedDeliveryMax && (
-                              <div className="text-blue-700">
-                                Delivery: {formData.estimatedDeliveryMin}-{formData.estimatedDeliveryMax} days
-                              </div>
-                            )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900">
+                              Min Days
+                            </label>
+                            <input
+                              type="number"
+                              name="estimatedDeliveryMin"
+                              min="1"
+                              value={formData.estimatedDeliveryMin ?? ''}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="3"
+                            />
+                          </div>
+                          <div>
+                            <label className="block mb-2 text-sm font-medium text-gray-900">
+                              Max Days
+                            </label>
+                            <input
+                              type="number"
+                              name="estimatedDeliveryMax"
+                              min="1"
+                              value={formData.estimatedDeliveryMax ?? ''}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 transition border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="7"
+                            />
                           </div>
                         </div>
-                      )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -1466,7 +1274,6 @@ const ProductForm = () => {
                   disabled={totalImages >= MAX_IMAGES}
                 />
 
-                {/* Upload Area */}
                 {totalImages < MAX_IMAGES && (
                   <div
                     className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200 ${
@@ -1495,7 +1302,6 @@ const ProductForm = () => {
                   </p>
                 )}
 
-                {/* Image Previews */}
                 {totalImages > 0 && (
                   <div className="mt-8">
                     <h3 className="mb-4 text-sm font-medium text-gray-900">
@@ -1506,7 +1312,6 @@ const ProductForm = () => {
                       )}
                     </h3>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                      {/* Existing Images */}
                       {formData.images.map((image, index) => (
                         <div key={`existing-${index}`} className="relative group">
                           <div className="overflow-hidden border border-gray-200 rounded-lg aspect-square">
@@ -1552,7 +1357,6 @@ const ProductForm = () => {
                         </div>
                       ))}
 
-                      {/* New Images */}
                       {filesToUpload.map((file, index) => (
                         <div key={`new-${index}`} className="relative group">
                           <div className="overflow-hidden border-2 border-blue-500 rounded-lg aspect-square">
@@ -1588,14 +1392,15 @@ const ProductForm = () => {
 
             {/* Right Column */}
             <div className="space-y-8">
-              {/* Status */}
+              {/* Status & Product Badges */}
               <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
                 <div className="flex items-center mb-6">
                   <TagIcon className="w-6 h-6 mr-2 text-orange-600" />
-                  <h2 className="text-xl font-semibold text-gray-900">Status & Visibility</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Status & Labels</h2>
                 </div>
                 
                 <div className="space-y-4">
+                  {/* Product Status */}
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900">
                       Product Status
@@ -1614,6 +1419,7 @@ const ProductForm = () => {
                     </select>
                   </div>
 
+                  {/* Visibility */}
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -1628,18 +1434,89 @@ const ProductForm = () => {
                     </label>
                   </div>
 
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isFeatured"
-                      name="isFeatured"
-                      checked={formData.isFeatured}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <label htmlFor="isFeatured" className="block ml-2 text-sm text-gray-900">
-                      Featured Product
-                    </label>
+                  {/* Product Badges - New Section */}
+                  <div className="pt-4 mt-2 border-t border-gray-200">
+                    <h3 className="flex items-center mb-3 text-sm font-medium text-gray-700">
+                      <SparklesIcon className="w-4 h-4 mr-2 text-purple-500" />
+                      Product Labels
+                    </h3>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="isFeatured"
+                          name="isFeatured"
+                          checked={formData.isFeatured}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isFeatured" className="flex items-center ml-2 text-sm text-gray-900">
+                          <StarIcon className="w-4 h-4 mr-1.5 text-yellow-500" />
+                          Featured Product
+                        </label>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="isTrending"
+                          name="isTrending"
+                          checked={formData.isTrending}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isTrending" className="flex items-center ml-2 text-sm text-gray-900">
+                          <FireIcon className="w-4 h-4 mr-1.5 text-orange-500" />
+                          Trending Product
+                        </label>
+                      </div>
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="isFlashSale"
+                          name="isFlashSale"
+                          checked={formData.isFlashSale}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isFlashSale" className="flex items-center ml-2 text-sm text-gray-900">
+                          <BoltIcon className="w-4 h-4 mr-1.5 text-yellow-500" />
+                          Flash Sale
+                        </label>
+                      </div>
+
+                      {formData.isFlashSale && (
+                        <div className="ml-6">
+                          <label className="block mb-2 text-xs font-medium text-gray-700">
+                            Flash Sale End Date
+                          </label>
+                          <input
+                            type="datetime-local"
+                            name="flashSaleEndDate"
+                            value={formData.flashSaleEndDate || ''}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          id="isJustArrived"
+                          name="isJustArrived"
+                          checked={formData.isJustArrived}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="isJustArrived" className="flex items-center ml-2 text-sm text-gray-900">
+                          <SparklesIcon className="w-4 h-4 mr-1.5 text-green-500" />
+                          Just Arrived / New
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

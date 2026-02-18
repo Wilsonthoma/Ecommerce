@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx - FIXED with homepage styling
+// src/pages/Cart.jsx - COMPLETE with all Kenyan towns and individual shipping prices
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -7,24 +7,21 @@ import {
   Trash2, 
   Plus, 
   Minus, 
-  ShoppingBag, 
   Truck, 
   Shield,
   ChevronRight,
   ShoppingCart,
   Package,
   X,
-  ZoomIn,
   AlertCircle,
   CheckCircle,
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
-  MapPin,
-  RefreshCw,
   Clock,
-  Heart
+  RefreshCw,
+  MapPin
 } from 'lucide-react';
-import { BsLightningCharge, BsArrowRight } from 'react-icons/bs';
+import { BsArrowRight } from 'react-icons/bs';
 
 // Animation styles
 const animationStyles = `
@@ -48,29 +45,569 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
 
-// Real locations data from backend
-const fetchLocations = async () => {
-  try {
-    const response = await fetch(`${API_URL}/api/locations`);
-    const data = await response.json();
-    return data.locations || {
-      'Nakuru': {
-        pickupStations: ['Njoro', 'Nakuru Town', 'Naivasha'],
-        deliveryFees: { 'Njoro': 120, 'Nakuru Town': 80, 'Naivasha': 150 }
-      },
-      'Nairobi': {
-        pickupStations: ['CBD', 'Westlands', 'Kilimani'],
-        deliveryFees: { 'CBD': 150, 'Westlands': 120, 'Kilimani': 130 }
-      }
-    };
-  } catch (error) {
-    console.error('Error fetching locations:', error);
-    return {
-      'Nakuru': {
-        pickupStations: ['Njoro', 'Nakuru Town', 'Naivasha'],
-        deliveryFees: { 'Njoro': 120, 'Nakuru Town': 80, 'Naivasha': 150 }
-      }
-    };
+// Complete Kenyan locations data with individual shipping prices for each town
+const KENYAN_LOCATIONS = {
+  // Nairobi County
+  'Nairobi': {
+    towns: [
+      { name: 'CBD', fee: 150 },
+      { name: 'Westlands', fee: 120 },
+      { name: 'Kilimani', fee: 130 },
+      { name: 'Karen', fee: 180 },
+      { name: 'Langata', fee: 160 },
+      { name: 'South B', fee: 130 },
+      { name: 'South C', fee: 130 },
+      { name: 'Buruburu', fee: 140 },
+      { name: 'Donholm', fee: 140 },
+      { name: 'Umoja', fee: 140 },
+      { name: 'Kayole', fee: 150 },
+      { name: 'Kasarani', fee: 150 },
+      { name: 'Roysambu', fee: 150 },
+      { name: 'Githurai', fee: 160 },
+      { name: 'Kahawa', fee: 160 },
+      { name: 'Ruiru', fee: 170 },
+      { name: 'Juja', fee: 180 },
+      { name: 'Thika Road', fee: 170 },
+      { name: 'Mombasa Road', fee: 160 },
+      { name: 'Ngong Road', fee: 140 },
+      { name: 'Waiyaki Way', fee: 140 },
+      { name: 'Lavington', fee: 130 },
+      { name: 'Kileleshwa', fee: 130 },
+      { name: 'Hurlingham', fee: 140 },
+      { name: 'Upper Hill', fee: 140 },
+      { name: 'Parklands', fee: 130 },
+      { name: 'Spring Valley', fee: 150 },
+      { name: 'Riverside', fee: 140 },
+      { name: 'Jericho', fee: 130 },
+      { name: 'Makadara', fee: 130 },
+      { name: 'Viwandani', fee: 150 },
+      { name: 'Industrial Area', fee: 160 }
+    ]
+  },
+  
+  // Mombasa County
+  'Mombasa': {
+    towns: [
+      { name: 'Mombasa Island', fee: 200 },
+      { name: 'Nyali', fee: 180 },
+      { name: 'Bamburi', fee: 190 },
+      { name: 'Shanzu', fee: 200 },
+      { name: 'Kisauni', fee: 190 },
+      { name: 'Likoni', fee: 210 },
+      { name: 'Changamwe', fee: 200 },
+      { name: 'Port Reitz', fee: 210 },
+      { name: 'Miritini', fee: 200 },
+      { name: 'Mikindani', fee: 200 },
+      { name: 'Tudor', fee: 190 },
+      { name: 'Mtwapa', fee: 220 },
+      { name: 'Kilifi', fee: 250 },
+      { name: 'Diani', fee: 280 },
+      { name: 'Ukunda', fee: 270 },
+      { name: 'Bombolulu', fee: 190 },
+      { name: 'Magongo', fee: 200 },
+      { name: 'Mariakani', fee: 230 }
+    ]
+  },
+  
+  // Kisumu County
+  'Kisumu': {
+    towns: [
+      { name: 'Kisumu Central', fee: 180 },
+      { name: 'Milimani', fee: 170 },
+      { name: 'Kondele', fee: 160 },
+      { name: 'Manyatta', fee: 150 },
+      { name: 'Obunga', fee: 150 },
+      { name: 'Nyalenda', fee: 150 },
+      { name: 'Kibos', fee: 170 },
+      { name: 'Mamboleo', fee: 160 },
+      { name: 'Kisumu West', fee: 180 },
+      { name: 'Ahero', fee: 200 },
+      { name: 'Maseno', fee: 220 },
+      { name: 'Kombewa', fee: 230 }
+    ]
+  },
+  
+  // Kiambu County
+  'Kiambu': {
+    towns: [
+      { name: 'Kiambu Town', fee: 180 },
+      { name: 'Thika', fee: 200 },
+      { name: 'Limuru', fee: 190 },
+      { name: 'Ruiru', fee: 170 },
+      { name: 'Juja', fee: 180 },
+      { name: 'Githunguri', fee: 190 },
+      { name: 'Kikuyu', fee: 160 },
+      { name: 'Wangige', fee: 150 },
+      { name: 'Kabete', fee: 150 },
+      { name: 'Ndumberi', fee: 170 },
+      { name: 'Tigoni', fee: 200 }
+    ]
+  },
+  
+  // Nakuru County
+  'Nakuru': {
+    towns: [
+      { name: 'Nakuru Town', fee: 150 },
+      { name: 'Njoro', fee: 140 },
+      { name: 'Naivasha', fee: 180 },
+      { name: 'Gilgil', fee: 170 },
+      { name: 'Molo', fee: 160 },
+      { name: 'Subukia', fee: 170 },
+      { name: 'Bahati', fee: 150 },
+      { name: 'Rongai', fee: 160 },
+      { name: 'Salgaa', fee: 160 },
+      { name: 'Mai Mahiu', fee: 190 }
+    ]
+  },
+  
+  // Uasin Gishu County
+  'Uasin Gishu': {
+    towns: [
+      { name: 'Eldoret Town', fee: 220 },
+      { name: 'Langas', fee: 200 },
+      { name: 'Kapseret', fee: 210 },
+      { name: 'Huruma', fee: 200 },
+      { name: 'Kimumu', fee: 210 },
+      { name: 'Racecourse', fee: 200 },
+      { name: 'Moiben', fee: 230 },
+      { name: 'Soy', fee: 240 },
+      { name: 'Turbo', fee: 250 }
+    ]
+  },
+  
+  // Kakamega County
+  'Kakamega': {
+    towns: [
+      { name: 'Kakamega Town', fee: 200 },
+      { name: 'Mumias', fee: 210 },
+      { name: 'Butere', fee: 220 },
+      { name: 'Khayega', fee: 210 },
+      { name: 'Malava', fee: 220 },
+      { name: 'Lugari', fee: 230 },
+      { name: 'Matungu', fee: 210 },
+      { name: 'Navakholo', fee: 220 }
+    ]
+  },
+  
+  // Meru County
+  'Meru': {
+    towns: [
+      { name: 'Meru Town', fee: 230 },
+      { name: 'Maua', fee: 240 },
+      { name: 'Timau', fee: 250 },
+      { name: 'Nkubu', fee: 220 },
+      { name: 'Chuka', fee: 230 },
+      { name: 'Mutindwa', fee: 220 },
+      { name: 'Mikinduri', fee: 230 }
+    ]
+  },
+  
+  // Kilifi County
+  'Kilifi': {
+    towns: [
+      { name: 'Kilifi Town', fee: 250 },
+      { name: 'Malindi', fee: 270 },
+      { name: 'Watamu', fee: 280 },
+      { name: 'Mariakani', fee: 230 },
+      { name: 'Kaloleni', fee: 240 },
+      { name: 'Rabai', fee: 240 },
+      { name: 'Ganze', fee: 260 }
+    ]
+  },
+  
+  // Machakos County
+  'Machakos': {
+    towns: [
+      { name: 'Machakos Town', fee: 190 },
+      { name: 'Athi River', fee: 170 },
+      { name: 'Mavoko', fee: 170 },
+      { name: 'Kangundo', fee: 200 },
+      { name: 'Tala', fee: 200 },
+      { name: 'Matuu', fee: 210 },
+      { name: 'Masii', fee: 210 },
+      { name: 'Mbiuni', fee: 200 }
+    ]
+  },
+  
+  // Kajiado County
+  'Kajiado': {
+    towns: [
+      { name: 'Kajiado Town', fee: 200 },
+      { name: 'Ngong', fee: 150 },
+      { name: 'Ongata Rongai', fee: 140 },
+      { name: 'Kitengela', fee: 160 },
+      { name: 'Isinya', fee: 190 },
+      { name: 'Loitokitok', fee: 280 },
+      { name: 'Namanga', fee: 300 }
+    ]
+  },
+  
+  // Kericho County
+  'Kericho': {
+    towns: [
+      { name: 'Kericho Town', fee: 210 },
+      { name: 'Litein', fee: 220 },
+      { name: 'Londiani', fee: 210 },
+      { name: 'Kipkelion', fee: 220 },
+      { name: 'Sotik', fee: 230 },
+      { name: 'Bomet', fee: 230 }
+    ]
+  },
+  
+  // Nyeri County
+  'Nyeri': {
+    towns: [
+      { name: 'Nyeri Town', fee: 210 },
+      { name: 'Karatina', fee: 200 },
+      { name: 'Othaya', fee: 220 },
+      { name: 'Mukurweini', fee: 210 },
+      { name: 'Tetu', fee: 220 },
+      { name: 'Mathira', fee: 210 }
+    ]
+  },
+  
+  // Muranga County
+  'Muranga': {
+    towns: [
+      { name: 'Muranga Town', fee: 190 },
+      { name: 'Kangema', fee: 200 },
+      { name: 'Kigumo', fee: 200 },
+      { name: 'Makuyu', fee: 190 },
+      { name: 'Maragua', fee: 190 },
+      { name: 'Kenol', fee: 180 }
+    ]
+  },
+  
+  // Kirinyaga County
+  'Kirinyaga': {
+    towns: [
+      { name: 'Kerugoya', fee: 210 },
+      { name: 'Kutus', fee: 200 },
+      { name: 'Sagana', fee: 190 },
+      { name: 'Mwea', fee: 210 },
+      { name: 'Wanguru', fee: 210 }
+    ]
+  },
+  
+  // Embu County
+  'Embu': {
+    towns: [
+      { name: 'Embu Town', fee: 220 },
+      { name: 'Runyenjes', fee: 220 },
+      { name: 'Siakago', fee: 230 },
+      { name: 'Manyatta', fee: 220 }
+    ]
+  },
+  
+  // Kitui County
+  'Kitui': {
+    towns: [
+      { name: 'Kitui Town', fee: 230 },
+      { name: 'Mwingi', fee: 240 },
+      { name: 'Mutomo', fee: 250 },
+      { name: 'Kyuso', fee: 250 }
+    ]
+  },
+  
+  // Makueni County
+  'Makueni': {
+    towns: [
+      { name: 'Wote', fee: 220 },
+      { name: 'Makindu', fee: 230 },
+      { name: 'Kibwezi', fee: 240 },
+      { name: 'Mtito Andei', fee: 260 }
+    ]
+  },
+  
+  // Nyandarua County
+  'Nyandarua': {
+    towns: [
+      { name: 'Ol Kalou', fee: 210 },
+      { name: 'Njabini', fee: 210 },
+      { name: 'Engineer', fee: 210 },
+      { name: 'Kinamba', fee: 220 },
+      { name: 'Mairo Inya', fee: 220 }
+    ]
+  },
+  
+  // Laikipia County
+  'Laikipia': {
+    towns: [
+      { name: 'Nanyuki', fee: 230 },
+      { name: 'Rumuruti', fee: 240 },
+      { name: 'Doldol', fee: 260 },
+      { name: 'Nyahururu', fee: 220 }
+    ]
+  },
+  
+  // Narok County
+  'Narok': {
+    towns: [
+      { name: 'Narok Town', fee: 240 },
+      { name: 'Kilgoris', fee: 250 },
+      { name: 'Mai Mahiu', fee: 200 },
+      { name: 'Suswa', fee: 220 }
+    ]
+  },
+  
+  // Trans Nzoia County
+  'Trans Nzoia': {
+    towns: [
+      { name: 'Kitale', fee: 240 },
+      { name: 'Kiminini', fee: 230 },
+      { name: 'Saboti', fee: 240 },
+      { name: 'Endebess', fee: 250 }
+    ]
+  },
+  
+  // Bungoma County
+  'Bungoma': {
+    towns: [
+      { name: 'Bungoma Town', fee: 230 },
+      { name: 'Kimilili', fee: 240 },
+      { name: 'Webuye', fee: 230 },
+      { name: 'Chwele', fee: 240 },
+      { name: 'Malakisi', fee: 250 }
+    ]
+  },
+  
+  // Busia County
+  'Busia': {
+    towns: [
+      { name: 'Busia Town', fee: 240 },
+      { name: 'Malaba', fee: 250 },
+      { name: 'Nambale', fee: 240 },
+      { name: 'Port Victoria', fee: 250 }
+    ]
+  },
+  
+  // Vihiga County
+  'Vihiga': {
+    towns: [
+      { name: 'Mbale', fee: 220 },
+      { name: 'Luanda', fee: 220 },
+      { name: 'Luanda', fee: 220 },
+      { name: 'Chavakali', fee: 230 }
+    ]
+  },
+  
+  // Kisii County
+  'Kisii': {
+    towns: [
+      { name: 'Kisii Town', fee: 220 },
+      { name: 'Ogembo', fee: 230 },
+      { name: 'Keroka', fee: 230 },
+      { name: 'Tabaka', fee: 240 }
+    ]
+  },
+  
+  // Nyamira County
+  'Nyamira': {
+    towns: [
+      { name: 'Nyamira Town', fee: 220 },
+      { name: 'Keroka', fee: 230 },
+      { name: 'Nyansiongo', fee: 230 }
+    ]
+  },
+  
+  // Migori County
+  'Migori': {
+    towns: [
+      { name: 'Migori Town', fee: 240 },
+      { name: 'Kehancha', fee: 250 },
+      { name: 'Rongo', fee: 240 },
+      { name: 'Awendo', fee: 240 }
+    ]
+  },
+  
+  // Homa Bay County
+  'Homa Bay': {
+    towns: [
+      { name: 'Homa Bay Town', fee: 240 },
+      { name: 'Mbita', fee: 260 },
+      { name: 'Oyugis', fee: 250 },
+      { name: 'Kendu Bay', fee: 250 }
+    ]
+  },
+  
+  // Siaya County
+  'Siaya': {
+    towns: [
+      { name: 'Siaya Town', fee: 220 },
+      { name: 'Bondo', fee: 230 },
+      { name: 'Ugunja', fee: 220 },
+      { name: 'Ukwala', fee: 230 },
+      { name: 'Yala', fee: 220 }
+    ]
+  },
+  
+  // Garissa County
+  'Garissa': {
+    towns: [
+      { name: 'Garissa Town', fee: 350 },
+      { name: 'Dadaab', fee: 380 },
+      { name: 'Masalani', fee: 360 }
+    ]
+  },
+  
+  // Wajir County
+  'Wajir': {
+    towns: [
+      { name: 'Wajir Town', fee: 380 },
+      { name: 'Habaswein', fee: 400 },
+      { name: 'Buna', fee: 420 }
+    ]
+  },
+  
+  // Mandera County
+  'Mandera': {
+    towns: [
+      { name: 'Mandera Town', fee: 400 },
+      { name: 'El Wak', fee: 420 },
+      { name: 'Rhamu', fee: 410 }
+    ]
+  },
+  
+  // Marsabit County
+  'Marsabit': {
+    towns: [
+      { name: 'Marsabit Town', fee: 380 },
+      { name: 'Moyale', fee: 420 },
+      { name: 'Loiyangalani', fee: 440 },
+      { name: 'North Horr', fee: 450 }
+    ]
+  },
+  
+  // Isiolo County
+  'Isiolo': {
+    towns: [
+      { name: 'Isiolo Town', fee: 280 },
+      { name: 'Merti', fee: 300 },
+      { name: 'Garbatulla', fee: 300 },
+      { name: 'Kinna', fee: 290 }
+    ]
+  },
+  
+  // Samburu County
+  'Samburu': {
+    towns: [
+      { name: 'Maralal', fee: 300 },
+      { name: 'Baragoi', fee: 350 },
+      { name: 'Archers Post', fee: 320 },
+      { name: 'South Horr', fee: 360 }
+    ]
+  },
+  
+  // Turkana County
+  'Turkana': {
+    towns: [
+      { name: 'Lodwar', fee: 380 },
+      { name: 'Lokitaung', fee: 420 },
+      { name: 'Kakuma', fee: 400 },
+      { name: 'Lokichar', fee: 410 }
+    ]
+  },
+  
+  // West Pokot County
+  'West Pokot': {
+    towns: [
+      { name: 'Kapenguria', fee: 280 },
+      { name: 'Makutano', fee: 270 },
+      { name: 'Ortum', fee: 280 },
+      { name: 'Kacheliba', fee: 320 }
+    ]
+  },
+  
+  // Baringo County
+  'Baringo': {
+    towns: [
+      { name: 'Kabarnet', fee: 250 },
+      { name: 'Eldama Ravine', fee: 240 },
+      { name: 'Mogotio', fee: 240 },
+      { name: 'Marigat', fee: 260 }
+    ]
+  },
+  
+  // Elgeyo Marakwet County
+  'Elgeyo Marakwet': {
+    towns: [
+      { name: 'Iten', fee: 250 },
+      { name: 'Kapsowar', fee: 260 },
+      { name: 'Tambach', fee: 250 },
+      { name: 'Chebiemit', fee: 260 }
+    ]
+  },
+  
+  // Nandi County
+  'Nandi': {
+    towns: [
+      { name: 'Kapsabet', fee: 220 },
+      { name: 'Nandi Hills', fee: 230 },
+      { name: 'Mosoriot', fee: 220 },
+      { name: 'Tinderet', fee: 240 }
+    ]
+  },
+  
+  // Lamu County
+  'Lamu': {
+    towns: [
+      { name: 'Lamu Town', fee: 350 },
+      { name: 'Mpeketoni', fee: 340 },
+      { name: 'Witu', fee: 330 },
+      { name: 'Faza', fee: 380 }
+    ]
+  },
+  
+  // Tana River County
+  'Tana River': {
+    towns: [
+      { name: 'Hola', fee: 300 },
+      { name: 'Garsen', fee: 310 },
+      { name: 'Madogo', fee: 300 }
+    ]
+  },
+  
+  // Taita Taveta County
+  'Taita Taveta': {
+    towns: [
+      { name: 'Voi', fee: 260 },
+      { name: 'Wundanyi', fee: 270 },
+      { name: 'Taveta', fee: 300 },
+      { name: 'Mwatate', fee: 270 }
+    ]
+  },
+  
+  // Kwale County
+  'Kwale': {
+    towns: [
+      { name: 'Kwale Town', fee: 250 },
+      { name: 'Msambweni', fee: 270 },
+      { name: 'Lungalunga', fee: 280 },
+      { name: 'Kinango', fee: 260 }
+    ]
+  },
+  
+  // Kitui County (additional)
+  'Kitui': {
+    towns: [
+      { name: 'Kitui Town', fee: 230 },
+      { name: 'Mwingi', fee: 240 },
+      { name: 'Mutomo', fee: 250 },
+      { name: 'Kyuso', fee: 250 },
+      { name: 'Kanyangi', fee: 240 },
+      { name: 'Zombe', fee: 250 },
+      { name: 'Endau', fee: 250 }
+    ]
+  },
+  
+  // Tharaka Nithi County
+  'Tharaka Nithi': {
+    towns: [
+      { name: 'Chuka', fee: 230 },
+      { name: 'Marimanti', fee: 240 },
+      { name: 'Kathwana', fee: 230 },
+      { name: 'Tunyai', fee: 240 }
+    ]
   }
 };
 
@@ -92,32 +629,38 @@ const Cart = () => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Real delivery data
-  const [locations, setLocations] = useState({});
+  // Delivery state
   const [selectedCounty, setSelectedCounty] = useState('');
-  const [selectedPickupStation, setSelectedPickupStation] = useState('');
-  const [deliveryFees, setDeliveryFees] = useState(0);
+  const [selectedTown, setSelectedTown] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [pickupDate, setPickupDate] = useState('');
   const [readyDate, setReadyDate] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
 
-  // Load locations on mount
-  useEffect(() => {
-    const loadLocations = async () => {
-      const data = await fetchLocations();
-      setLocations(data);
-      const firstCounty = Object.keys(data)[0];
-      setSelectedCounty(firstCounty);
-      const firstStation = data[firstCounty]?.pickupStations[0] || '';
-      setSelectedPickupStation(firstStation);
-      setDeliveryFees(data[firstCounty]?.deliveryFees[firstStation] || 0);
-    };
-    loadLocations();
-  }, []);
+  // Get available towns for selected county
+  const getTownsForCounty = () => {
+    if (!selectedCounty) return [];
+    return KENYAN_LOCATIONS[selectedCounty]?.towns || [];
+  };
 
-  // Calculate delivery dates (real)
+  // Handle county change
+  const handleCountyChange = (county) => {
+    setSelectedCounty(county);
+    setSelectedTown('');
+    setDeliveryFee(0);
+  };
+
+  // Handle town change
+  const handleTownChange = (townName) => {
+    setSelectedTown(townName);
+    const towns = getTownsForCounty();
+    const selectedTownData = towns.find(t => t.name === townName);
+    setDeliveryFee(selectedTownData?.fee || 0);
+  };
+
+  // Calculate delivery dates
   useEffect(() => {
-    if (selectedPickupStation) {
+    if (selectedTown) {
       const today = new Date();
       const pickup = new Date(today);
       pickup.setDate(today.getDate() + 2);
@@ -127,7 +670,7 @@ const Cart = () => {
       setPickupDate(pickup.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }));
       setReadyDate(ready.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }));
     }
-  }, [selectedPickupStation]);
+  }, [selectedTown]);
 
   // Real-time countdown
   useEffect(() => {
@@ -151,20 +694,6 @@ const Cart = () => {
     const timer = setInterval(updateCountdown, 60000);
     return () => clearInterval(timer);
   }, []);
-
-  // Handle county change
-  const handleCountyChange = (county) => {
-    setSelectedCounty(county);
-    const stations = locations[county]?.pickupStations || [];
-    setSelectedPickupStation(stations[0] || '');
-    setDeliveryFees(locations[county]?.deliveryFees[stations[0]] || 0);
-  };
-
-  // Handle pickup station change
-  const handlePickupStationChange = (station) => {
-    setSelectedPickupStation(station);
-    setDeliveryFees(locations[selectedCounty]?.deliveryFees[station] || 0);
-  };
 
   // Format KES
   const formatKES = (amount) => {
@@ -197,8 +726,9 @@ const Cart = () => {
 
   // Handle clear cart
   const handleClearCart = () => {
-    if (window.confirm('Clear cart?')) {
+    if (window.confirm('Are you sure you want to clear your cart?')) {
       clearCart();
+      toast.success('Cart cleared');
     }
   };
 
@@ -229,15 +759,20 @@ const Cart = () => {
   // Handle order placement
   const handlePlaceOrder = () => {
     if (cart.items.length === 0) {
-      toast.error('Cart empty');
+      toast.error('Your cart is empty');
       return;
     }
 
-    // Save real delivery info
+    if (!selectedCounty || !selectedTown) {
+      toast.error('Please select delivery location');
+      return;
+    }
+
+    // Save delivery info
     localStorage.setItem('deliveryInfo', JSON.stringify({
       county: selectedCounty,
-      station: selectedPickupStation,
-      fees: deliveryFees,
+      town: selectedTown,
+      fee: deliveryFee,
       pickupDate,
       readyDate
     }));
@@ -247,9 +782,9 @@ const Cart = () => {
 
   // Get stock badge
   const getStockBadge = (item) => {
-    if (item.stockStatus === 'sold') {
+    if (item.stockStatus === 'sold' || (item.stockQuantity || 0) <= 0) {
       return { bg: 'bg-gradient-to-r from-red-600 to-pink-600', label: 'Sold Out', icon: <AlertCircle className="w-3 h-3" /> };
-    } else if (item.stockStatus === 'low') {
+    } else if ((item.stockQuantity || 0) <= 5) {
       return { bg: 'bg-gradient-to-r from-yellow-600 to-orange-600', label: 'Low Stock', icon: <AlertCircle className="w-3 h-3" /> };
     } else {
       return { bg: 'bg-gradient-to-r from-green-600 to-emerald-600', label: 'In Stock', icon: <CheckCircle className="w-3 h-3" /> };
@@ -258,7 +793,7 @@ const Cart = () => {
 
   const summary = getCartSummary();
   const subtotal = summary.subtotal;
-  const grandTotal = subtotal + deliveryFees;
+  const grandTotal = subtotal + deliveryFee;
 
   if (loading) {
     return (
@@ -287,15 +822,16 @@ const Cart = () => {
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
                 <ShoppingCart className="w-8 h-8 text-white" />
               </div>
-              <h2 className="mb-2 text-xl font-semibold text-white glow-text">Cart empty</h2>
+              <h2 className="mb-2 text-xl font-semibold text-white glow-text">Your cart is empty</h2>
+              <p className="mb-4 text-sm text-gray-400">Add some products to your cart to continue shopping</p>
               <Link 
                 to="/shop" 
-                className="group relative inline-flex items-center gap-2 px-6 py-3 mt-4 font-medium text-white transition-all rounded-full overflow-hidden"
+                className="group relative inline-flex items-center gap-2 px-6 py-3 mt-2 font-medium text-white transition-all rounded-full overflow-hidden"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
                 <span className="relative flex items-center gap-2">
-                  Shop Now
+                  Continue Shopping
                   <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Link>
@@ -318,24 +854,24 @@ const Cart = () => {
           <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
           <Link to="/shop" className="text-gray-400 hover:text-white transition-colors">Shop</Link>
           <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
-          <span className="font-medium text-white glow-text">Cart</span>
+          <span className="font-medium text-white glow-text">Shopping Cart</span>
         </nav>
 
-        <h1 className="mb-1 text-2xl font-bold text-white">Cart</h1>
-        <p className="mb-4 text-sm text-gray-400">{cart.items.length} items</p>
+        <h1 className="mb-1 text-2xl font-bold text-white">Shopping Cart</h1>
+        <p className="mb-4 text-sm text-gray-400">{cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}</p>
         
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Cart Items */}
           <div className="lg:col-span-2">
             <div className="overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
-                <h2 className="font-semibold text-white">Items ({cart.items.length})</h2>
+                <h2 className="font-semibold text-white">Cart Items ({cart.items.length})</h2>
                 <button 
                   onClick={handleClearCart}
                   className="flex items-center gap-1 px-2 py-1 text-xs text-red-500 transition-colors rounded hover:bg-red-500/10"
                 >
                   <Trash2 className="w-3 h-3" />
-                  Clear
+                  Clear Cart
                 </button>
               </div>
               
@@ -346,65 +882,74 @@ const Cart = () => {
                   const stockBadge = getStockBadge(item);
                   const images = item.images || [];
                   
+                  // Initialize image index if not set
                   if (selectedImageIndex[item.id] === undefined) {
-                    setSelectedImageIndex(prev => ({ ...prev, [item.id]: 0 }));
+                    setTimeout(() => {
+                      setSelectedImageIndex(prev => ({ ...prev, [item.id]: 0 }));
+                    }, 0);
                   }
                   
                   const currentImageIndex = selectedImageIndex[item.id] || 0;
                   const currentImage = images[currentImageIndex] || { url: FALLBACK_IMAGE };
                   
                   return (
-                    <div key={item.id} className="p-3 transition-colors hover:bg-white/5">
-                      <div className="flex gap-3">
-                        {/* Image with glow on hover */}
-                        <div className="relative flex-shrink-0 w-20 h-20 group/image">
-                          <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded opacity-0 group-hover/image:opacity-30 blur transition-opacity"></div>
-                          <img 
-                            src={getFullImageUrl(currentImage.url)} 
-                            alt={item.name}
-                            className="relative object-contain w-full h-full rounded cursor-pointer"
-                            onClick={() => handleImageClick(item, currentImageIndex)}
-                          />
+                    <div key={item.id} className="p-4 transition-colors hover:bg-white/5">
+                      <div className="flex gap-4">
+                        {/* Image with gallery */}
+                        <div className="relative flex-shrink-0">
+                          <div className="relative w-24 h-24 group/image">
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded opacity-0 group-hover/image:opacity-30 blur transition-opacity"></div>
+                            <img 
+                              src={getFullImageUrl(currentImage.url)} 
+                              alt={item.name}
+                              className="relative object-contain w-full h-full rounded cursor-pointer"
+                              onClick={() => handleImageClick(item, currentImageIndex)}
+                            />
+                          </div>
                           
-                          {/* Thumbnails row */}
+                          {/* Thumbnails */}
                           {images.length > 1 && (
-                            <div className="flex gap-1 mt-1">
+                            <div className="flex gap-1 mt-2">
                               {images.slice(0, 3).map((img, idx) => (
                                 <button
                                   key={idx}
                                   onClick={() => setSelectedImageIndex(prev => ({ ...prev, [item.id]: idx }))}
-                                  className={`w-5 h-5 rounded overflow-hidden border transition-all ${
+                                  className={`w-6 h-6 rounded overflow-hidden border transition-all ${
                                     currentImageIndex === idx 
                                       ? 'border-blue-500 ring-1 ring-blue-500/50' 
                                       : 'border-gray-700 hover:border-gray-600'
                                   }`}
                                 >
-                                  <img src={getFullImageUrl(img.url)} className="object-cover w-full h-full" />
+                                  <img 
+                                    src={getFullImageUrl(img.url)} 
+                                    alt={`${item.name} ${idx + 1}`}
+                                    className="object-cover w-full h-full"
+                                  />
                                 </button>
                               ))}
                             </div>
                           )}
                         </div>
                         
-                        {/* Details */}
+                        {/* Item Details */}
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between">
-                            <div>
+                            <div className="flex-1">
                               <h3 className="text-sm font-medium text-white truncate">{item.name}</h3>
                               <p className="text-xs text-gray-400">{formatKES(price)} each</p>
                               
                               {/* Stock Badge */}
-                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 mt-1 text-xs font-medium text-white rounded-full ${stockBadge.bg}`}>
+                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 mt-2 text-xs font-medium text-white rounded-full ${stockBadge.bg}`}>
                                 {stockBadge.icon}
                                 {stockBadge.label}
                               </div>
                               
-                              {/* Quantity */}
-                              <div className="flex items-center gap-2 mt-2">
+                              {/* Quantity Controls */}
+                              <div className="flex items-center gap-3 mt-3">
                                 <div className="flex items-center overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
                                   <button 
                                     onClick={() => handleQuantityChange(item, -1)}
-                                    className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                                    className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                                     disabled={item.quantity <= 1}
                                   >
                                     <Minus className="w-3 h-3" />
@@ -414,19 +959,20 @@ const Cart = () => {
                                   </span>
                                   <button 
                                     onClick={() => handleQuantityChange(item, 1)}
-                                    className="px-1.5 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                                    className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
                                     disabled={item.quantity >= (item.stockQuantity || 10)}
                                   >
                                     <Plus className="w-3 h-3" />
                                   </button>
                                 </div>
-                                <span className="text-xs font-medium text-blue-500">= {formatKES(itemTotal)}</span>
+                                <span className="text-sm font-medium text-blue-400">= {formatKES(itemTotal)}</span>
                               </div>
                             </div>
                             
                             <button 
                               onClick={() => handleRemoveItem(item)}
-                              className="text-gray-500 transition-colors hover:text-red-500"
+                              className="p-1 text-gray-500 transition-colors rounded hover:text-red-500 hover:bg-red-500/10"
+                              title="Remove item"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -440,127 +986,145 @@ const Cart = () => {
             </div>
             
             <div className="mt-4">
-              <Link to="/shop" className="text-xs text-blue-500 hover:text-blue-400 transition-colors">
-                ← Continue Shopping
+              <Link to="/shop" className="inline-flex items-center text-xs text-blue-500 hover:text-blue-400 transition-colors">
+                <ChevronLeft className="w-3 h-3 mr-1" />
+                Continue Shopping
               </Link>
             </div>
           </div>
           
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky p-4 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 top-4">
-              <h2 className="flex items-center gap-2 mb-4 text-base font-semibold text-white">
-                <Package className="w-4 h-4 text-blue-500" />
+            <div className="sticky p-5 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 top-4">
+              <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                <Package className="w-5 h-5 text-blue-500" />
                 Order Summary
               </h2>
               
-              {/* Items */}
-              <div className="mb-4 space-y-2 text-xs">
+              {/* Items List */}
+              <div className="mb-4 space-y-2 text-sm max-h-60 overflow-y-auto custom-scrollbar">
                 {cart.items.map((item) => {
                   const price = item.discountPrice || item.price || 0;
                   return (
                     <div key={item.id} className="flex justify-between">
-                      <span className="text-gray-400 truncate max-w-[150px]">{item.name} × {item.quantity}</span>
+                      <span className="text-gray-400 truncate max-w-[150px]">
+                        {item.name} <span className="text-gray-500">×{item.quantity}</span>
+                      </span>
                       <span className="font-medium text-white">{formatKES(price * item.quantity)}</span>
                     </div>
                   );
                 })}
               </div>
               
-              {/* Delivery - with glow */}
-              <div className="relative p-3 mb-4 text-xs overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-blue-500/20">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-20 blur"></div>
+              {/* Delivery Selection */}
+              <div className="relative p-4 mb-4 overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-blue-500/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
                 
                 <div className="relative">
-                  <h3 className="flex items-center gap-1 mb-2 font-medium text-blue-500">
-                    <Truck className="w-3 h-3" />
-                    Delivery
+                  <h3 className="flex items-center gap-1 mb-3 font-medium text-blue-500">
+                    <Truck className="w-4 h-4" />
+                    Delivery Location
                   </h3>
                   
-                  <div className="mb-2">
+                  {/* County Selection */}
+                  <div className="mb-3">
+                    <label className="block mb-1 text-xs text-gray-400">County</label>
                     <select
                       value={selectedCounty}
                       onChange={(e) => handleCountyChange(e.target.value)}
-                      className="w-full px-2 py-1 text-xs text-white rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                      className="w-full px-3 py-2 text-sm text-white rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none"
                     >
-                      {Object.keys(locations).map(county => (
-                        <option key={county} value={county} className="bg-gray-800">{county}</option>
+                      <option value="" className="bg-gray-800">Select County</option>
+                      {Object.keys(KENYAN_LOCATIONS).sort().map(county => (
+                        <option key={county} value={county} className="bg-gray-800">
+                          {county}
+                        </option>
                       ))}
                     </select>
                   </div>
                   
-                  <div className="mb-2">
+                  {/* Town Selection */}
+                  <div className="mb-3">
+                    <label className="block mb-1 text-xs text-gray-400">Town/Station</label>
                     <select
-                      value={selectedPickupStation}
-                      onChange={(e) => handlePickupStationChange(e.target.value)}
-                      className="w-full px-2 py-1 text-xs text-white rounded bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50"
+                      value={selectedTown}
+                      onChange={(e) => handleTownChange(e.target.value)}
+                      disabled={!selectedCounty}
+                      className="w-full px-3 py-2 text-sm text-white rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {locations[selectedCounty]?.pickupStations.map(station => (
-                        <option key={station} value={station} className="bg-gray-800">{station}</option>
+                      <option value="" className="bg-gray-800">Select Town</option>
+                      {getTownsForCounty().map(town => (
+                        <option key={town.name} value={town.name} className="bg-gray-800">
+                          {town.name} - {formatKES(town.fee)}
+                        </option>
                       ))}
                     </select>
                   </div>
                   
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Fee:</span>
-                      <span className="font-medium text-blue-500">{formatKES(deliveryFees)}</span>
-                    </div>
-                    <div className="text-gray-400">
-                      Pickup: {pickupDate} - {readyDate}
-                    </div>
-                    {timeLeft !== 'Expired' && (
-                      <div className="p-1 text-xs text-yellow-500 rounded bg-yellow-500/10">
-                        <Clock className="inline w-3 h-3 mr-1" />
-                        Order in {timeLeft}
+                  {/* Delivery Info */}
+                  {selectedTown && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-400">Delivery Fee:</span>
+                        <span className="font-medium text-blue-500">{formatKES(deliveryFee)}</span>
                       </div>
-                    )}
-                  </div>
+                      <div className="text-xs text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Pickup: {pickupDate} - Ready: {readyDate}
+                      </div>
+                      {timeLeft !== 'Expired' && (
+                        <div className="p-2 text-xs text-yellow-500 rounded bg-yellow-500/10 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Order within {timeLeft} for this delivery window
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
-                  <div className="flex items-center gap-1 mt-2 text-green-500">
+                  {/* Returns Info */}
+                  <div className="flex items-center gap-1 mt-3 text-xs text-green-500">
                     <RefreshCw className="w-3 h-3" />
-                    <span className="text-xs">Easy Returns</span>
+                    <span>Free returns within 7 days</span>
                   </div>
                 </div>
               </div>
               
               {/* Totals */}
-              <div className="pt-3 space-y-2 text-sm border-t border-gray-700">
-                <div className="flex justify-between">
+              <div className="pt-4 space-y-3 border-t border-gray-700">
+                <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal</span>
                   <span className="text-white">{formatKES(subtotal)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Delivery</span>
-                  <span className="text-blue-500">{formatKES(deliveryFees)}</span>
+                  <span className="text-blue-500">{formatKES(deliveryFee)}</span>
                 </div>
-                <div className="pt-2 mt-2 border-t border-gray-700">
-                  <div className="flex justify-between font-bold">
+                <div className="pt-3 mt-3 border-t border-gray-700">
+                  <div className="flex justify-between text-lg font-bold">
                     <span className="text-white">Total</span>
                     <span className="text-blue-500 glow-text">{formatKES(grandTotal)}</span>
                   </div>
                 </div>
               </div>
               
-              {/* Place Order */}
+              {/* Place Order Button */}
               <button
                 onClick={handlePlaceOrder}
-                disabled={cart.items.length === 0}
-                className="group relative w-full py-2 mt-4 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
+                disabled={cart.items.length === 0 || !selectedTown}
+                className="group relative w-full py-3 mt-5 text-sm font-medium text-white transition-all rounded-full overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
                 <span className="relative flex items-center justify-center gap-2">
-                  Place Order
+                  Proceed to Checkout
                   <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               </button>
               
-              {/* Security */}
-              <div className="flex items-center gap-1 mt-3 text-xs text-blue-500">
+              {/* Security Note */}
+              <div className="flex items-center justify-center gap-1 mt-3 text-xs text-blue-500">
                 <Shield className="w-3 h-3" />
-                <span>Secure checkout</span>
+                <span>Secure checkout · 100% protected</span>
               </div>
             </div>
           </div>
@@ -570,7 +1134,7 @@ const Cart = () => {
       {/* Lightbox Modal */}
       {lightboxOpen && lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl">
-          <div className="relative w-4/5 max-w-2xl">
+          <div className="relative w-4/5 max-w-4xl">
             {/* Close button */}
             <button
               onClick={closeLightbox}
@@ -603,17 +1167,35 @@ const Cart = () => {
               <img 
                 src={getFullImageUrl(lightboxImages[lightboxIndex]?.url)} 
                 alt={selectedProduct?.name || 'Product'} 
-                className="w-full"
+                className="w-full h-auto max-h-[80vh] object-contain"
               />
               
               {/* Image counter */}
-              <div className="absolute px-2 py-1 text-xs font-medium text-white rounded-full bottom-2 right-2 bg-gradient-to-r from-blue-600 to-purple-600">
+              <div className="absolute px-3 py-1 text-xs font-medium text-white rounded-full bottom-4 right-4 bg-gradient-to-r from-blue-600 to-purple-600">
                 {lightboxIndex + 1} / {lightboxImages.length}
               </div>
             </div>
           </div>
         </div>
       )}
+      
+      {/* Custom Scrollbar Styles */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(31, 41, 55, 0.5);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(59, 130, 246, 0.5);
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(59, 130, 246, 0.8);
+        }
+      `}</style>
     </div>
   );
 };

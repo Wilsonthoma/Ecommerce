@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - CORRECTED HEADINGS STYLED LIKE SCREENSHOT
+// src/pages/Home.jsx - WITH AOS 3D ANIMATIONS
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -6,6 +6,8 @@ import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
 import { clientProductService } from "../services/client/products";
 import { toast } from "react-hot-toast";
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 import { 
   FiChevronLeft, 
   FiChevronRight, 
@@ -204,6 +206,16 @@ const animationStyles = `
     animation: gradient 8s ease-in-out infinite;
   }
   
+  /* 3D Card Effects */
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card-3d-content {
+    transform: translateZ(20px);
+  }
+  
   @media (max-width: 768px) {
     .bg-fixed {
       background-attachment: scroll;
@@ -263,6 +275,23 @@ const Home = () => {
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState("all");
+
+  // Initialize AOS
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: false,
+      mirror: true,
+      offset: 50,
+      easing: 'ease-out-cubic',
+      anchorPlacement: 'top-bottom',
+    });
+    
+    // Refresh AOS when content loads
+    setTimeout(() => {
+      AOS.refresh();
+    }, 1000);
+  }, []);
 
   // Fetch all products
   const fetchProducts = async () => {
@@ -408,6 +437,11 @@ const Home = () => {
         fetchCategories()
       ]);
       setLoading(false);
+      
+      // Refresh AOS after data loads
+      setTimeout(() => {
+        AOS.refresh();
+      }, 500);
     };
     
     fetchAllData();
@@ -625,8 +659,13 @@ const Home = () => {
       {/* Top Bar - FIND STORE | SHOP ONLINE */}
       <TopBar />
 
-      {/* HERO SECTION */}
-      <div className="relative h-screen min-h-[800px] overflow-hidden">
+      {/* HERO SECTION - Fade In */}
+      <div 
+        className="relative h-screen min-h-[800px] overflow-hidden"
+        data-aos="fade-in"
+        data-aos-duration="1500"
+        data-aos-delay="200"
+      >
         <div className="absolute inset-0">
           <video
             ref={videoRef}
@@ -660,7 +699,12 @@ const Home = () => {
 
         <div className="relative z-10 flex items-center h-full">
           <div className="w-full px-6 mx-auto max-w-7xl">
-            <div className="max-w-2xl">
+            <div 
+              className="max-w-2xl"
+              data-aos="fade-right"
+              data-aos-duration="1200"
+              data-aos-delay="400"
+            >
               <h1 className="text-6xl font-bold leading-tight text-white md:text-7xl lg:text-8xl">
                 SpaceBuds
                 <span className="block text-5xl md:text-6xl lg:text-7xl text-gray-300">Pro</span>
@@ -674,7 +718,12 @@ const Home = () => {
                 TWS Earphones with Immersive Sound
               </p>
               
-              <div className="flex flex-wrap gap-6 mt-8">
+              <div 
+                className="flex flex-wrap gap-6 mt-8"
+                data-aos="fade-up"
+                data-aos-duration="1000"
+                data-aos-delay="600"
+              >
                 <button 
                   onClick={() => navigate('/product/spacebuds-pro')}
                   className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
@@ -699,26 +748,42 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUST STATS SECTION */}
+      {/* TRUST STATS SECTION - 3D Flip Cards */}
       <section className="py-16 bg-black border-b border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          {/* Header Image with Zoom Effect */}
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.trust}
               alt="Trusted by millions"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">TRUSTED BY MILLIONS</h2>
           </div>
           
           <div className="flex flex-wrap justify-center items-center gap-16 md:gap-24">
             {trustStats.map((stat, index) => (
-              <div key={index} className="text-center">
+              <div 
+                key={index} 
+                className="text-center"
+                data-aos="flip-left"
+                data-aos-duration="1200"
+                data-aos-delay={400 + (index * 150)}
+              >
                 <div className="stat-number">{stat.number}</div>
                 <div className="stat-label">{stat.label}</div>
               </div>
@@ -727,40 +792,61 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS SECTION */}
+      {/* FEATURED PRODUCTS SECTION - Cards with staggered animations */}
       <section className="py-20 bg-black">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          {/* Header Image with Zoom */}
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.featured}
               alt="Featured products"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">FEATURED PRODUCTS</h2>
           </div>
 
           {loadingFeatured ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                ></div>
               ))}
             </div>
           ) : featuredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {featuredProducts.slice(0, 4).map((product) => {
+              {featuredProducts.slice(0, 4).map((product, index) => {
                 const productId = product._id || product.id;
                 return (
                   <div 
                     key={productId} 
-                    className="cursor-pointer group"
+                    className="cursor-pointer group card-3d"
                     onClick={() => productId && handleProductClick(productId)}
+                    data-aos="flip-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
+                    data-aos-easing="ease-out-cubic"
                   >
-                    <ProductCard product={product} />
+                    <div className="card-3d-content">
+                      <ProductCard product={product} />
+                    </div>
                   </div>
                 );
               })}
@@ -773,38 +859,56 @@ const Home = () => {
         </div>
       </section>
 
-      {/* LATEST PRODUCTS SECTION */}
+      {/* LATEST PRODUCTS SECTION - Fade Right Animations */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.featured}
               alt="Latest products"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">JUST ARRIVED</h2>
           </div>
 
           {loadingLatest ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                ></div>
               ))}
             </div>
           ) : latestProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {latestProducts.slice(0, 4).map((product) => {
+              {latestProducts.slice(0, 4).map((product, index) => {
                 const productId = product._id || product.id;
                 return (
                   <div 
                     key={productId} 
-                    className="cursor-pointer group"
+                    className="cursor-pointer group card-3d"
                     onClick={() => productId && handleProductClick(productId)}
+                    data-aos="fade-right"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
                   >
                     <ProductCard product={product} />
                   </div>
@@ -819,27 +923,42 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CATEGORIES SECTION - HORIZONTAL SCROLLING CAROUSEL */}
+      {/* CATEGORIES SECTION - 3D Rotating Cards */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.categories}
               alt="Shop by category"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">SHOP BY CATEGORY</h2>
           </div>
           
           {loadingCategories ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                ></div>
               ))}
             </div>
           ) : displayCategories.length > 0 ? (
@@ -853,10 +972,13 @@ const Home = () => {
                 {displayCategories.map((category, index) => (
                   <div 
                     key={category.id || index} 
-                    className="flex-shrink-0 w-72 cursor-pointer group"
+                    className="flex-shrink-0 w-72 cursor-pointer group card-3d"
                     onClick={() => navigate(category.link)}
                     onMouseEnter={() => setHoveredCategory(index)}
                     onMouseLeave={() => setHoveredCategory(null)}
+                    data-aos="rotate-in-down-right"
+                    data-aos-duration="1200"
+                    data-aos-delay={400 + (index * 100)}
                   >
                     <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
                       {/* Glow Effect */}
@@ -910,7 +1032,12 @@ const Home = () => {
           
           {/* View All Categories Link */}
           {displayCategories.length > 0 && (
-            <div className="mt-8 text-center">
+            <div 
+              className="mt-8 text-center"
+              data-aos="fade-up"
+              data-aos-duration="1000"
+              data-aos-delay="800"
+            >
               <button 
                 onClick={() => navigate('/shop')}
                 className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white transition-colors border border-gray-700 rounded-full hover:bg-white/10"
@@ -923,38 +1050,56 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TRENDING PRODUCTS SECTION */}
+      {/* TRENDING PRODUCTS SECTION - Slide In Left */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.featured}
               alt="Trending products"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">TRENDING NOW</h2>
           </div>
 
           {loadingTrending ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-80 bg-gray-900 rounded animate-pulse"></div>
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                ></div>
               ))}
             </div>
           ) : trendingProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {trendingProducts.slice(0, 4).map((product) => {
+              {trendingProducts.slice(0, 4).map((product, index) => {
                 const productId = product._id || product.id;
                 return (
                   <div 
                     key={productId} 
-                    className="cursor-pointer group"
+                    className="cursor-pointer group card-3d"
                     onClick={() => productId && handleProductClick(productId)}
+                    data-aos="slide-left"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
                   >
                     <ProductCard product={product} />
                   </div>
@@ -969,26 +1114,43 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS SECTION */}
+      {/* TESTIMONIALS SECTION - Fade Up with Delay */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.testimonials}
               alt="What people say about us"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">HEAR WHAT THEY ARE SAYING</h2>
           </div>
           
           <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="p-6 bg-gray-900/50 rounded-lg">
+              <div 
+                key={index} 
+                className="p-6 transition-transform duration-300 bg-gray-900/50 rounded-lg hover:scale-105"
+                data-aos="fade-up"
+                data-aos-duration="1000"
+                data-aos-delay={400 + (index * 150)}
+                data-aos-easing="ease-out-back"
+              >
                 <div className="flex items-center gap-4 mb-4">
                   <img 
                     src={testimonial.image}
@@ -1013,24 +1175,39 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FLASH SALE SECTION */}
+      {/* FLASH SALE SECTION - Zoom In Cards */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           {/* Header Image */}
-          <div className="relative w-full mb-12 overflow-hidden rounded-2xl h-96">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
             <img 
               src={categoryHeaderImages.flashSale}
               alt="Flash sale"
-              className="object-cover w-full h-full"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
           
-          <div className="section-header-container">
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+          >
             <h2 className="section-title">FLASH SALE</h2>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row">
+          <div 
+            className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row"
+            data-aos="fade-left"
+            data-aos-duration="1000"
+            data-aos-delay="400"
+          >
             <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
             <button 
               onClick={() => navigate('/shop?sort=discount')}
@@ -1048,16 +1225,22 @@ const Home = () => {
             >
               {loadingFlashSale ? (
                 [...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"></div>
+                  <div 
+                    key={i} 
+                    className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"
+                  ></div>
                 ))
               ) : flashSaleProducts.length > 0 ? (
-                flashSaleProducts.slice(0, 8).map((product) => {
+                flashSaleProducts.slice(0, 8).map((product, index) => {
                   const productId = product._id || product.id;
                   return (
                     <div 
                       key={`flash-${productId}`} 
                       className="flex-shrink-0 w-48 cursor-pointer group"
                       onClick={() => productId && handleProductClick(productId)}
+                      data-aos="zoom-in-up"
+                      data-aos-duration="1000"
+                      data-aos-delay={500 + (index * 100)}
                     >
                       <ProductCard product={product} />
                     </div>

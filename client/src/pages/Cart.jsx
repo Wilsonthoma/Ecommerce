@@ -802,7 +802,7 @@ const Cart = () => {
         <div className="max-w-6xl px-4 py-8 mx-auto">
           <div className="animate-pulse">
             <div className="w-32 h-6 mb-4 bg-gray-700 rounded"></div>
-            <div className="p-4 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+            <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
               <div className="h-40 bg-gray-700 rounded"></div>
             </div>
           </div>
@@ -816,7 +816,7 @@ const Cart = () => {
       <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
         <style>{animationStyles}</style>
         <div className="max-w-6xl px-4 py-8 mx-auto text-center">
-          <div className="relative p-8 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+          <div className="relative p-8 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-20 blur-xl"></div>
             <div className="relative">
               <div className="flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
@@ -826,13 +826,13 @@ const Cart = () => {
               <p className="mb-4 text-sm text-gray-400">Add some products to your cart to continue shopping</p>
               <Link 
                 to="/shop" 
-                className="group relative inline-flex items-center gap-2 px-6 py-3 mt-2 font-medium text-white transition-all rounded-full overflow-hidden"
+                className="relative inline-flex items-center gap-2 px-6 py-3 mt-2 overflow-hidden font-medium text-white transition-all rounded-full group"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
                 <span className="relative flex items-center gap-2">
                   Continue Shopping
-                  <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </span>
               </Link>
             </div>
@@ -850,9 +850,9 @@ const Cart = () => {
       <div className="max-w-6xl px-3 py-6 mx-auto">
         {/* Breadcrumbs */}
         <nav className="flex items-center mb-4 text-xs">
-          <Link to="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
+          <Link to="/" className="text-gray-400 transition-colors hover:text-white">Home</Link>
           <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
-          <Link to="/shop" className="text-gray-400 hover:text-white transition-colors">Shop</Link>
+          <Link to="/shop" className="text-gray-400 transition-colors hover:text-white">Shop</Link>
           <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
           <span className="font-medium text-white glow-text">Shopping Cart</span>
         </nav>
@@ -863,7 +863,7 @@ const Cart = () => {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+            <div className="overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
                 <h2 className="font-semibold text-white">Cart Items ({cart.items.length})</h2>
                 <button 
@@ -946,7 +946,7 @@ const Cart = () => {
                               
                               {/* Quantity Controls */}
                               <div className="flex items-center gap-3 mt-3">
-                                <div className="flex items-center overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+                                <div className="flex items-center overflow-hidden border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
                                   <button 
                                     onClick={() => handleQuantityChange(item, -1)}
                                     className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
@@ -986,7 +986,7 @@ const Cart = () => {
             </div>
             
             <div className="mt-4">
-              <Link to="/shop" className="inline-flex items-center text-xs text-blue-500 hover:text-blue-400 transition-colors">
+              <Link to="/shop" className="inline-flex items-center text-xs text-blue-500 transition-colors hover:text-blue-400">
                 <ChevronLeft className="w-3 h-3 mr-1" />
                 Continue Shopping
               </Link>
@@ -995,14 +995,14 @@ const Cart = () => {
           
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="sticky p-5 border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 top-4">
+            <div className="sticky p-5 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 top-4">
               <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
                 <Package className="w-5 h-5 text-blue-500" />
                 Order Summary
               </h2>
               
               {/* Items List */}
-              <div className="mb-4 space-y-2 text-sm max-h-60 overflow-y-auto custom-scrollbar">
+              <div className="mb-4 space-y-2 overflow-y-auto text-sm max-h-60 custom-scrollbar">
                 {cart.items.map((item) => {
                   const price = item.discountPrice || item.price || 0;
                   return (
@@ -1032,7 +1032,7 @@ const Cart = () => {
                     <select
                       value={selectedCounty}
                       onChange={(e) => handleCountyChange(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-white rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg outline-none bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
                     >
                       <option value="" className="bg-gray-800">Select County</option>
                       {Object.keys(KENYAN_LOCATIONS).sort().map(county => (
@@ -1050,7 +1050,7 @@ const Cart = () => {
                       value={selectedTown}
                       onChange={(e) => handleTownChange(e.target.value)}
                       disabled={!selectedCounty}
-                      className="w-full px-3 py-2 text-sm text-white rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg outline-none bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <option value="" className="bg-gray-800">Select Town</option>
                       {getTownsForCounty().map(town => (
@@ -1068,12 +1068,12 @@ const Cart = () => {
                         <span className="text-gray-400">Delivery Fee:</span>
                         <span className="font-medium text-blue-500">{formatKES(deliveryFee)}</span>
                       </div>
-                      <div className="text-xs text-gray-400 flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Clock className="w-3 h-3" />
                         Pickup: {pickupDate} - Ready: {readyDate}
                       </div>
                       {timeLeft !== 'Expired' && (
-                        <div className="p-2 text-xs text-yellow-500 rounded bg-yellow-500/10 flex items-center gap-1">
+                        <div className="flex items-center gap-1 p-2 text-xs text-yellow-500 rounded bg-yellow-500/10">
                           <Clock className="w-3 h-3" />
                           Order within {timeLeft} for this delivery window
                         </div>
@@ -1111,13 +1111,13 @@ const Cart = () => {
               <button
                 onClick={handlePlaceOrder}
                 disabled={cart.items.length === 0 || !selectedTown}
-                className="group relative w-full py-3 mt-5 text-sm font-medium text-white transition-all rounded-full overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative w-full py-3 mt-5 overflow-hidden text-sm font-medium text-white transition-all rounded-full group disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
                 <span className="relative flex items-center justify-center gap-2">
                   Proceed to Checkout
-                  <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </span>
               </button>
               
@@ -1141,7 +1141,7 @@ const Cart = () => {
               className="absolute p-2 transition-all rounded-full shadow-lg -right-2 -top-12 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] group sm:-right-12 sm:-top-12"
             >
               <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-pink-600 rounded-full opacity-0 group-hover:opacity-50 blur transition-opacity"></div>
-              <X className="relative w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
+              <X className="relative w-5 h-5 text-gray-400 transition-colors group-hover:text-white" />
             </button>
 
             {/* Navigation */}
@@ -1151,19 +1151,19 @@ const Cart = () => {
                   onClick={() => navigateLightbox('prev')}
                   className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <ChevronLeft className="w-5 h-5 text-gray-400 transition-colors group-hover:text-blue-500" />
                 </button>
                 <button
                   onClick={() => navigateLightbox('next')}
                   className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronRightIcon className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <ChevronRightIcon className="w-5 h-5 text-gray-400 transition-colors group-hover:text-blue-500" />
                 </button>
               </>
             )}
 
             {/* Image */}
-            <div className="relative overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+            <div className="relative overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
               <img 
                 src={getFullImageUrl(lightboxImages[lightboxIndex]?.url)} 
                 alt={selectedProduct?.name || 'Product'} 

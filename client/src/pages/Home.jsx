@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - UNIQUE BACKGROUNDS WITH BEAUTIFUL GRADIENTS
+// src/pages/Home.jsx - TECH VIDEO + BLACK GRADIENT BORDERS
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { Link } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -163,7 +163,7 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // VIDEO AUTOPLAY - E-COMMERCE RELATED VIDEO
+  // VIDEO AUTOPLAY - TECH/ELECTRONICS VIDEO
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -178,7 +178,7 @@ const Home = () => {
         await video.play();
         setVideoPlaying(true);
         setVideoError(false);
-        console.log("✅ Video playing");
+        console.log("✅ Tech video playing");
       } catch (err) {
         console.log("❌ Video autoplay failed:", err);
         setVideoPlaying(false);
@@ -393,7 +393,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* HERO SECTION - E-commerce video background with gradient */}
+      {/* HERO SECTION - Tech/Electronics video background */}
       <div className="relative h-screen min-h-[800px] overflow-hidden">
         <div className="absolute inset-0">
           <video
@@ -403,11 +403,13 @@ const Home = () => {
             playsInline
             autoPlay
             preload="auto"
-            className="object-cover w-full h-full opacity-70"
+            className="object-cover w-full h-full opacity-80"
             poster={sectionImages.hero}
           >
-            <source src="https://videos.pexels.com/video-files/5639396/5639396-uhd_2732_1440_25fps.mp4" type="video/mp4" />
-            <source src="https://videos.pexels.com/video-files/5639395/5639395-uhd_2732_1440_25fps.mp4" type="video/mp4" />
+            {/* Tech/Electronics videos */}
+            <source src="https://videos.pexels.com/video-files/5774962/5774962-uhd_2732_1440_25fps.mp4" type="video/mp4" />
+            <source src="https://videos.pexels.com/video-files/5774982/5774982-uhd_2732_1440_25fps.mp4" type="video/mp4" />
+            <source src="https://videos.pexels.com/video-files/5775005/5775005-uhd_2732_1440_25fps.mp4" type="video/mp4" />
           </video>
           
           {/* Beautiful gradient overlay */}
@@ -416,6 +418,9 @@ const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
         </div>
+
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
 
         {!videoError && (
           <button
@@ -481,8 +486,11 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUSTED BY SECTION - Unique background with beautiful gradient */}
+      {/* TRUSTED BY SECTION - with black gradient border */}
       <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
+        
         <div 
           className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
           style={{ backgroundImage: `url(${sectionImages.trust})` }}
@@ -522,8 +530,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS SECTION - Unique background with beautiful gradient */}
+      {/* FEATURED PRODUCTS SECTION - with black gradient border */}
       <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent"></div>
+        
         <div 
           className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
           style={{ backgroundImage: `url(${sectionImages.featured})` }}
@@ -565,8 +576,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CATEGORIES SECTION - Unique background with beautiful gradient */}
+      {/* CATEGORIES SECTION - with black gradient border */}
       <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
+        
         <div 
           className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
           style={{ backgroundImage: `url(${sectionImages.categories})` }}
@@ -621,8 +635,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS SECTION - Unique background with beautiful gradient */}
+      {/* TESTIMONIALS SECTION - with black gradient border */}
       <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent"></div>
+        
         <div 
           className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
           style={{ backgroundImage: `url(${sectionImages.testimonials})` }}
@@ -676,8 +693,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FLASH SALE SECTION - Unique background with beautiful gradient */}
+      {/* FLASH SALE SECTION - with black gradient border */}
       <section className="relative min-h-screen flex items-center py-20 overflow-hidden">
+        {/* Black-themed gradient border on top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent"></div>
+        
         <div 
           className="absolute inset-0 bg-cover bg-center bg-fixed opacity-80"
           style={{ backgroundImage: `url(${sectionImages.flashSale})` }}

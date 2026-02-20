@@ -16,9 +16,11 @@
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
+    "react-countup": "^6.5.3",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.6.0",
     "react-icons": "^5.5.0",
+    "react-intersection-observer": "^10.0.3",
     "react-router-dom": "^7.9.6",
     "react-toastify": "^11.0.5"
   },

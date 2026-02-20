@@ -92,7 +92,7 @@ const formatError = (error, context) => {
   return errorDetails;
 };
 
-// Helper to normalize product data from API with stock fields
+// Helper to normalize product data from API with all fields from ProductForm
 const normalizeProductData = (product) => {
   if (!product) return null;
   
@@ -101,7 +101,7 @@ const normalizeProductData = (product) => {
   let imageUrl = '';
   let imagesArray = [];
   
-  // ✅ Extract images properly for multiple formats
+  // Extract images properly for multiple formats
   if (product.images && Array.isArray(product.images)) {
     imagesArray = product.images.map((img, index) => {
       if (typeof img === 'string') {
@@ -111,7 +111,6 @@ const normalizeProductData = (product) => {
           isPrimary: index === 0 
         };
       } else if (img && typeof img === 'object') {
-        // Handle object with url property
         const url = img.url || img.src || img.path;
         if (url) {
           return { 
@@ -149,7 +148,7 @@ const normalizeProductData = (product) => {
     imagesArray = [{ url: imageUrl, altText: product.name || '', isPrimary: true }];
   }
   
-  // ✅ Calculate stock status based on quantity and settings
+  // Calculate stock status based on quantity and settings
   const stockQuantity = parseInt(product.quantity || product.stock || product.inventory || 0);
   const trackQuantity = product.trackQuantity !== false;
   const allowOutOfStock = product.allowOutOfStockPurchase || false;
@@ -175,14 +174,19 @@ const normalizeProductData = (product) => {
   }
   
   const normalized = {
+    // Basic Information
     id: product._id || product.id,
     _id: product._id || product.id,
     name: product.name || '',
     description: product.description || '',
+    shortDescription: product.shortDescription || '',
+    
+    // Pricing
     price: parseFloat(product.price || product.unitPrice || 0),
     comparePrice: parseFloat(product.comparePrice || 0),
-    cost: parseFloat(product.cost || product.costPerItem || 0),
-    // Stock fields
+    costPerItem: parseFloat(product.costPerItem || product.cost || 0),
+    
+    // Stock Management
     quantity: stockQuantity,
     stock: stockQuantity,
     trackQuantity: trackQuantity,
@@ -190,17 +194,53 @@ const normalizeProductData = (product) => {
     lowStockThreshold: lowStockThreshold,
     stockStatus: stockStatus,
     inStock: inStock,
+    
+    // Categorization
     category: product.category || '',
+    subcategory: product.subcategory || '',
+    
+    // Images
     images: imagesArray,
     image: imageUrl || (imagesArray[0]?.url || ''),
+    
+    // Status & Visibility
     status: product.status || 'draft',
+    visible: product.visible !== false,
+    
+    // Identifiers
     sku: product.sku || '',
     barcode: product.barcode || '',
+    
+    // Tags & Vendor
+    tags: Array.isArray(product.tags) ? product.tags : (product.tags ? product.tags.split(',').map(t => t.trim()) : []),
+    vendor: product.vendor || '',
+    
+    // Product Badges
+    featured: Boolean(product.featured || product.isFeatured),
+    isTrending: Boolean(product.isTrending),
+    isFlashSale: Boolean(product.isFlashSale),
+    isJustArrived: Boolean(product.isJustArrived),
+    flashSaleEndDate: product.flashSaleEndDate || '',
+    
+    // SEO
+    seoTitle: product.seoTitle || '',
+    seoDescription: product.seoDescription || '',
+    slug: product.slug || '',
+    
+    // Shipping
+    requiresShipping: product.requiresShipping !== false,
     weight: parseFloat(product.weight || 0),
     weightUnit: product.weightUnit || 'kg',
     dimensions: product.dimensions || { length: 0, width: 0, height: 0, unit: 'cm' },
-    tags: Array.isArray(product.tags) ? product.tags : (product.tags ? product.tags.split(',').map(t => t.trim()) : []),
-    featured: Boolean(product.featured),
+    flatShippingRate: parseFloat(product.flatShippingRate || 0),
+    freeShipping: Boolean(product.freeShipping),
+    estimatedDeliveryMin: product.estimatedDeliveryMin ? parseInt(product.estimatedDeliveryMin) : '',
+    estimatedDeliveryMax: product.estimatedDeliveryMax ? parseInt(product.estimatedDeliveryMax) : '',
+    
+    // Notes
+    notes: product.notes || '',
+    
+    // Timestamps
     createdAt: product.createdAt || product.createdDate || new Date().toISOString(),
     updatedAt: product.updatedAt || product.modifiedDate || new Date().toISOString(),
   };
@@ -208,9 +248,16 @@ const normalizeProductData = (product) => {
   console.log('✅ Normalized product:', {
     id: normalized.id,
     name: normalized.name,
+    price: normalized.price,
     stock: normalized.quantity,
     stockStatus: normalized.stockStatus,
-    imageCount: normalized.images.length
+    imageCount: normalized.images.length,
+    badges: {
+      featured: normalized.featured,
+      trending: normalized.isTrending,
+      flashSale: normalized.isFlashSale,
+      justArrived: normalized.isJustArrived
+    }
   });
   
   return normalized;
@@ -259,12 +306,18 @@ export const productService = {
         sortOrder: 'desc',
         search: '',
         category: '',
+        subcategory: '',
         status: '',
-        stockStatus: '', // Filter by stock status
+        stockStatus: '',
         minPrice: '',
         maxPrice: '',
         minStock: '',
         maxStock: '',
+        featured: '',
+        isTrending: '',
+        isFlashSale: '',
+        isJustArrived: '',
+        vendor: '',
         ...filters,
       };
 
@@ -374,6 +427,7 @@ export const productService = {
 
   create: async (formData, options = {}) => {
     try {
+      // Validate required fields
       const name = formData.get('name');
       const price = formData.get('price');
       const stock = formData.get('stock');
@@ -385,23 +439,36 @@ export const productService = {
       if (!price || isNaN(parseFloat(price))) {
         throw new Error('Valid price is required');
       }
-      if (!stock || isNaN(parseInt(stock))) {
-        throw new Error('Valid stock quantity is required');
+      if (formData.get('trackQuantity') === 'true' && (!stock || isNaN(parseInt(stock)))) {
+        throw new Error('Valid stock quantity is required when tracking quantity');
       }
       if (!category || category.toString().trim() === '') {
         throw new Error('Category is required');
       }
 
-      console.log('📝 Creating product...');
+      console.log('📝 Creating product with all fields from form...');
       
+      // Log all form data for debugging
+      console.log('FormData entries:');
+      for (let pair of formData.entries()) {
+        if (pair[0] === 'images') {
+          console.log(`  ${pair[0]}: [File: ${pair[1].name}]`);
+        } else {
+          console.log(`  ${pair[0]}: ${pair[1]}`);
+        }
+      }
+
       const response = await retryRequest(() => 
         api.post('/admin/products', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
           timeout: API_CONFIG.TIMEOUT,
+          ...options,
         })
       );
+
+      console.log('✅ Create response:', response.data);
 
       const normalizedData = normalizeProductData(response.data);
       
@@ -412,6 +479,24 @@ export const productService = {
       };
     } catch (error) {
       console.error('❌ Error creating product:', error);
+      
+      // If it's a 400 error with validation details, extract them
+      if (error.response?.status === 400 && error.response?.data) {
+        const errorData = error.response.data;
+        console.log('Server validation error:', errorData);
+        
+        return {
+          success: false,
+          error: {
+            message: errorData.message || 'Validation failed',
+            type: ProductErrorType.VALIDATION,
+            status: 400,
+            validationErrors: errorData.errors || errorData.validationErrors || {},
+            details: errorData
+          },
+        };
+      }
+      
       const errorDetails = formatError(error, 'creating product');
       return {
         success: false,
@@ -428,7 +513,21 @@ export const productService = {
 
       const isFormData = data instanceof FormData;
       
-      console.log(`📝 Updating product ${id}...`);
+      console.log(`📝 Updating product ${id} with all fields...`);
+
+      // Log all form data for debugging
+      if (isFormData) {
+        console.log('FormData entries:');
+        for (let pair of data.entries()) {
+          if (pair[0] === 'images') {
+            console.log(`  ${pair[0]}: [File: ${pair[1].name}]`);
+          } else {
+            console.log(`  ${pair[0]}: ${pair[1]}`);
+          }
+        }
+      } else {
+        console.log('Update data:', data);
+      }
 
       const response = await retryRequest(() => 
         api.put(`/admin/products/${id}`, data, {
@@ -438,8 +537,11 @@ export const productService = {
             'Content-Type': 'application/json',
           },
           timeout: API_CONFIG.TIMEOUT,
+          ...options,
         })
       );
+
+      console.log('✅ Update response:', response.data);
 
       const normalizedData = normalizeProductData(response.data);
       
@@ -450,6 +552,24 @@ export const productService = {
       };
     } catch (error) {
       console.error(`❌ Error updating product ${id}:`, error);
+      
+      // If it's a 400 error with validation details, extract them
+      if (error.response?.status === 400 && error.response?.data) {
+        const errorData = error.response.data;
+        console.log('Server validation error:', errorData);
+        
+        return {
+          success: false,
+          error: {
+            message: errorData.message || 'Validation failed',
+            type: ProductErrorType.VALIDATION,
+            status: 400,
+            validationErrors: errorData.errors || errorData.validationErrors || {},
+            details: errorData
+          },
+        };
+      }
+      
       const errorDetails = formatError(error, `updating product ${id}`);
       return {
         success: false,
@@ -469,6 +589,7 @@ export const productService = {
       const response = await retryRequest(() => 
         api.delete(`/admin/products/${id}`, {
           timeout: API_CONFIG.TIMEOUT,
+          ...options,
         })
       );
 
@@ -549,6 +670,37 @@ export const productService = {
     }
   },
 
+  updateBadges: async (id, badges) => {
+    try {
+      if (!id) {
+        throw new Error('Product ID is required');
+      }
+
+      console.log(`🏷️ Updating badges for product ${id}:`, badges);
+
+      const response = await retryRequest(() => 
+        api.patch(`/admin/products/${id}/badges`, badges, {
+          timeout: API_CONFIG.TIMEOUT,
+        })
+      );
+
+      const normalizedData = normalizeProductData(response.data);
+      
+      return {
+        success: true,
+        data: normalizedData,
+        message: 'Product badges updated successfully',
+      };
+    } catch (error) {
+      console.error(`❌ Error updating badges for product ${id}:`, error);
+      const errorDetails = formatError(error, `updating badges for product ${id}`);
+      return {
+        success: false,
+        error: errorDetails,
+      };
+    }
+  },
+
   getStats: async () => {
     try {
       const response = await retryRequest(() => 
@@ -595,6 +747,7 @@ export const productService = {
             'Content-Type': 'multipart/form-data',
           },
           timeout: API_CONFIG.TIMEOUT,
+          ...options,
         })
       );
 
@@ -672,6 +825,64 @@ export const productService = {
     } catch (error) {
       console.error(`❌ Error setting primary image for product ${id}:`, error);
       const errorDetails = formatError(error, `setting primary image for product ${id}`);
+      return {
+        success: false,
+        error: errorDetails,
+      };
+    }
+  },
+
+  bulkDelete: async (ids) => {
+    try {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        throw new Error('Array of product IDs is required');
+      }
+
+      console.log(`🗑️ Bulk deleting ${ids.length} products...`);
+
+      const response = await retryRequest(() => 
+        api.post('/admin/products/bulk/delete', { ids }, {
+          timeout: API_CONFIG.TIMEOUT * 2,
+        })
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        message: `${ids.length} products deleted successfully`,
+      };
+    } catch (error) {
+      console.error('❌ Error bulk deleting products:', error);
+      const errorDetails = formatError(error, 'bulk deleting products');
+      return {
+        success: false,
+        error: errorDetails,
+      };
+    }
+  },
+
+  bulkUpdateStatus: async (ids, status) => {
+    try {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        throw new Error('Array of product IDs is required');
+      }
+
+      console.log(`🔄 Bulk updating ${ids.length} products to status: ${status}`);
+
+      const response = await retryRequest(() => 
+        api.post('/admin/products/bulk/status', { ids, status }, {
+          timeout: API_CONFIG.TIMEOUT * 2,
+        })
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        message: `${ids.length} products updated to ${status}`,
+      };
+    } catch (error) {
+      console.error('❌ Error bulk updating product status:', error);
+      const errorDetails = formatError(error, 'bulk updating product status');
       return {
         success: false,
         error: errorDetails,

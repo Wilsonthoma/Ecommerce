@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - WITH AOS 3D ANIMATIONS
+// src/pages/Home.jsx - UPDATED with fixed product data mapping for cart
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -8,6 +8,8 @@ import { clientProductService } from "../services/client/products";
 import { toast } from "react-hot-toast";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import CountUp from 'react-countup';
+import { useInView } from 'react-intersection-observer';
 import { 
   FiChevronLeft, 
   FiChevronRight, 
@@ -35,7 +37,8 @@ import {
   FiGlobe,
   FiAward,
   FiThumbsUp,
-  FiShoppingBag
+  FiShoppingBag,
+  FiGift
 } from "react-icons/fi";
 import { 
   BsArrowRight,
@@ -49,38 +52,70 @@ import {
   BsStarHalf,
   BsSmartwatch,
   BsPhone,
-  BsBatteryCharging
+  BsBatteryCharging,
+  BsGift
 } from "react-icons/bs";
 import { AiFillFire } from "react-icons/ai";
 import { IoHeadsetOutline, IoWatchOutline, IoFlashOutline } from "react-icons/io5";
 import { MdOutlineSecurity, MdOutlineLocalShipping } from "react-icons/md";
 import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 
-// Category header images (relevant to each section) - TALLER height
+// Category header images - DISTINCT images for each section
 const categoryHeaderImages = {
-  trust: "https://images.pexels.com/photos/3760067/pexels-photo-3760067.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  featured: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  categories: "https://images.pexels.com/photos/3850213/pexels-photo-3850213.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600",
-  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600"
+  trust: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1600", // Office/trust
+  featured: "https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600", // Featured products showcase
+  categories: "https://images.pexels.com/photos/4498127/pexels-photo-4498127.jpeg?auto=compress&cs=tinysrgb&w=1600", // Shopping categories
+  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600", // Happy customers
+  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600", // Flash sale
+  trending: "https://images.pexels.com/photos/4210858/pexels-photo-4210858.jpeg?auto=compress&cs=tinysrgb&w=1600", // Trending/popular
+  justArrived: "https://images.pexels.com/photos/4210863/pexels-photo-4210863.jpeg?auto=compress&cs=tinysrgb&w=1600" // New arrivals
 };
 
-// Category images for each category - UNIQUE images for each
+// Category images for EACH SPECIFIC category - UNIQUE images for each
 const categoryImages = {
-  audio: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600",
-  powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
-  wearables: "https://images.pexels.com/photos/4370372/pexels-photo-4370372.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "hair-clippers": "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  // Electronics & Tech
+  electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
   smartphones: "https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600",
   laptops: "https://images.pexels.com/photos/18105/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600",
   tablets: "https://images.pexels.com/photos/1334597/pexels-photo-1334597.jpeg?auto=compress&cs=tinysrgb&w=600",
-  accessories: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",
-  electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
-  gaming: "https://images.pexels.com/photos/3945657/pexels-photo-3945657.jpeg?auto=compress&cs=tinysrgb&w=600",
   cameras: "https://images.pexels.com/photos/51383/photo-camera-subject-photographer-51383.jpeg?auto=compress&cs=tinysrgb&w=600",
+  monitors: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600",
+  gaming: "https://images.pexels.com/photos/3945657/pexels-photo-3945657.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Audio
+  audio: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600",
   headphones: "https://images.pexels.com/photos/3394659/pexels-photo-3394659.jpeg?auto=compress&cs=tinysrgb&w=600",
   speakers: "https://images.pexels.com/photos/257904/pexels-photo-257904.jpeg?auto=compress&cs=tinysrgb&w=600",
-  monitors: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Fashion
+  clothing: "https://images.pexels.com/photos/2983464/pexels-photo-2983464.jpeg?auto=compress&cs=tinysrgb&w=600",
+  footwear: "https://images.pexels.com/photos/267320/pexels-photo-267320.jpeg?auto=compress&cs=tinysrgb&w=600",
+  jewelry: "https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=600",
+  watches: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600",
+  wearables: "https://images.pexels.com/photos/4370372/pexels-photo-4370372.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Home & Living
+  home: "https://images.pexels.com/photos/276583/pexels-photo-276583.jpeg?auto=compress&cs=tinysrgb&w=600",
+  furniture: "https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&cs=tinysrgb&w=600",
+  kitchen: "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=600",
+  decor: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Beauty & Personal Care
+  beauty: "https://images.pexels.com/photos/3738083/pexels-photo-3738083.jpeg?auto=compress&cs=tinysrgb&w=600",
+  skincare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  makeup: "https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=600",
+  haircare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Accessories
+  accessories: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",
+  bags: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=600",
+  sunglasses: "https://images.pexels.com/photos/164661/pexels-photo-164661.jpeg?auto=compress&cs=tinysrgb&w=600",
+  
+  // Other
+  fabric: "https://images.pexels.com/photos/994517/pexels-photo-994517.jpeg?auto=compress&cs=tinysrgb&w=600",
+  food: "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=600",
+  powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
+  "hair-clippers": "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
   keyboards: "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
   mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
 };
@@ -152,6 +187,36 @@ const fontStyles = `
     font-size: 0.9rem;
     color: #9CA3AF;
   }
+  
+  .badge-flash {
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+  }
+  
+  .badge-trending {
+    background: linear-gradient(135deg, #8B5CF6, #EC4899);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+  }
+  
+  .badge-new {
+    background: linear-gradient(135deg, #10B981, #3B82F6);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+  }
 `;
 
 // Beautiful gradient combinations for each section
@@ -161,7 +226,9 @@ const sectionGradients = {
   featured: "from-purple-600/20 via-pink-600/20 to-rose-600/20",
   categories: "from-amber-600/20 via-orange-600/20 to-red-600/20",
   testimonials: "from-indigo-600/20 via-blue-600/20 to-cyan-600/20",
-  flashSale: "from-orange-600/20 via-red-600/20 to-pink-600/20"
+  flashSale: "from-orange-600/20 via-red-600/20 to-pink-600/20",
+  trending: "from-purple-600/20 via-pink-600/20 to-red-600/20",
+  justArrived: "from-green-600/20 via-emerald-600/20 to-teal-600/20"
 };
 
 // Animation styles
@@ -224,26 +291,57 @@ const animationStyles = `
 `;
 
 // Top Bar Component (FIND STORE | SHOP ONLINE) - EXACTLY LIKE SCREENSHOT
-const TopBar = () => (
-  <div className="py-3 border-b border-gray-800 bg-black/90">
-    <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
-      <button 
-        onClick={() => navigate('/stores')}
-        className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
-      >
-        <FiMapPin className="w-4 h-4" />
-        FIND STORE
-      </button>
-      <span className="text-gray-700">|</span>
-      <button 
-        onClick={() => navigate('/shop')}
-        className="text-sm text-gray-400 transition-colors hover:text-white"
-      >
-        SHOP ONLINE
-      </button>
+const TopBar = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="py-3 border-b border-gray-800 bg-black/90">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
     </div>
-  </div>
-);
+  );
+};
+
+// Counter Component with scroll trigger
+const Counter = ({ end, label, icon, duration = 2, suffix = "+" }) => {
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.3,
+  });
+
+  return (
+    <div ref={ref} className="text-center">
+      <div className="stat-number">
+        {inView ? (
+          <CountUp 
+            end={end} 
+            duration={duration} 
+            delay={0.2}
+            separator=","
+            suffix={suffix}
+          />
+        ) : (
+          `0${suffix}`
+        )}
+      </div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -256,6 +354,7 @@ const Home = () => {
   const [latestProducts, setLatestProducts] = useState([]);
   const [flashSaleProducts, setFlashSaleProducts] = useState([]);
   const [trendingProducts, setTrendingProducts] = useState([]);
+  const [justArrivedProducts, setJustArrivedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   
   // Loading states
@@ -264,6 +363,7 @@ const Home = () => {
   const [loadingLatest, setLoadingLatest] = useState(true);
   const [loadingFlashSale, setLoadingFlashSale] = useState(true);
   const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loadingJustArrived, setLoadingJustArrived] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
   
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -276,15 +376,23 @@ const Home = () => {
   const videoRef = useRef(null);
   const [activeCategory, setActiveCategory] = useState("all");
 
-  // Initialize AOS
+  // Initialize AOS with scroll trigger
   useEffect(() => {
     AOS.init({
       duration: 1000,
       once: false,
       mirror: true,
-      offset: 50,
+      offset: 100, // Trigger when element is 100px from viewport
       easing: 'ease-out-cubic',
-      anchorPlacement: 'top-bottom',
+      anchorPlacement: 'top-bottom', // Trigger when top of element hits bottom of viewport
+      disable: false, // Never disable
+      startEvent: 'DOMContentLoaded',
+      initClassName: 'aos-init',
+      animatedClassName: 'aos-animate',
+      useClassNames: false,
+      disableMutationObserver: false,
+      debounceDelay: 50,
+      throttleDelay: 99,
     });
     
     // Refresh AOS when content loads
@@ -292,6 +400,45 @@ const Home = () => {
       AOS.refresh();
     }, 1000);
   }, []);
+
+  // ============ FIXED: Normalize product data function ============
+  // This ensures all products have the correct fields that ProductCard expects
+  const normalizeProductData = (product) => {
+    if (!product) return null;
+    
+    return {
+      ...product,
+      // Ensure we have both _id and id
+      _id: product._id || product.id,
+      id: product.id || product._id,
+      // Ensure stock/quantity fields are present
+      stock: product.stock !== undefined ? product.stock : 
+             (product.quantity !== undefined ? product.quantity : 0),
+      quantity: product.quantity !== undefined ? product.quantity :
+                (product.stock !== undefined ? product.stock : 0),
+      // Ensure price fields
+      price: product.price || 0,
+      comparePrice: product.comparePrice || product.originalPrice || null,
+      // Ensure image fields
+      images: product.images || [],
+      image: product.image || null,
+      primaryImage: product.primaryImage || product.image || null,
+      // Ensure rating fields
+      rating: product.rating || 0,
+      reviewsCount: product.reviewsCount || product.reviews || 0,
+      // Ensure boolean flags
+      featured: product.featured || false,
+      isTrending: product.isTrending || false,
+      isFlashSale: product.isFlashSale || false,
+      isJustArrived: product.isJustArrived || false
+    };
+  };
+
+  // ============ FIXED: Normalize array of products ============
+  const normalizeProductsArray = (productsArray) => {
+    if (!Array.isArray(productsArray)) return [];
+    return productsArray.map(normalizeProductData).filter(Boolean);
+  };
 
   // Fetch all products
   const fetchProducts = async () => {
@@ -303,7 +450,7 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Products fetched:', response.products);
-        setProducts(response.products || []);
+        setProducts(normalizeProductsArray(response.products || []));
       }
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -318,15 +465,15 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Featured products fetched:', response.products);
-        setFeaturedProducts(response.products || []);
+        setFeaturedProducts(normalizeProductsArray(response.products || []));
       } else {
-        // Fallback to regular products
+        // Fallback to regular products with featured flag
         const fallbackResponse = await clientProductService.getProducts({ 
           limit: 8,
           featured: true 
         });
         if (fallbackResponse.success) {
-          setFeaturedProducts(fallbackResponse.products || []);
+          setFeaturedProducts(normalizeProductsArray(fallbackResponse.products || []));
         }
       }
     } catch (error) {
@@ -347,7 +494,7 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Latest products fetched:', response.products);
-        setLatestProducts(response.products || []);
+        setLatestProducts(normalizeProductsArray(response.products || []));
       }
     } catch (error) {
       console.error("Failed to fetch latest products:", error);
@@ -360,15 +507,21 @@ const Home = () => {
   const fetchFlashSaleProducts = async () => {
     try {
       setLoadingFlashSale(true);
-      const response = await clientProductService.getProducts({ 
-        hasDiscount: true, 
-        limit: 10,
-        sort: '-discountPercentage' 
-      });
+      const response = await clientProductService.getFlashSaleProducts(10);
       
       if (response.success) {
         console.log('✅ Flash sale products fetched:', response.products);
-        setFlashSaleProducts(response.products || []);
+        setFlashSaleProducts(normalizeProductsArray(response.products || []));
+      } else {
+        // Fallback to products with discount
+        const fallbackResponse = await clientProductService.getProducts({ 
+          onSale: true,
+          limit: 10,
+          sort: '-discountPercentage' 
+        });
+        if (fallbackResponse.success) {
+          setFlashSaleProducts(normalizeProductsArray(fallbackResponse.products || []));
+        }
       }
     } catch (error) {
       console.error("Failed to fetch flash sale products:", error);
@@ -381,25 +534,48 @@ const Home = () => {
   const fetchTrendingProducts = async () => {
     try {
       setLoadingTrending(true);
-      const response = await clientProductService.getTopSellingProducts(8);
+      const response = await clientProductService.getTrendingProducts(8);
       
       if (response.success) {
         console.log('✅ Trending products fetched:', response.products);
-        setTrendingProducts(response.products || []);
+        setTrendingProducts(normalizeProductsArray(response.products || []));
       } else {
-        // Fallback to regular products sorted by rating
-        const fallbackResponse = await clientProductService.getProducts({ 
-          limit: 8,
-          sort: '-rating' 
-        });
+        // Fallback to top selling products
+        const fallbackResponse = await clientProductService.getTopSellingProducts(8);
         if (fallbackResponse.success) {
-          setTrendingProducts(fallbackResponse.products || []);
+          setTrendingProducts(normalizeProductsArray(fallbackResponse.products || []));
         }
       }
     } catch (error) {
       console.error("Failed to fetch trending products:", error);
     } finally {
       setLoadingTrending(false);
+    }
+  };
+
+  // Fetch just arrived products
+  const fetchJustArrivedProducts = async () => {
+    try {
+      setLoadingJustArrived(true);
+      const response = await clientProductService.getJustArrivedProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Just arrived products fetched:', response.products);
+        setJustArrivedProducts(normalizeProductsArray(response.products || []));
+      } else {
+        // Fallback to latest products
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 8,
+          sort: '-createdAt' 
+        });
+        if (fallbackResponse.success) {
+          setJustArrivedProducts(normalizeProductsArray(fallbackResponse.products || []));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch just arrived products:", error);
+    } finally {
+      setLoadingJustArrived(false);
     }
   };
 
@@ -434,6 +610,7 @@ const Home = () => {
         fetchLatestProducts(),
         fetchFlashSaleProducts(),
         fetchTrendingProducts(),
+        fetchJustArrivedProducts(),
         fetchCategories()
       ]);
       setLoading(false);
@@ -539,7 +716,7 @@ const Home = () => {
     if (imageErrors[product._id || product.id]) {
       return null; // Will trigger fallback in ProductCard
     }
-    return product.images?.[0]?.url || product.image || null;
+    return product.primaryImage || product.images?.[0]?.url || product.image || null;
   };
 
   const handleProductClick = (productId) => {
@@ -548,53 +725,125 @@ const Home = () => {
     }
   };
 
-  // Get category image based on category name
+  // Get category image based on category name - IMPROVED for more specific matching
   const getCategoryImage = (categoryName) => {
     const name = categoryName?.toLowerCase() || '';
     
-    if (name.includes('audio') || name.includes('earphone') || name.includes('headphone') || name.includes('headset')) {
-      return categoryImages.headphones || categoryImages.audio;
-    } else if (name.includes('power') || name.includes('battery') || name.includes('bank')) {
-      return categoryImages.powerbanks;
-    } else if (name.includes('watch') || name.includes('wearable') || name.includes('band')) {
-      return categoryImages.wearables;
-    } else if (name.includes('hair') || name.includes('clipper') || name.includes('trimmer')) {
-      return categoryImages['hair-clippers'];
-    } else if (name.includes('phone') || name.includes('smartphone') || name.includes('mobile')) {
+    // Electronics & Tech
+    if (name.includes('smartphone') || name.includes('phone') || name.includes('mobile')) {
       return categoryImages.smartphones;
-    } else if (name.includes('laptop') || name.includes('computer') || name.includes('notebook')) {
+    }
+    if (name.includes('laptop') || name.includes('computer') || name.includes('notebook')) {
       return categoryImages.laptops;
-    } else if (name.includes('tablet') || name.includes('ipad')) {
+    }
+    if (name.includes('tablet') || name.includes('ipad')) {
       return categoryImages.tablets;
-    } else if (name.includes('accessory') || name.includes('charger') || name.includes('cable') || name.includes('adapter')) {
-      return categoryImages.accessories;
-    } else if (name.includes('camera') || name.includes('photo') || name.includes('video')) {
+    }
+    if (name.includes('camera') || name.includes('photo') || name.includes('video')) {
       return categoryImages.cameras;
-    } else if (name.includes('game') || name.includes('gaming') || name.includes('console')) {
+    }
+    if (name.includes('monitor') || name.includes('display') || name.includes('screen')) {
+      return categoryImages.monitors;
+    }
+    if (name.includes('gaming') || name.includes('game') || name.includes('console')) {
       return categoryImages.gaming;
-    } else if (name.includes('speaker') || name.includes('sound') || name.includes('audio')) {
-      return categoryImages.speakers || categoryImages.audio;
-    } else if (name.includes('monitor') || name.includes('display') || name.includes('screen')) {
-      return categoryImages.monitors || categoryImages.electronics;
-    } else if (name.includes('keyboard') || name.includes('type')) {
-      return categoryImages.keyboards || categoryImages.accessories;
-    } else if (name.includes('mouse') || name.includes('pointer')) {
-      return categoryImages.mice || categoryImages.accessories;
-    } else {
+    }
+    if (name.includes('electronics') || name.includes('electronic')) {
       return categoryImages.electronics;
     }
+    
+    // Audio
+    if (name.includes('headphone') || name.includes('earphone') || name.includes('headset') || name.includes('audio')) {
+      return categoryImages.headphones;
+    }
+    if (name.includes('speaker') || name.includes('sound')) {
+      return categoryImages.speakers;
+    }
+    
+    // Fashion
+    if (name.includes('clothing') || name.includes('apparel') || name.includes('cloth')) {
+      return categoryImages.clothing;
+    }
+    if (name.includes('footwear') || name.includes('shoe') || name.includes('sneaker') || name.includes('boot')) {
+      return categoryImages.footwear;
+    }
+    if (name.includes('jewelry') || name.includes('jewellery') || name.includes('necklace') || name.includes('ring')) {
+      return categoryImages.jewelry;
+    }
+    if (name.includes('watch') || name.includes('wearable')) {
+      return categoryImages.watches;
+    }
+    
+    // Home & Living
+    if (name.includes('home') || name.includes('house')) {
+      return categoryImages.home;
+    }
+    if (name.includes('furniture') || name.includes('chair') || name.includes('table') || name.includes('sofa')) {
+      return categoryImages.furniture;
+    }
+    if (name.includes('kitchen') || name.includes('cook')) {
+      return categoryImages.kitchen;
+    }
+    if (name.includes('decor') || name.includes('decoration')) {
+      return categoryImages.decor;
+    }
+    
+    // Beauty & Personal Care
+    if (name.includes('beauty') || name.includes('cosmetic')) {
+      return categoryImages.beauty;
+    }
+    if (name.includes('skincare') || name.includes('skin')) {
+      return categoryImages.skincare;
+    }
+    if (name.includes('makeup') || name.includes('make-up')) {
+      return categoryImages.makeup;
+    }
+    if (name.includes('hair') || name.includes('trimmer') || name.includes('clipper')) {
+      return categoryImages.haircare;
+    }
+    
+    // Accessories
+    if (name.includes('accessory') || name.includes('accessories')) {
+      return categoryImages.accessories;
+    }
+    if (name.includes('bag') || name.includes('backpack') || name.includes('purse')) {
+      return categoryImages.bags;
+    }
+    if (name.includes('sunglass') || name.includes('eyewear')) {
+      return categoryImages.sunglasses;
+    }
+    if (name.includes('keyboard') || name.includes('type')) {
+      return categoryImages.keyboards;
+    }
+    if (name.includes('mouse') || name.includes('pointer')) {
+      return categoryImages.mice;
+    }
+    
+    // Other
+    if (name.includes('fabric') || name.includes('textile')) {
+      return categoryImages.fabric;
+    }
+    if (name.includes('food') || name.includes('grocery')) {
+      return categoryImages.food;
+    }
+    if (name.includes('power') || name.includes('battery') || name.includes('bank')) {
+      return categoryImages.powerbanks;
+    }
+    
+    // Default fallback
+    return categoryImages.electronics;
   };
 
-  // Build categories from backend only - NO DEFAULT DATA
+  // Build categories from backend only - with unique images
   const buildCategories = () => {
     // If we have categories from API, use them with appropriate images
     if (categories.length > 0) {
       return categories.map(cat => ({
-        id: cat._id || cat.id,
+        id: cat._id || cat.id || cat.name,
         slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
         name: cat.name,
         image: getCategoryImage(cat.name),
-        count: cat.productCount ? `${cat.productCount}+` : "0",
+        count: cat.count ? `${cat.count}+` : (cat.productCount ? `${cat.productCount}+` : "0"),
         link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
       }));
     }
@@ -605,11 +854,11 @@ const Home = () => {
 
   const displayCategories = buildCategories();
 
-  // Trust stats
+  // Trust stats with corrected numbers
   const trustStats = [
-    { number: "200", label: "MILLION+ USERS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600" },
-    { number: "60+", label: "COUNTRIES", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600" },
-    { number: "365", label: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600" },
+    { number: 300, label: "HAPPY CLIENTS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600", duration: 2.5, suffix: "+" },
+    { number: 25, label: "COUNTIES SERVED", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600", duration: 2, suffix: "+" },
+    { number: 365, label: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600", duration: 2, suffix: "" },
   ];
 
   // Testimonials
@@ -642,10 +891,11 @@ const Home = () => {
       latest: latestProducts.length,
       flashSale: flashSaleProducts.length,
       trending: trendingProducts.length,
+      justArrived: justArrivedProducts.length,
       categories: categories.length,
       displayCategories: displayCategories.length
     });
-  }, [products, featuredProducts, latestProducts, flashSaleProducts, trendingProducts, categories, displayCategories]);
+  }, [products, featuredProducts, latestProducts, flashSaleProducts, trendingProducts, justArrivedProducts, categories, displayCategories]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
@@ -654,7 +904,7 @@ const Home = () => {
       <style>{animationStyles}</style>
       
       {/* Animated gradient overlay for entire page */}
-      <div className="fixed inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 pointer-events-none animate-gradient"></div>
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient"></div>
       
       {/* Top Bar - FIND STORE | SHOP ONLINE */}
       <TopBar />
@@ -665,6 +915,7 @@ const Home = () => {
         data-aos="fade-in"
         data-aos-duration="1500"
         data-aos-delay="200"
+        data-aos-once="false"
       >
         <div className="absolute inset-0">
           <video
@@ -691,7 +942,7 @@ const Home = () => {
         {!videoError && (
           <button
             onClick={toggleVideoPlay}
-            className="absolute z-20 p-4 text-white transition-all rounded-full top-6 right-6 bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 hover:border-white/40"
+            className="absolute z-20 p-4 text-white transition-all border rounded-full top-6 right-6 bg-white/10 backdrop-blur-md hover:bg-white/20 border-white/20 hover:border-white/40"
           >
             {videoPlaying ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
           </button>
@@ -704,10 +955,11 @@ const Home = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
               data-aos-delay="400"
+              data-aos-once="false"
             >
               <h1 className="text-6xl font-bold leading-tight text-white md:text-7xl lg:text-8xl">
                 SpaceBuds
-                <span className="block text-5xl md:text-6xl lg:text-7xl text-gray-300">Pro</span>
+                <span className="block text-5xl text-gray-300 md:text-6xl lg:text-7xl">Pro</span>
               </h1>
               
               <p className="mt-4 text-xl font-medium text-gray-300 md:text-2xl">
@@ -723,16 +975,17 @@ const Home = () => {
                 data-aos="fade-up"
                 data-aos-duration="1000"
                 data-aos-delay="600"
+                data-aos-once="false"
               >
                 <button 
                   onClick={() => navigate('/product/spacebuds-pro')}
-                  className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
+                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
                 >
                   EXPLORE NOW
                 </button>
                 <button 
                   onClick={() => navigate('/shop')}
-                  className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
+                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
                 >
                   SHOP ALL
                 </button>
@@ -748,19 +1001,20 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUST STATS SECTION - 3D Flip Cards */}
+      {/* TRUST STATS SECTION - 3D Flip Cards with Counters */}
       <section className="py-16 bg-black border-b border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image with Zoom Effect */}
+          {/* Header Image with Zoom Effect - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
             data-aos-duration="1200"
             data-aos-delay="200"
+            data-aos-once="false"
           >
             <img 
               src={categoryHeaderImages.trust}
-              alt="Trusted by millions"
+              alt="Trusted by hundreds"
               className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
@@ -771,11 +1025,12 @@ const Home = () => {
             data-aos="fade-down"
             data-aos-duration="1000"
             data-aos-delay="300"
+            data-aos-once="false"
           >
-            <h2 className="section-title">TRUSTED BY MILLIONS</h2>
+            <h2 className="section-title">TRUSTED BY HUNDREDS</h2>
           </div>
           
-          <div className="flex flex-wrap justify-center items-center gap-16 md:gap-24">
+          <div className="flex flex-wrap items-center justify-center gap-16 md:gap-24">
             {trustStats.map((stat, index) => (
               <div 
                 key={index} 
@@ -783,9 +1038,15 @@ const Home = () => {
                 data-aos="flip-left"
                 data-aos-duration="1200"
                 data-aos-delay={400 + (index * 150)}
+                data-aos-once="false"
               >
-                <div className="stat-number">{stat.number}</div>
-                <div className="stat-label">{stat.label}</div>
+                <Counter 
+                  end={stat.number} 
+                  label={stat.label} 
+                  icon={stat.icon}
+                  duration={stat.duration}
+                  suffix={stat.suffix}
+                />
               </div>
             ))}
           </div>
@@ -795,17 +1056,22 @@ const Home = () => {
       {/* FEATURED PRODUCTS SECTION - Cards with staggered animations */}
       <section className="py-20 bg-black">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image with Zoom */}
+          {/* Header Image with Zoom - DISTINCT image - FIXED with working URL */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
             data-aos-duration="1200"
             data-aos-delay="200"
+            data-aos-once="false"
           >
             <img 
-              src={categoryHeaderImages.featured}
+              src="https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600"
               alt="Featured products"
               className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+              onError={(e) => {
+                console.log('Featured image failed to load, using fallback');
+                e.target.src = "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600";
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
@@ -815,6 +1081,7 @@ const Home = () => {
             data-aos="fade-down"
             data-aos-duration="1000"
             data-aos-delay="300"
+            data-aos-once="false"
           >
             <h2 className="section-title">FEATURED PRODUCTS</h2>
           </div>
@@ -824,9 +1091,10 @@ const Home = () => {
               {[1,2,3,4].map((i, index) => (
                 <div 
                   key={i} 
-                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  className="bg-gray-900 rounded h-80 animate-pulse"
                   data-aos="fade-up"
                   data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
                 ></div>
               ))}
             </div>
@@ -843,6 +1111,7 @@ const Home = () => {
                     data-aos-duration="1000"
                     data-aos-delay={400 + (index * 150)}
                     data-aos-easing="ease-out-cubic"
+                    data-aos-once="false"
                   >
                     <div className="card-3d-content">
                       <ProductCard product={product} />
@@ -859,19 +1128,20 @@ const Home = () => {
         </div>
       </section>
 
-      {/* LATEST PRODUCTS SECTION - Fade Right Animations */}
+      {/* FLASH SALE SECTION - Zoom In Cards */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
+          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
             data-aos-duration="1200"
             data-aos-delay="200"
+            data-aos-once="false"
           >
             <img 
-              src={categoryHeaderImages.featured}
-              alt="Latest products"
+              src={categoryHeaderImages.flashSale}
+              alt="Flash sale"
               className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
@@ -882,33 +1152,138 @@ const Home = () => {
             data-aos="fade-down"
             data-aos-duration="1000"
             data-aos-delay="300"
+            data-aos-once="false"
           >
-            <h2 className="section-title">JUST ARRIVED</h2>
+            <h2 className="section-title">FLASH SALE</h2>
           </div>
 
-          {loadingLatest ? (
+          <div 
+            className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row"
+            data-aos="fade-left"
+            data-aos-duration="1000"
+            data-aos-delay="400"
+            data-aos-once="false"
+          >
+            <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
+            <button 
+              onClick={() => navigate('/shop?onSale=true')}
+              className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+            >
+              SHOP NOW
+            </button>
+          </div>
+
+          <div className="relative">
+            <div 
+              ref={featuredRef} 
+              className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {loadingFlashSale ? (
+                [...Array(4)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"
+                  ></div>
+                ))
+              ) : flashSaleProducts.length > 0 ? (
+                flashSaleProducts.slice(0, 8).map((product, index) => {
+                  const productId = product._id || product.id;
+                  return (
+                    <div 
+                      key={`flash-${productId}`} 
+                      className="flex-shrink-0 w-48 cursor-pointer group"
+                      onClick={() => productId && handleProductClick(productId)}
+                      data-aos="zoom-in-up"
+                      data-aos-duration="1000"
+                      data-aos-delay={500 + (index * 100)}
+                      data-aos-once="false"
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="w-full py-12 text-center text-gray-400">
+                  No flash sale products available
+                </div>
+              )}
+            </div>
+            
+            {flashSaleProducts.length > 4 && (
+              <>
+                <button 
+                  onClick={() => scrollFeatured("left")}
+                  className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                >
+                  <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                </button>
+                <button 
+                  onClick={() => scrollFeatured("right")}
+                  className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                >
+                  <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* TRENDING PRODUCTS SECTION - Slide In Left */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image - DISTINCT image */}
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.trending}
+              alt="Trending products"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">TRENDING NOW</h2>
+          </div>
+
+          {loadingTrending ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
               {[1,2,3,4].map((i, index) => (
                 <div 
                   key={i} 
-                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  className="bg-gray-900 rounded h-80 animate-pulse"
                   data-aos="fade-up"
                   data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
                 ></div>
               ))}
             </div>
-          ) : latestProducts.length > 0 ? (
+          ) : trendingProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {latestProducts.slice(0, 4).map((product, index) => {
+              {trendingProducts.slice(0, 4).map((product, index) => {
                 const productId = product._id || product.id;
                 return (
                   <div 
                     key={productId} 
                     className="cursor-pointer group card-3d"
                     onClick={() => productId && handleProductClick(productId)}
-                    data-aos="fade-right"
+                    data-aos="slide-left"
                     data-aos-duration="1000"
                     data-aos-delay={400 + (index * 150)}
+                    data-aos-once="false"
                   >
                     <ProductCard product={product} />
                   </div>
@@ -917,21 +1292,90 @@ const Home = () => {
             </div>
           ) : (
             <div className="py-12 text-center text-gray-400">
-              No latest products available
+              No trending products available
             </div>
           )}
         </div>
       </section>
 
-      {/* CATEGORIES SECTION - 3D Rotating Cards */}
+      {/* JUST ARRIVED SECTION - NEW SECTION with DISTINCT header image */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
+          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
             data-aos-duration="1200"
             data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.justArrived}
+              alt="Just arrived"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">JUST ARRIVED</h2>
+          </div>
+
+          {loadingJustArrived ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="bg-gray-900 rounded h-80 animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
+                ></div>
+              ))}
+            </div>
+          ) : justArrivedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {justArrivedProducts.slice(0, 4).map((product, index) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group card-3d"
+                    onClick={() => productId && handleProductClick(productId)}
+                    data-aos="fade-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
+                    data-aos-once="false"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No new arrivals available
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CATEGORIES SECTION - 3D Rotating Cards with UNIQUE category images */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          {/* Header Image - DISTINCT image */}
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
           >
             <img 
               src={categoryHeaderImages.categories}
@@ -946,6 +1390,7 @@ const Home = () => {
             data-aos="fade-down"
             data-aos-duration="1000"
             data-aos-delay="300"
+            data-aos-once="false"
           >
             <h2 className="section-title">SHOP BY CATEGORY</h2>
           </div>
@@ -955,9 +1400,10 @@ const Home = () => {
               {[1,2,3,4].map((i, index) => (
                 <div 
                   key={i} 
-                  className="h-80 bg-gray-900 rounded animate-pulse"
+                  className="bg-gray-900 rounded h-80 animate-pulse"
                   data-aos="fade-up"
                   data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
                 ></div>
               ))}
             </div>
@@ -972,23 +1418,28 @@ const Home = () => {
                 {displayCategories.map((category, index) => (
                   <div 
                     key={category.id || index} 
-                    className="flex-shrink-0 w-72 cursor-pointer group card-3d"
+                    className="flex-shrink-0 cursor-pointer w-72 group card-3d"
                     onClick={() => navigate(category.link)}
                     onMouseEnter={() => setHoveredCategory(index)}
                     onMouseLeave={() => setHoveredCategory(null)}
                     data-aos="rotate-in-down-right"
                     data-aos-duration="1200"
                     data-aos-delay={400 + (index * 100)}
+                    data-aos-once="false"
                   >
                     <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
                       {/* Glow Effect */}
                       <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:opacity-30 blur-xl"></div>
                       
-                      {/* Category Image */}
+                      {/* Category Image - UNIQUE per category */}
                       <img 
                         src={category.image}
                         alt={category.name}
                         className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.target.src = categoryImages.electronics;
+                        }}
                       />
                       
                       {/* Gradient Overlay */}
@@ -1037,6 +1488,7 @@ const Home = () => {
               data-aos="fade-up"
               data-aos-duration="1000"
               data-aos-delay="800"
+              data-aos-once="false"
             >
               <button 
                 onClick={() => navigate('/shop')}
@@ -1050,79 +1502,16 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TRENDING PRODUCTS SECTION - Slide In Left */}
-      <section className="py-20 bg-black border-t border-gray-800">
-        <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
-          <div 
-            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
-            data-aos="zoom-in"
-            data-aos-duration="1200"
-            data-aos-delay="200"
-          >
-            <img 
-              src={categoryHeaderImages.featured}
-              alt="Trending products"
-              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-          </div>
-          
-          <div 
-            className="section-header-container"
-            data-aos="fade-down"
-            data-aos-duration="1000"
-            data-aos-delay="300"
-          >
-            <h2 className="section-title">TRENDING NOW</h2>
-          </div>
-
-          {loadingTrending ? (
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i, index) => (
-                <div 
-                  key={i} 
-                  className="h-80 bg-gray-900 rounded animate-pulse"
-                  data-aos="fade-up"
-                  data-aos-delay={300 + (index * 100)}
-                ></div>
-              ))}
-            </div>
-          ) : trendingProducts.length > 0 ? (
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {trendingProducts.slice(0, 4).map((product, index) => {
-                const productId = product._id || product.id;
-                return (
-                  <div 
-                    key={productId} 
-                    className="cursor-pointer group card-3d"
-                    onClick={() => productId && handleProductClick(productId)}
-                    data-aos="slide-left"
-                    data-aos-duration="1000"
-                    data-aos-delay={400 + (index * 150)}
-                  >
-                    <ProductCard product={product} />
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="py-12 text-center text-gray-400">
-              No trending products available
-            </div>
-          )}
-        </div>
-      </section>
-
       {/* TESTIMONIALS SECTION - Fade Up with Delay */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
+          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
             data-aos-duration="1200"
             data-aos-delay="200"
+            data-aos-once="false"
           >
             <img 
               src={categoryHeaderImages.testimonials}
@@ -1137,6 +1526,7 @@ const Home = () => {
             data-aos="fade-down"
             data-aos-duration="1000"
             data-aos-delay="300"
+            data-aos-once="false"
           >
             <h2 className="section-title">HEAR WHAT THEY ARE SAYING</h2>
           </div>
@@ -1145,11 +1535,12 @@ const Home = () => {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="p-6 transition-transform duration-300 bg-gray-900/50 rounded-lg hover:scale-105"
+                className="p-6 transition-transform duration-300 rounded-lg bg-gray-900/50 hover:scale-105"
                 data-aos="fade-up"
                 data-aos-duration="1000"
                 data-aos-delay={400 + (index * 150)}
                 data-aos-easing="ease-out-back"
+                data-aos-once="false"
               >
                 <div className="flex items-center gap-4 mb-4">
                   <img 
@@ -1171,104 +1562,6 @@ const Home = () => {
                 <p className="text-sm leading-relaxed text-gray-400">"{testimonial.text}"</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FLASH SALE SECTION - Zoom In Cards */}
-      <section className="py-20 bg-black border-t border-gray-800">
-        <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image */}
-          <div 
-            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
-            data-aos="zoom-in"
-            data-aos-duration="1200"
-            data-aos-delay="200"
-          >
-            <img 
-              src={categoryHeaderImages.flashSale}
-              alt="Flash sale"
-              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-          </div>
-          
-          <div 
-            className="section-header-container"
-            data-aos="fade-down"
-            data-aos-duration="1000"
-            data-aos-delay="300"
-          >
-            <h2 className="section-title">FLASH SALE</h2>
-          </div>
-
-          <div 
-            className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row"
-            data-aos="fade-left"
-            data-aos-duration="1000"
-            data-aos-delay="400"
-          >
-            <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
-            <button 
-              onClick={() => navigate('/shop?sort=discount')}
-              className="px-8 py-3 text-sm font-medium text-white border border-white/20 rounded-full hover:bg-white/10 transition-colors"
-            >
-              SHOP NOW
-            </button>
-          </div>
-
-          <div className="relative">
-            <div 
-              ref={featuredRef} 
-              className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide"
-              style={{ scrollBehavior: 'smooth' }}
-            >
-              {loadingFlashSale ? (
-                [...Array(4)].map((_, i) => (
-                  <div 
-                    key={i} 
-                    className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"
-                  ></div>
-                ))
-              ) : flashSaleProducts.length > 0 ? (
-                flashSaleProducts.slice(0, 8).map((product, index) => {
-                  const productId = product._id || product.id;
-                  return (
-                    <div 
-                      key={`flash-${productId}`} 
-                      className="flex-shrink-0 w-48 cursor-pointer group"
-                      onClick={() => productId && handleProductClick(productId)}
-                      data-aos="zoom-in-up"
-                      data-aos-duration="1000"
-                      data-aos-delay={500 + (index * 100)}
-                    >
-                      <ProductCard product={product} />
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="w-full py-12 text-center text-gray-400">
-                  No flash sale products available
-                </div>
-              )}
-            </div>
-            
-            {flashSaleProducts.length > 4 && (
-              <>
-                <button 
-                  onClick={() => scrollFeatured("left")}
-                  className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
-                >
-                  <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
-                </button>
-                <button 
-                  onClick={() => scrollFeatured("right")}
-                  className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
-                >
-                  <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
-                </button>
-              </>
-            )}
           </div>
         </div>
       </section>

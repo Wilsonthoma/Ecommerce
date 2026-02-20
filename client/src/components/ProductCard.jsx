@@ -1,43 +1,64 @@
-// src/components/ProductCard.jsx - FIXED with homepage styling
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FiShoppingCart, FiEye, FiStar, FiHeart } from 'react-icons/fi';
+// src/components/ProductCard.jsx - COMPLETELY FIXED with working cart and correct stock
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { FiShoppingCart, FiEye, FiHeart } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { toast } from 'react-toastify';
 
-// Font styles matching homepage
+// Font styles matching homepage EXACTLY
 const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  .product-card {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
   .product-card-title {
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    font-size: 0.9rem;
-    color: white;
-    transition: color 0.3s ease;
+    font-size: 0.95rem;
+    color: #FFFFFF;
     line-height: 1.4;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
+    transition: color 0.2s ease;
   }
   
   .product-card-title:hover {
-    color: #3B82F6;
+    color: #60A5FA;
   }
   
   .product-card-price {
-    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
     font-size: 1.1rem;
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    color: #FFFFFF;
+    letter-spacing: -0.02em;
+  }
+  
+  .product-card-price-discounted {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: linear-gradient(135deg, #60A5FA, #C084FC);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
   .product-card-old-price {
+    font-family: 'Inter', sans-serif;
     font-weight: 500;
     font-size: 0.8rem;
     color: #9CA3AF;
     text-decoration: line-through;
+    margin-left: 0.25rem;
   }
   
   .product-card-category {
+    font-family: 'Inter', sans-serif;
     font-weight: 500;
     font-size: 0.65rem;
     text-transform: uppercase;
@@ -45,33 +66,77 @@ const fontStyles = `
     color: #9CA3AF;
   }
   
-  .badge-discount-small {
+  .badge-discount-card {
     background: linear-gradient(135deg, #EF4444, #F59E0B);
     color: white;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+    text-transform: uppercase;
   }
   
-  .badge-featured-small {
+  .badge-featured-card {
     background: linear-gradient(135deg, #3B82F6, #8B5CF6);
     color: white;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
   }
   
-  .stock-badge {
-    font-weight: 500;
+  .stock-badge-card {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
     font-size: 0.6rem;
-    padding: 0.15rem 0.5rem;
+    padding: 0.2rem 0.6rem;
     border-radius: 9999px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(4px);
+  }
+  
+  .stock-badge-card.in-stock {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  
+  .stock-badge-card.low-stock {
+    background: rgba(245, 158, 11, 0.15);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+  
+  .stock-badge-card.out-of-stock {
+    background: rgba(239, 68, 68, 0.15);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  .product-rating-count {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.6rem;
+    color: #6B7280;
+  }
+  
+  .product-save-text {
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    font-size: 0.6rem;
+    color: #10B981;
+    margin-top: 0.15rem;
   }
 `;
 
@@ -79,13 +144,22 @@ const fontStyles = `
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Fallback image
-const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
+const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600';
 
 const ProductCard = ({ product }) => {
+  const navigate = useNavigate();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const { addToCart, loading: cartLoading } = useCart();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+
+  // Check login status
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
 
   // Safety check
   if (!product) {
@@ -93,43 +167,68 @@ const ProductCard = ({ product }) => {
     return null;
   }
 
-  // Check if user is logged in
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useState(() => {
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-  }, []);
-
-  // Extract product data
+  // Extract product data - FIXED: Handle both stock and quantity fields
   const productId = product._id || product.id;
-  const productName = product.name || 'Product';
+  const productName = product.name || 'Product Name';
   const productPrice = product.price || 0;
-  const productDiscountedPrice = product.discountedPrice || product.discountPrice || null;
-  const productImage = product.images?.[0]?.url || product.image || null;
-  const productImages = product.images || [];
-  const productDescription = product.description || '';
+  const productComparePrice = product.comparePrice || null;
   const productCategory = product.category || '';
-  const productBrand = product.brand || '';
   const productRating = product.rating || 0;
   const productReviews = product.reviewsCount || product.reviews || 0;
-  const productStock = product.stock || product.quantity || 0;
-  const productWeight = product.weight || 1;
+  
+  // FIXED: Check both stock and quantity fields (some APIs use stock, some use quantity)
+  const productStock = product.stock !== undefined ? product.stock : 
+                      (product.quantity !== undefined ? product.quantity : 0);
+  
   const productFeatured = product.featured || false;
-  const isOnSale = product.isOnSale || product.discountPercentage > 0 || !!productDiscountedPrice;
+  const productIsTrending = product.isTrending || false;
+  const productIsFlashSale = product.isFlashSale || false;
+  const productIsJustArrived = product.isJustArrived || false;
+  
+  // Check if product has discount
+  const hasDiscount = productComparePrice && productComparePrice > productPrice;
+  const discountPercentage = hasDiscount 
+    ? Math.round(((productComparePrice - productPrice) / productComparePrice) * 100)
+    : 0;
 
-  const stockValue = productStock;
+  // Get image URL from various possible fields
+  const getImageUrl = () => {
+    if (imageError) return FALLBACK_IMAGE;
+    
+    let imagePath = null;
+    
+    if (product.images && product.images.length > 0) {
+      const firstImage = product.images[0];
+      imagePath = typeof firstImage === 'object' ? firstImage.url : firstImage;
+    } else if (product.image) {
+      imagePath = product.image;
+    } else if (product.primaryImage) {
+      imagePath = product.primaryImage;
+    } else if (product.thumbnail) {
+      imagePath = product.thumbnail;
+    }
+    
+    if (!imagePath) return FALLBACK_IMAGE;
+    
+    if (imagePath.startsWith('http')) return imagePath;
+    
+    if (imagePath.startsWith('/uploads/')) {
+      return `${API_URL}${imagePath}`;
+    }
+    
+    if (imagePath.startsWith('uploads/')) {
+      return `${API_URL}/${imagePath}`;
+    }
+    
+    return `${API_URL}/uploads/products/${imagePath}`;
+  };
+
+  const inWishlist = isInWishlist(productId);
 
   const formatKES = (price) => {
     if (!price && price !== 0) return "KSh 0";
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
-
-  const discountPercentage = productDiscountedPrice && productPrice
-    ? Math.round(((productPrice - productDiscountedPrice) / productPrice) * 100)
-    : 0;
-
-  const inWishlist = isInWishlist(productId);
 
   const renderStars = (rating) => {
     const stars = [];
@@ -155,26 +254,6 @@ const ProductCard = ({ product }) => {
     return stars;
   };
 
-  const getImageUrl = () => {
-    if (imageError) return FALLBACK_IMAGE;
-    
-    const imagePath = productImage;
-    
-    if (!imagePath) return FALLBACK_IMAGE;
-    
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    if (imagePath.startsWith('/uploads/')) {
-      return `${API_URL}${imagePath}`;
-    }
-    
-    if (imagePath.startsWith('uploads/')) {
-      return `${API_URL}/${imagePath}`;
-    }
-    
-    return `${API_URL}/uploads/products/${imagePath}`;
-  };
-
   const handleImageLoad = () => {
     setImageLoaded(true);
   };
@@ -198,21 +277,17 @@ const ProductCard = ({ product }) => {
       id: productId,
       name: productName,
       price: productPrice,
-      discountPrice: productDiscountedPrice,
-      discountedPrice: productDiscountedPrice,
-      image: productImage,
-      images: productImages,
-      description: productDescription,
+      comparePrice: productComparePrice,
+      image: getImageUrl(),
+      images: product.images || [],
       category: productCategory,
-      brand: productBrand,
       rating: productRating,
-      reviews: productReviews,
+      reviewsCount: productReviews,
       stock: productStock,
-      quantity: productStock,
-      weight: productWeight,
       featured: productFeatured,
-      isOnSale: isOnSale,
-      discountPercentage: discountPercentage
+      isTrending: productIsTrending,
+      isFlashSale: productIsFlashSale,
+      isJustArrived: productIsJustArrived
     };
     
     await toggleWishlist(completeProduct);
@@ -225,7 +300,8 @@ const ProductCard = ({ product }) => {
     console.log('🛒 ADD TO CART CLICKED for product:', {
       id: productId,
       name: productName,
-      price: productPrice
+      price: productPrice,
+      stock: productStock
     });
     
     const token = localStorage.getItem('token');
@@ -234,224 +310,224 @@ const ProductCard = ({ product }) => {
       return;
     }
     
-    const completeProduct = {
-      _id: productId,
-      id: productId,
-      name: productName,
-      price: productPrice,
-      discountPrice: productDiscountedPrice,
-      discountedPrice: productDiscountedPrice,
-      image: productImage,
-      images: productImages,
-      description: productDescription,
-      category: productCategory,
-      brand: productBrand,
-      rating: productRating,
-      reviews: productReviews,
-      stock: productStock,
-      quantity: productStock,
-      weight: productWeight,
-      featured: productFeatured,
-      isOnSale: isOnSale,
-      discountPercentage: discountPercentage
-    };
+    // FIXED: Check stock correctly
+    if (productStock <= 0) {
+      toast.error('Product is out of stock');
+      return;
+    }
     
-    console.log('🛒 Sending to cart:', completeProduct);
+    setIsAdding(true);
     
-    await addToCart(completeProduct, 1);
+    try {
+      const completeProduct = {
+        _id: productId,
+        id: productId,
+        name: productName,
+        price: productPrice,
+        comparePrice: productComparePrice,
+        image: getImageUrl(),
+        images: product.images || [],
+        category: productCategory,
+        rating: productRating,
+        reviewsCount: productReviews,
+        stock: productStock,
+        featured: productFeatured,
+        isTrending: productIsTrending,
+        isFlashSale: productIsFlashSale,
+        isJustArrived: productIsJustArrived
+      };
+      
+      console.log('🛒 Sending to cart:', completeProduct);
+      
+      // FIXED: Use correct cart service
+      await addToCart(completeProduct, 1);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart');
+    } finally {
+      setIsAdding(false);
+    }
   };
+
+  const handleViewDetails = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/product/${productId}`);
+  };
+
+  // FIXED: Determine stock status correctly
+  const isInStock = productStock > 0;
+  const stockStatus = productStock > 10 ? 'in-stock' : 
+                      productStock > 0 ? 'low-stock' : 
+                      'out-of-stock';
 
   return (
     <>
       <style>{fontStyles}</style>
-      <div className="group relative overflow-hidden transition-all duration-300 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:-translate-y-1">
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
+      <div className="product-card group relative overflow-hidden rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 transition-all duration-300 hover:shadow-[0_10px_40px_-10px_rgba(59,130,246,0.5)] hover:-translate-y-1">
+        {/* Glow effect on hover */}
+        <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600/0 via-blue-600/0 to-purple-600/0 group-hover:from-blue-600/20 group-hover:via-blue-600/20 group-hover:to-purple-600/20 rounded-xl blur-xl transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
         
-        <div className="relative">
-          {/* Product Image Container */}
+        <div className="relative flex flex-col h-full">
+          {/* Image Container - Full width */}
           <div className="relative w-full overflow-hidden bg-gray-800 aspect-square">
             {/* Loading Skeleton */}
             {!imageLoaded && !imageError && (
-              <div className="absolute inset-0 flex items-center justify-center bg-gray-800 animate-pulse">
-                <div className="w-8 h-8 border-2 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                <div className="w-8 h-8 border-2 border-blue-500 rounded-full border-t-transparent animate-spin"></div>
               </div>
             )}
             
-            {/* Image */}
+            {/* Product Image - Cover the whole container */}
             <img
               src={getImageUrl()}
               alt={productName}
-              className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 ${
-                imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-500 cursor-pointer ${
+                imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
               } group-hover:scale-110`}
               onLoad={handleImageLoad}
               onError={handleImageError}
+              onClick={handleViewDetails}
               loading="lazy"
             />
             
-            {/* Wishlist Button */}
-            {isLoggedIn && (
-              <button
-                onClick={handleWishlistToggle}
-                className="absolute z-30 p-2 transition-all rounded-full shadow-lg top-2 right-2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] group/btn"
-                title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-              >
-                <FiHeart
-                  className={`w-4 h-4 ${
-                    inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover/btn:text-red-500'
-                  } transition-colors`}
-                />
-              </button>
-            )}
+            {/* Gradient Overlay for better text visibility */}
+            <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-gray-900 via-gray-900/20 to-transparent"></div>
             
-            {/* Badges */}
-            <div className="absolute flex flex-wrap gap-1 top-2 left-2">
-              {discountPercentage > 0 && (
-                <span className="badge-discount-small">
-                  {discountPercentage}% OFF
+            {/* Top Badges */}
+            <div className="absolute z-10 flex flex-wrap gap-2 top-3 left-3">
+              {hasDiscount && (
+                <span className="badge-discount-card">
+                  -{discountPercentage}%
                 </span>
               )}
               {productFeatured && (
-                <span className="badge-featured-small">
-                  <FiStar className="inline w-2 h-2 mr-0.5" /> Featured
+                <span className="badge-featured-card">
+                  <FiEye className="w-2.5 h-2.5 mr-0.5" /> Featured
+                </span>
+              )}
+              {productIsTrending && (
+                <span className="badge-featured-card" style={{background: 'linear-gradient(135deg, #8B5CF6, #EC4899)'}}>
+                  Trending
+                </span>
+              )}
+              {productIsFlashSale && (
+                <span className="badge-discount-card" style={{background: 'linear-gradient(135deg, #F59E0B, #EF4444)'}}>
+                  Flash
+                </span>
+              )}
+              {productIsJustArrived && (
+                <span className="badge-featured-card" style={{background: 'linear-gradient(135deg, #10B981, #3B82F6)'}}>
+                  New
                 </span>
               )}
             </div>
             
-            {/* Stock Status */}
-            <div className="absolute bottom-2 left-2">
-              <span className={`stock-badge ${
-                stockValue > 10 ? 'bg-green-500/20 text-green-500 border border-green-500/30' :
-                stockValue > 0 ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
-                'bg-red-500/20 text-red-500 border border-red-500/30'
-              }`}>
-                {stockValue > 10 ? 'In Stock' : 
-                 stockValue > 0 ? 'Low Stock' : 
+            {/* Stock Status - FIXED: Using correct stock status */}
+            <div className="absolute z-10 bottom-3 left-3">
+              <span className={`stock-badge-card ${stockStatus}`}>
+                {productStock > 10 ? 'In Stock' : 
+                 productStock > 0 ? `${productStock} left` : 
                  'Out of Stock'}
               </span>
             </div>
-
-            {/* Mobile Action Buttons */}
-            <div className="absolute z-20 flex gap-2 bottom-2 right-2 sm:hidden">
+            
+            {/* Action Buttons - FIXED: Only one set of buttons, properly positioned */}
+            <div className="absolute z-10 flex gap-2 bottom-3 right-3">
+              {/* Wishlist Button - FIXED: Only appears when logged in */}
               {isLoggedIn && (
                 <button
                   onClick={handleWishlistToggle}
-                  className={`p-2 text-white transition-all rounded-full shadow-lg ${
-                    inWishlist ? 'bg-gradient-to-r from-red-600 to-pink-600' : 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700'
-                  }`}
+                  className="p-2 transition-all border border-gray-700 rounded-full bg-gray-900/80 backdrop-blur-sm hover:border-red-500/50 hover:scale-110"
                   title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                 >
-                  <FiHeart className={`w-4 h-4 ${inWishlist ? 'fill-white' : ''}`} />
+                  <FiHeart
+                    className={`w-4 h-4 ${
+                      inWishlist ? 'fill-red-500 text-red-500' : 'text-gray-300 hover:text-red-500'
+                    } transition-colors`}
+                  />
                 </button>
               )}
               
-              <Link
-                to={`/product/${productId}`}
-                className="p-2 text-white transition-all border border-gray-700 rounded-full shadow-lg bg-gradient-to-br from-gray-800 to-gray-900"
+              {/* View Details Button */}
+              <button
+                onClick={handleViewDetails}
+                className="p-2 transition-all border border-gray-700 rounded-full bg-gray-900/80 backdrop-blur-sm hover:border-blue-500/50 hover:scale-110"
                 title="View Details"
               >
-                <FiEye className="w-4 h-4" />
-              </Link>
+                <FiEye className="w-4 h-4 text-white" />
+              </button>
               
+              {/* Cart Button - FIXED: Enabled when in stock */}
               <button
                 onClick={handleAddToCart}
-                disabled={stockValue === 0 || cartLoading}
-                className="p-2 text-white transition-all rounded-full shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Add to Cart"
+                disabled={!isInStock || isAdding}
+                className={`p-2 rounded-full transition-all hover:scale-110 ${
+                  isInStock && !isAdding
+                    ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' 
+                    : 'bg-gray-600 cursor-not-allowed opacity-50'
+                }`}
+                title={!isInStock ? 'Out of Stock' : 'Add to Cart'}
               >
-                {cartLoading ? (
+                {isAdding ? (
                   <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
                 ) : (
-                  <FiShoppingCart className="w-4 h-4" />
-                )}
-              </button>
-            </div>
-
-            {/* Desktop Hover Overlay */}
-            <div className="absolute inset-0 items-center justify-center hidden gap-2 transition-opacity duration-300 opacity-0 sm:flex bg-black/60 backdrop-blur-sm group-hover:opacity-100">
-              {isLoggedIn && (
-                <button
-                  onClick={handleWishlistToggle}
-                  className={`p-3 transition-all rounded-full hover:scale-110 ${
-                    inWishlist 
-                      ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white' 
-                      : 'bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 text-gray-400 hover:text-white'
-                  }`}
-                  title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-                >
-                  <FiHeart className={`w-5 h-5 ${inWishlist ? 'fill-white' : ''}`} />
-                </button>
-              )}
-              
-              <Link
-                to={`/product/${productId}`}
-                className="p-3 text-gray-400 transition-all border border-gray-700 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 hover:text-white hover:scale-110"
-                title="View Details"
-              >
-                <FiEye className="w-5 h-5" />
-              </Link>
-              
-              <button
-                onClick={handleAddToCart}
-                disabled={stockValue === 0 || cartLoading}
-                className="p-3 text-white transition-all rounded-full bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Add to Cart"
-              >
-                {cartLoading ? (
-                  <div className="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                ) : (
-                  <FiShoppingCart className="w-5 h-5" />
+                  <FiShoppingCart className="w-4 h-4 text-white" />
                 )}
               </button>
             </div>
           </div>
           
-          {/* Product Info */}
-          <div className="p-3">
+          {/* Product Info - Clickable to product page */}
+          <div className="flex-1 p-3 bg-gray-900 cursor-pointer" onClick={handleViewDetails}>
             {/* Category */}
-            <div className="mb-1">
-              <span className="product-card-category">
-                {productCategory || 'Uncategorized'}
-              </span>
-            </div>
+            {productCategory && (
+              <div className="mb-1">
+                <span className="product-card-category">
+                  {productCategory}
+                </span>
+              </div>
+            )}
             
             {/* Product Name */}
-            <Link to={`/product/${productId}`}>
-              <h3 className="product-card-title">
-                {productName}
-              </h3>
-            </Link>
+            <h3 className="product-card-title line-clamp-2 hover:text-blue-500">
+              {productName}
+            </h3>
             
             {/* Rating */}
             <div className="flex items-center gap-1 mt-1 mb-2">
               <div className="flex">
                 {renderStars(productRating)}
               </div>
-              <span className="text-[8px] text-gray-500">
+              <span className="product-rating-count">
                 ({productReviews})
               </span>
             </div>
             
             {/* Price */}
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-1">
-                  <span className="product-card-price">
-                    {formatKES(productDiscountedPrice || productPrice)}
+            <div className="flex flex-wrap items-baseline gap-1">
+              {hasDiscount ? (
+                <>
+                  <span className="product-card-price-discounted">
+                    {formatKES(productPrice)}
                   </span>
-                  {productDiscountedPrice && (
-                    <span className="product-card-old-price">
-                      {formatKES(productPrice)}
-                    </span>
-                  )}
-                </div>
-                {productDiscountedPrice && (
-                  <p className="mt-0.5 text-[8px] text-green-500">
-                    Save {formatKES(productPrice - productDiscountedPrice)}
-                  </p>
-                )}
-              </div>
+                  <span className="product-card-old-price">
+                    {formatKES(productComparePrice)}
+                  </span>
+                </>
+              ) : (
+                <span className="product-card-price">
+                  {formatKES(productPrice)}
+                </span>
+              )}
             </div>
+            
+            {/* Savings */}
+            {hasDiscount && (
+              <p className="product-save-text">
+                Save {formatKES(productComparePrice - productPrice)}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -144,7 +144,7 @@ const Wishlist = () => {
             <div className="w-48 h-8 mb-8 bg-gray-700 rounded glow-text"></div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="p-4 border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+                <div key={i} className="p-4 border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
                   <div className="w-full h-48 mb-4 bg-gray-700 rounded"></div>
                   <div className="w-3/4 h-4 mb-2 bg-gray-700 rounded"></div>
                   <div className="w-1/2 h-4 mb-4 bg-gray-700 rounded"></div>
@@ -175,14 +175,14 @@ const Wishlist = () => {
             </p>
             <Link
               to="/shop"
-              className="group relative inline-flex items-center gap-2 px-6 py-3 font-medium text-white transition-all rounded-full overflow-hidden"
+              className="relative inline-flex items-center gap-2 px-6 py-3 overflow-hidden font-medium text-white transition-all rounded-full group"
             >
               <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+              <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
               <span className="relative flex items-center gap-2">
                 <FiShoppingCart className="w-5 h-5" />
                 Start Shopping
-                <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </span>
             </Link>
           </div>
@@ -198,9 +198,9 @@ const Wishlist = () => {
       <div className="container px-4 py-8 mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 mb-6 text-sm">
-          <Link to="/" className="text-gray-400 hover:text-white hover:glow-text transition-colors">Home</Link>
+          <Link to="/" className="text-gray-400 transition-colors hover:text-white hover:glow-text">Home</Link>
           <FiChevronRight className="w-4 h-4 text-gray-600" />
-          <Link to="/shop" className="text-gray-400 hover:text-white hover:glow-text transition-colors">Shop</Link>
+          <Link to="/shop" className="text-gray-400 transition-colors hover:text-white hover:glow-text">Shop</Link>
           <FiChevronRight className="w-4 h-4 text-gray-600" />
           <span className="font-medium text-white glow-text">Wishlist</span>
         </nav>
@@ -217,10 +217,10 @@ const Wishlist = () => {
               <>
                 <button
                   onClick={handleAddAllToCart}
-                  className="group relative px-4 py-2 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
+                  className="relative px-4 py-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600"></span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-green-600 to-emerald-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-green-600 to-emerald-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center gap-2">
                     <FiShoppingCart className="w-4 h-4" />
                     Add All to Cart
@@ -228,10 +228,10 @@ const Wishlist = () => {
                 </button>
                 <button
                   onClick={handleBulkRemove}
-                  className="group relative px-4 py-2 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
+                  className="relative px-4 py-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600"></span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-red-600 to-pink-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center gap-2">
                     <FiTrash2 className="w-4 h-4" />
                     Remove Selected ({selectedItems.length})
@@ -239,7 +239,7 @@ const Wishlist = () => {
                 </button>
                 <button
                   onClick={clearWishlist}
-                  className="px-4 py-2 text-sm font-medium text-gray-400 transition-colors border rounded-full border-gray-700 hover:text-white hover:border-gray-600"
+                  className="px-4 py-2 text-sm font-medium text-gray-400 transition-colors border border-gray-700 rounded-full hover:text-white hover:border-gray-600"
                 >
                   <FiX className="inline w-4 h-4 mr-1" />
                   Clear All
@@ -251,7 +251,7 @@ const Wishlist = () => {
 
         {/* Select All */}
         {wishlistItems.length > 0 && (
-          <div className="flex items-center gap-2 p-4 mb-4 border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
+          <div className="flex items-center gap-2 p-4 mb-4 border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
             <input
               type="checkbox"
               checked={selectAll}
@@ -299,7 +299,7 @@ const Wishlist = () => {
                     className="absolute z-10 p-2 transition-all rounded-full shadow-lg top-2 right-2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_20px_rgba(239,68,68,0.5)] group/btn"
                     title="Remove from wishlist"
                   >
-                    <FiTrash2 className="w-4 h-4 text-gray-400 group-hover/btn:text-red-500 transition-colors" />
+                    <FiTrash2 className="w-4 h-4 text-gray-400 transition-colors group-hover/btn:text-red-500" />
                   </button>
 
                   {/* Image */}
@@ -355,17 +355,17 @@ const Wishlist = () => {
                             e.preventDefault();
                             navigate(`/product/${productId}`);
                           }}
-                          className="flex-1 py-2 text-sm font-medium text-gray-400 transition-all border rounded-full border-gray-700 hover:text-white hover:border-gray-600"
+                          className="flex-1 py-2 text-sm font-medium text-gray-400 transition-all border border-gray-700 rounded-full hover:text-white hover:border-gray-600"
                         >
                           <FiEye className="inline w-4 h-4 mr-1" />
                           View
                         </button>
                         <button
                           onClick={(e) => handleAddToCart(product, e)}
-                          className="group/btn relative flex-1 py-2 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
+                          className="relative flex-1 py-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full group/btn"
                         >
                           <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                          <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover/btn:opacity-100 transition-opacity"></span>
+                          <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover/btn:opacity-100"></span>
                           <span className="relative flex items-center justify-center">
                             <FiShoppingCart className="w-4 h-4 mr-1" />
                             Add
@@ -384,11 +384,11 @@ const Wishlist = () => {
         <div className="mt-8 text-center">
           <Link
             to="/shop"
-            className="group inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-gray-400 transition-colors group hover:text-white"
           >
-            <FiArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <FiArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             Continue Shopping
-            <BsArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+            <BsArrowRight className="w-4 h-4 transition-all opacity-0 group-hover:opacity-100 group-hover:translate-x-1" />
           </Link>
         </div>
       </div>

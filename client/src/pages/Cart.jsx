@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx - COMPLETE with all Kenyan towns and individual shipping prices
+// src/pages/Cart.jsx - COMPLETE with all Kenyan towns and individual shipping prices (FIXED duplicate)
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -45,7 +45,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
 
-// Complete Kenyan locations data with individual shipping prices for each town
+// Complete Kenyan locations data with individual shipping prices for each town - FIXED: Removed duplicate Kitui
 const KENYAN_LOCATIONS = {
   // Nairobi County
   'Nairobi': {
@@ -305,7 +305,10 @@ const KENYAN_LOCATIONS = {
       { name: 'Kitui Town', fee: 230 },
       { name: 'Mwingi', fee: 240 },
       { name: 'Mutomo', fee: 250 },
-      { name: 'Kyuso', fee: 250 }
+      { name: 'Kyuso', fee: 250 },
+      { name: 'Kanyangi', fee: 240 },
+      { name: 'Zombe', fee: 250 },
+      { name: 'Endau', fee: 250 }
     ]
   },
   
@@ -584,19 +587,6 @@ const KENYAN_LOCATIONS = {
       { name: 'Msambweni', fee: 270 },
       { name: 'Lungalunga', fee: 280 },
       { name: 'Kinango', fee: 260 }
-    ]
-  },
-  
-  // Kitui County (additional)
-  'Kitui': {
-    towns: [
-      { name: 'Kitui Town', fee: 230 },
-      { name: 'Mwingi', fee: 240 },
-      { name: 'Mutomo', fee: 250 },
-      { name: 'Kyuso', fee: 250 },
-      { name: 'Kanyangi', fee: 240 },
-      { name: 'Zombe', fee: 250 },
-      { name: 'Endau', fee: 250 }
     ]
   },
   

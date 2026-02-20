@@ -50,7 +50,72 @@ const validateProductQuery = (req, res, next) => {
   next();
 };
 
-// GET all products with filtering
+// Helper function to enhance product with calculated fields
+const enhanceProduct = (product) => {
+  const productObj = { ...product };
+  
+  // Calculate discount percentage from comparePrice
+  if (product.comparePrice && product.comparePrice > product.price) {
+    productObj.discountPercentage = Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100);
+    productObj.isOnSale = true;
+  } else {
+    productObj.discountPercentage = 0;
+    productObj.isOnSale = false;
+  }
+  
+  // Calculate inStock status
+  if (!product.trackQuantity) {
+    productObj.inStock = true;
+  } else if (product.allowOutOfStockPurchase) {
+    productObj.inStock = true;
+  } else {
+    productObj.inStock = product.quantity > 0;
+  }
+  
+  // Get primary image
+  if (product.images && product.images.length > 0) {
+    const primaryImage = product.images.find(img => img.isPrimary);
+    productObj.primaryImage = primaryImage ? primaryImage.url : product.images[0].url;
+  } else if (product.thumbnail) {
+    productObj.primaryImage = product.thumbnail;
+  } else {
+    productObj.primaryImage = null;
+  }
+  
+  // Get all image URLs
+  productObj.imageUrls = product.images ? product.images.map(img => img.url) : [];
+  
+  // Check flash sale status
+  if (product.isFlashSale && product.flashSaleEndDate) {
+    productObj.flashSaleActive = new Date() < new Date(product.flashSaleEndDate);
+    if (productObj.flashSaleActive) {
+      productObj.flashSaleTimeRemaining = Math.max(0, new Date(product.flashSaleEndDate) - new Date());
+    }
+  } else {
+    productObj.flashSaleActive = product.isFlashSale;
+  }
+  
+  // Format estimated delivery
+  if (product.estimatedDeliveryMin && product.estimatedDeliveryMax) {
+    productObj.estimatedDeliveryRange = `${product.estimatedDeliveryMin}-${product.estimatedDeliveryMax} days`;
+  }
+  
+  // Format shipping rate
+  if (product.freeShipping) {
+    productObj.shippingRate = 0;
+    productObj.shippingText = 'Free Shipping';
+  } else if (product.flatShippingRate) {
+    productObj.shippingRate = product.flatShippingRate;
+    productObj.shippingText = `KSh ${product.flatShippingRate.toLocaleString()}`;
+  } else {
+    productObj.shippingRate = null;
+    productObj.shippingText = 'Shipping calculated at checkout';
+  }
+  
+  return productObj;
+};
+
+// GET all products with comprehensive filtering
 router.get('/', validateProductQuery, async (req, res) => {
   try {
     const {
@@ -58,24 +123,62 @@ router.get('/', validateProductQuery, async (req, res) => {
       limit = 20,
       sort = '-createdAt',
       category,
+      subcategory,
       featured,
+      isTrending,
+      isFlashSale,
+      isJustArrived,
       minPrice,
       maxPrice,
       search,
       inStock,
-      onSale
+      onSale,
+      vendor,
+      minRating,
+      status = 'active' // Only show active products to public
     } = req.query;
 
-    const query = {};
+    // Build query - only show active and visible products to public
+    const query = { 
+      status: 'active',
+      visible: true 
+    };
 
     // Category filter
-    if (category && category !== 'all' && category !== 'null') {
+    if (category && category !== 'all' && category !== 'null' && category !== '') {
       query.category = category;
     }
 
-    // Featured filter
+    // Subcategory filter
+    if (subcategory && subcategory !== '' && subcategory !== 'null') {
+      query.subcategory = subcategory;
+    }
+
+    // Badge filters
     if (featured === 'true') {
       query.featured = true;
+    }
+
+    if (isTrending === 'true') {
+      query.isTrending = true;
+    }
+
+    if (isFlashSale === 'true') {
+      query.isFlashSale = true;
+      // Optionally filter by flash sale end date
+      query.$or = [
+        { flashSaleEndDate: { $gt: new Date() } },
+        { flashSaleEndDate: { $exists: false } }
+      ];
+    }
+
+    if (isJustArrived === 'true') {
+      query.isJustArrived = true;
+    }
+
+    // Vendor filter
+    if (vendor && vendor !== '' && vendor !== 'null') {
+      query.vendor = vendor;
     }
 
     // Price range filter
@@ -85,52 +188,75 @@ router.get('/', validateProductQuery, async (req, res) => {
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
 
-    // Search filter
+    // Search filter (text search across multiple fields)
     if (search && search.trim() !== '') {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
         { name: searchRegex },
         { description: searchRegex },
+        { shortDescription: searchRegex },
         { tags: searchRegex },
-        { category: searchRegex }
+        { category: searchRegex },
+        { subcategory: searchRegex },
+        { vendor: searchRegex },
+        { sku: searchRegex }
       ];
     }
 
-    // Stock filter
-    if (inStock === 'true' || inStock === 'false') {
-      query.inStock = inStock === 'true';
+    // Stock filter - using actual logic, not virtual field
+    if (inStock === 'true') {
+      query.$or = [
+        { trackQuantity: false },
+        { quantity: { $gt: 0 } },
+        { allowOutOfStockPurchase: true }
+      ];
+    } else if (inStock === 'false') {
+      query.trackQuantity = true;
+      query.quantity = { $lte: 0 };
+      query.allowOutOfStockPurchase = false;
     }
 
-    // On sale filter
+    // On sale filter (has compare price greater than price)
     if (onSale === 'true') {
-      query.discountPercentage = { $gt: 0 };
+      query.comparePrice = { $gt: 0 };
+      query.price = { $lt: '$comparePrice' };
+    }
+
+    // Rating filter
+    if (minRating && !isNaN(parseFloat(minRating))) {
+      query.rating = { $gte: parseFloat(minRating) };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Parse sort parameter
+    let sortOption = {};
+    if (sort) {
+      const sortFields = sort.split(',');
+      sortFields.forEach(field => {
+        if (field.startsWith('-')) {
+          sortOption[field.substring(1)] = -1;
+        } else {
+          sortOption[field] = 1;
+        }
+      });
+    } else {
+      sortOption = { createdAt: -1 };
+    }
 
     // Execute queries in parallel
     const [products, total] = await Promise.all([
       Product.find(query)
         .skip(skip)
         .limit(parseInt(limit))
-        .sort(sort)
-        .select('-__v')
+        .sort(sortOption)
+        .select('-__v -createdBy')
         .lean(),
       Product.countDocuments(query)
     ]);
 
-    // Calculate discounted prices
-    const productsWithDiscount = products.map(product => {
-      const productObj = { ...product };
-      if (product.discountPercentage > 0) {
-        productObj.discountedPrice = product.price * (1 - product.discountPercentage / 100);
-        productObj.isOnSale = true;
-      } else {
-        productObj.discountedPrice = product.price;
-        productObj.isOnSale = false;
-      }
-      return productObj;
-    });
+    // Enhance each product with calculated fields
+    const enhancedProducts = products.map(enhanceProduct);
 
     const totalPages = Math.ceil(total / parseInt(limit));
 
@@ -140,7 +266,7 @@ router.get('/', validateProductQuery, async (req, res) => {
       total,
       totalPages,
       currentPage: parseInt(page),
-      products: productsWithDiscount
+      products: enhancedProducts
     });
   } catch (err) {
     console.error('Error fetching products:', err);
@@ -159,26 +285,21 @@ router.get('/featured', async (req, res) => {
     
     const featuredProducts = await Product.find({ 
       featured: true,
-      inStock: true 
+      status: 'active',
+      visible: true
     })
       .limit(Math.min(parseInt(limit), 20))
       .sort('-createdAt')
-      .select('name price image category rating discountPercentage')
+      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    // Add discounted price
-    const productsWithDiscount = featuredProducts.map(product => {
-      const productObj = { ...product };
-      if (product.discountPercentage > 0) {
-        productObj.discountedPrice = product.price * (1 - product.discountPercentage / 100);
-      }
-      return productObj;
-    });
+    // Enhance each product with calculated fields
+    const enhancedProducts = featuredProducts.map(enhanceProduct);
 
     res.json({
       success: true,
-      count: featuredProducts.length,
-      products: productsWithDiscount
+      count: enhancedProducts.length,
+      products: enhancedProducts
     });
   } catch (err) {
     console.error('Error fetching featured products:', err);
@@ -189,31 +310,127 @@ router.get('/featured', async (req, res) => {
   }
 });
 
+// GET trending products
+router.get('/trending', async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+    
+    const trendingProducts = await Product.find({ 
+      isTrending: true,
+      status: 'active',
+      visible: true
+    })
+      .limit(Math.min(parseInt(limit), 20))
+      .sort('-createdAt')
+      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
+      .lean();
+
+    // Enhance each product with calculated fields
+    const enhancedProducts = trendingProducts.map(enhanceProduct);
+
+    res.json({
+      success: true,
+      count: enhancedProducts.length,
+      products: enhancedProducts
+    });
+  } catch (err) {
+    console.error('Error fetching trending products:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch trending products'
+    });
+  }
+});
+
+// GET flash sale products
+router.get('/flash-sale', async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+    
+    const flashSaleProducts = await Product.find({ 
+      isFlashSale: true,
+      status: 'active',
+      visible: true,
+      $or: [
+        { flashSaleEndDate: { $gt: new Date() } },
+        { flashSaleEndDate: { $exists: false } }
+      ]
+    })
+      .limit(Math.min(parseInt(limit), 20))
+      .sort('-createdAt')
+      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isTrending isJustArrived flashSaleEndDate weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
+      .lean();
+
+    // Enhance each product with calculated fields
+    const enhancedProducts = flashSaleProducts.map(enhanceProduct);
+
+    res.json({
+      success: true,
+      count: enhancedProducts.length,
+      products: enhancedProducts
+    });
+  } catch (err) {
+    console.error('Error fetching flash sale products:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch flash sale products'
+    });
+  }
+});
+
+// GET just arrived products
+router.get('/just-arrived', async (req, res) => {
+  try {
+    const { limit = 8 } = req.query;
+    
+    const justArrivedProducts = await Product.find({ 
+      isJustArrived: true,
+      status: 'active',
+      visible: true
+    })
+      .limit(Math.min(parseInt(limit), 20))
+      .sort('-createdAt')
+      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isTrending isFlashSale weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
+      .lean();
+
+    // Enhance each product with calculated fields
+    const enhancedProducts = justArrivedProducts.map(enhanceProduct);
+
+    res.json({
+      success: true,
+      count: enhancedProducts.length,
+      products: enhancedProducts
+    });
+  } catch (err) {
+    console.error('Error fetching just arrived products:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch just arrived products'
+    });
+  }
+});
+
 // GET top selling products
 router.get('/top-selling', async (req, res) => {
   try {
     const { limit = 10 } = req.query;
     
     const topProducts = await Product.find({ 
-      inStock: true 
+      status: 'active',
+      visible: true
     })
       .limit(Math.min(parseInt(limit), 20))
-      .sort('-salesCount -rating')
-      .select('name price image category rating salesCount discountPercentage')
+      .sort('-totalSold -rating')
+      .select('name price comparePrice shortDescription images thumbnail category rating totalSold tags vendor featured isTrending isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    const productsWithDiscount = topProducts.map(product => {
-      const productObj = { ...product };
-      if (product.discountPercentage > 0) {
-        productObj.discountedPrice = product.price * (1 - product.discountPercentage / 100);
-      }
-      return productObj;
-    });
+    // Enhance each product with calculated fields
+    const enhancedProducts = topProducts.map(enhanceProduct);
 
     res.json({
       success: true,
-      count: topProducts.length,
-      products: productsWithDiscount
+      count: enhancedProducts.length,
+      products: enhancedProducts
     });
   } catch (err) {
     console.error('Error fetching top selling products:', err);
@@ -224,12 +441,16 @@ router.get('/top-selling', async (req, res) => {
   }
 });
 
-// GET single product by ID
-router.get('/:id', async (req, res) => {
+// GET product by slug (for SEO-friendly URLs)
+router.get('/slug/:slug', async (req, res) => {
   try {
-    const { id } = req.params;
+    const { slug } = req.params;
     
-    const product = await Product.findById(id).select('-__v').lean();
+    const product = await Product.findOne({ 
+      slug,
+      status: 'active',
+      visible: true 
+    }).select('-__v -createdBy').lean();
     
     if (!product) {
       return res.status(404).json({
@@ -238,38 +459,77 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Calculate discounted price
-    if (product.discountPercentage > 0) {
-      product.discountedPrice = product.price * (1 - product.discountPercentage / 100);
-      product.isOnSale = true;
-    } else {
-      product.discountedPrice = product.price;
-      product.isOnSale = false;
-    }
+    // Enhance product with calculated fields
+    const enhancedProduct = enhanceProduct(product);
 
-    // Get related products
+    // Get related products (same category, exclude current product)
     const relatedProducts = await Product.find({
-      _id: { $ne: id },
+      _id: { $ne: product._id },
       category: product.category,
-      inStock: true
+      status: 'active',
+      visible: true
     })
       .limit(4)
-      .select('name price image category rating discountPercentage')
+      .select('name price comparePrice images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived')
       .lean();
 
-    // Add discounted prices to related products
-    const relatedWithDiscount = relatedProducts.map(prod => {
-      const prodObj = { ...prod };
-      if (prod.discountPercentage > 0) {
-        prodObj.discountedPrice = prod.price * (1 - prod.discountPercentage / 100);
-      }
-      return prodObj;
-    });
+    // Enhance related products
+    const enhancedRelated = relatedProducts.map(enhanceProduct);
 
     res.json({
       success: true,
-      product,
-      relatedProducts: relatedWithDiscount
+      product: enhancedProduct,
+      relatedProducts: enhancedRelated
+    });
+  } catch (err) {
+    console.error('Error fetching product by slug:', err);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product details'
+    });
+  }
+});
+
+// GET single product by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const product = await Product.findOne({ 
+      _id: id,
+      status: 'active',
+      visible: true 
+    }).select('-__v -createdBy').lean();
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found'
+      });
+    }
+
+    // Enhance product with calculated fields
+    const enhancedProduct = enhanceProduct(product);
+
+    // Get related products (same category, exclude current product)
+    const relatedProducts = await Product.find({
+      _id: { $ne: id },
+      category: product.category,
+      status: 'active',
+      visible: true
+    })
+      .limit(4)
+      .select('name price comparePrice images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived')
+      .lean();
+
+    // Enhance related products
+    const enhancedRelated = relatedProducts.map(enhanceProduct);
+
+    res.json({
+      success: true,
+      product: enhancedProduct,
+      relatedProducts: enhancedRelated
     });
   } catch (err) {
     console.error('Error fetching product:', err);
@@ -284,6 +544,104 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product details'
+    });
+  }
+});
+
+// GET all categories with counts
+router.get('/categories/all', async (req, res) => {
+  try {
+    const categories = await Product.aggregate([
+      { $match: { status: 'active', visible: true } },
+      { $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+        subcategories: { $addToSet: '$subcategory' }
+      }},
+      { $sort: { _id: 1 } }
+    ]);
+
+    const formattedCategories = categories.map(cat => ({
+      name: cat._id,
+      count: cat.count,
+      subcategories: cat.subcategories.filter(Boolean).sort()
+    }));
+
+    res.json({
+      success: true,
+      categories: formattedCategories
+    });
+  } catch (err) {
+    console.error('Error fetching categories:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch categories'
+    });
+  }
+});
+
+// GET all vendors
+router.get('/vendors/all', async (req, res) => {
+  try {
+    const vendors = await Product.distinct('vendor', { 
+      vendor: { $exists: true, $ne: null, $ne: '' },
+      status: 'active',
+      visible: true 
+    });
+
+    res.json({
+      success: true,
+      vendors: vendors.filter(Boolean).sort()
+    });
+  } catch (err) {
+    console.error('Error fetching vendors:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch vendors'
+    });
+  }
+});
+
+// GET product filters data (min/max prices, etc)
+router.get('/filters/data', async (req, res) => {
+  try {
+    const [priceStats, categories, vendors] = await Promise.all([
+      Product.aggregate([
+        { $match: { status: 'active', visible: true } },
+        { $group: {
+          _id: null,
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' }
+        }}
+      ]),
+      Product.aggregate([
+        { $match: { status: 'active', visible: true } },
+        { $group: {
+          _id: '$category',
+          count: { $sum: 1 }
+        }},
+        { $sort: { _id: 1 } }
+      ]),
+      Product.distinct('vendor', { 
+        vendor: { $exists: true, $ne: null, $ne: '' },
+        status: 'active',
+        visible: true 
+      })
+    ]);
+
+    res.json({
+      success: true,
+      filters: {
+        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0 },
+        categories: categories.map(c => ({ name: c._id, count: c.count })),
+        vendors: vendors.filter(Boolean).sort()
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching filter data:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch filter data'
     });
   }
 });

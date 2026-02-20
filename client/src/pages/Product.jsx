@@ -1,49 +1,115 @@
-// src/pages/Product.jsx - FIXED with homepage styling
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+// src/pages/Home.jsx - FIXED with proper product data handling for cart
+import React, { useEffect, useState, useContext, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import ProductCard from "../components/ProductCard";
+import { AppContext } from "../context/AppContext";
+import { useCart } from "../context/CartContext";
+import { clientProductService } from "../services/client/products";
+import { toast } from "react-hot-toast";
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+import CountUp from 'react-countup';
+import { useInView } from 'react-intersection-observer';
 import { 
-  FiShoppingCart, 
-  FiHeart, 
-  FiShare2, 
+  FiChevronLeft, 
+  FiChevronRight, 
+  FiChevronDown,
   FiTruck, 
   FiShield, 
-  FiRefreshCw,
-  FiChevronRight,
-  FiChevronLeft,
-  FiCheck,
-  FiMinus,
-  FiPlus,
-  FiX,
-  FiZoomIn,
-  FiStar,
-  FiClock,
-  FiGlobe,
-  FiPackage,
-  FiDollarSign,
-  FiBox,
-  FiLayers,
-  FiUser,
-  FiCalendar,
-  FiEdit2,
-  FiTrash2,
-  FiAward,
-  FiZap,
+  FiRefreshCw, 
+  FiHeadphones,
+  FiSmartphone,
+  FiWatch,
   FiArrowRight,
-  FiMaximize2,
-  FiMinimize2,
-  FiMapPin
-} from 'react-icons/fi';
-import { AiFillStar } from 'react-icons/ai';
-import { BsLightningCharge, BsArrowRight, BsShieldCheck } from 'react-icons/bs';
-import { IoFlashOutline } from 'react-icons/io5';
-import { toast } from 'react-toastify';
-import { clientProductService } from '../services/client/products';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
+  FiCheckCircle,
+  FiPlay,
+  FiPause,
+  FiPackage,
+  FiTrendingUp,
+  FiStar,
+  FiMapPin,
+  FiSearch,
+  FiBattery,
+  FiZap,
+  FiMusic,
+  FiClock,
+  FiUsers,
+  FiGlobe,
+  FiAward,
+  FiThumbsUp,
+  FiShoppingBag,
+  FiGift
+} from "react-icons/fi";
+import { 
+  BsArrowRight,
+  BsFire,
+  BsLightningCharge,
+  BsShieldCheck,
+  BsTruck,
+  BsArrowRepeat,
+  BsHeadphones,
+  BsStarFill,
+  BsStarHalf,
+  BsSmartwatch,
+  BsPhone,
+  BsBatteryCharging,
+  BsGift
+} from "react-icons/bs";
+import { AiFillFire } from "react-icons/ai";
+import { IoHeadsetOutline, IoWatchOutline, IoFlashOutline } from "react-icons/io5";
+import { MdOutlineSecurity, MdOutlineLocalShipping } from "react-icons/md";
+import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
 
-// Font styles matching homepage
+// Category header images - DISTINCT images for each section
+const categoryHeaderImages = {
+  trust: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  featured: "https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  categories: "https://images.pexels.com/photos/4498127/pexels-photo-4498127.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  trending: "https://images.pexels.com/photos/4210858/pexels-photo-4210858.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  justArrived: "https://images.pexels.com/photos/4210863/pexels-photo-4210863.jpeg?auto=compress&cs=tinysrgb&w=1600"
+};
+
+// Category images for EACH SPECIFIC category - UNIQUE images for each
+const categoryImages = {
+  electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
+  smartphones: "https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600",
+  laptops: "https://images.pexels.com/photos/18105/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600",
+  tablets: "https://images.pexels.com/photos/1334597/pexels-photo-1334597.jpeg?auto=compress&cs=tinysrgb&w=600",
+  cameras: "https://images.pexels.com/photos/51383/photo-camera-subject-photographer-51383.jpeg?auto=compress&cs=tinysrgb&w=600",
+  monitors: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600",
+  gaming: "https://images.pexels.com/photos/3945657/pexels-photo-3945657.jpeg?auto=compress&cs=tinysrgb&w=600",
+  audio: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600",
+  headphones: "https://images.pexels.com/photos/3394659/pexels-photo-3394659.jpeg?auto=compress&cs=tinysrgb&w=600",
+  speakers: "https://images.pexels.com/photos/257904/pexels-photo-257904.jpeg?auto=compress&cs=tinysrgb&w=600",
+  clothing: "https://images.pexels.com/photos/2983464/pexels-photo-2983464.jpeg?auto=compress&cs=tinysrgb&w=600",
+  footwear: "https://images.pexels.com/photos/267320/pexels-photo-267320.jpeg?auto=compress&cs=tinysrgb&w=600",
+  jewelry: "https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=600",
+  watches: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600",
+  wearables: "https://images.pexels.com/photos/4370372/pexels-photo-4370372.jpeg?auto=compress&cs=tinysrgb&w=600",
+  home: "https://images.pexels.com/photos/276583/pexels-photo-276583.jpeg?auto=compress&cs=tinysrgb&w=600",
+  furniture: "https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&cs=tinysrgb&w=600",
+  kitchen: "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=600",
+  decor: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
+  beauty: "https://images.pexels.com/photos/3738083/pexels-photo-3738083.jpeg?auto=compress&cs=tinysrgb&w=600",
+  skincare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  makeup: "https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=600",
+  haircare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  accessories: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",
+  bags: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=600",
+  sunglasses: "https://images.pexels.com/photos/164661/pexels-photo-164661.jpeg?auto=compress&cs=tinysrgb&w=600",
+  fabric: "https://images.pexels.com/photos/994517/pexels-photo-994517.jpeg?auto=compress&cs=tinysrgb&w=600",
+  food: "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=600",
+  powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
+  "hair-clippers": "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
+  keyboards: "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
+  mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
+};
+
+// Font configuration
 const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
   
   * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -51,1282 +117,1415 @@ const fontStyles = `
   
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: normal;
   }
   
-  .product-title {
-    font-weight: 800;
-    font-size: 2.5rem;
-    line-height: 1.2;
-    letter-spacing: -0.03em;
-    background: linear-gradient(to right, #fff, #e5e5e5);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .section-header {
-    font-weight: 700;
-    font-size: 1.8rem;
-    letter-spacing: -0.02em;
-    background: linear-gradient(to right, #fff, #e5e5e5);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .price-large {
-    font-weight: 800;
-    font-size: 2.2rem;
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .price-small {
+  .nav-link {
     font-weight: 500;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 2.8rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 0;
+  }
+  
+  .section-subtitle {
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: #9CA3AF;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  
+  .section-header-container {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .stat-number {
+    font-weight: 700;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: white;
+  }
+  
+  .stat-label {
+    font-weight: 500;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     color: #9CA3AF;
   }
   
-  .btn-primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
-    color: white;
-    font-weight: 600;
-    padding: 0.75rem 2rem;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    border: none;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  .product-title {
+    font-weight: 500;
+    font-size: 0.9rem;
   }
   
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  .product-price {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #9CA3AF;
   }
   
-  .btn-secondary {
-    background: transparent;
-    color: white;
-    font-weight: 600;
-    padding: 0.75rem 2rem;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.05);
-  }
-  
-  .btn-wishlist {
-    background: transparent;
-    color: white;
-    font-weight: 600;
-    padding: 0.75rem 2rem;
-    border-radius: 9999px;
-    transition: all 0.3s ease;
-    border: 2px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .btn-wishlist:hover {
-    border-color: rgba(239, 68, 68, 0.8);
-    background: rgba(239, 68, 68, 0.1);
-  }
-  
-  .btn-wishlist.active {
-    background: linear-gradient(135deg, #EF4444, #EC4899);
-    border: none;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-  }
-  
-  .info-icon {
-    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5), rgba(17, 24, 39, 0.5));
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(75, 85, 99, 0.3);
-    transition: all 0.3s ease;
-  }
-  
-  .info-icon:hover {
-    border-color: #3B82F6;
-    transform: translateY(-2px);
-  }
-  
-  .testimonial-card {
-    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5) 0%, rgba(17, 24, 39, 0.5) 100%);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(75, 85, 99, 0.3);
-    border-radius: 1.5rem;
-    transition: all 0.3s ease;
-  }
-  
-  .testimonial-card:hover {
-    background: linear-gradient(135deg, rgba(31, 41, 55, 0.8) 0%, rgba(17, 24, 39, 0.8) 100%);
-    border-color: rgba(59, 130, 246, 0.3);
-    transform: translateY(-4px);
-    box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.5);
-  }
-  
-  .badge-primary {
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+  .badge-flash {
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
   }
   
-  .badge-discount {
-    background: linear-gradient(135deg, #EF4444, #F59E0B);
+  .badge-trending {
+    background: linear-gradient(135deg, #8B5CF6, #EC4899);
     color: white;
     font-weight: 600;
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.75rem;
-    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
   }
   
-  .glow-text {
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  .badge-new {
+    background: linear-gradient(135deg, #10B981, #3B82F6);
+    color: white;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
   }
 `;
+
+// Beautiful gradient combinations for each section
+const sectionGradients = {
+  hero: "from-blue-600/20 via-purple-600/20 to-pink-600/20",
+  trust: "from-emerald-600/20 via-teal-600/20 to-cyan-600/20",
+  featured: "from-purple-600/20 via-pink-600/20 to-rose-600/20",
+  categories: "from-amber-600/20 via-orange-600/20 to-red-600/20",
+  testimonials: "from-indigo-600/20 via-blue-600/20 to-cyan-600/20",
+  flashSale: "from-orange-600/20 via-red-600/20 to-pink-600/20",
+  trending: "from-purple-600/20 via-pink-600/20 to-red-600/20",
+  justArrived: "from-green-600/20 via-emerald-600/20 to-teal-600/20"
+};
 
 // Animation styles
 const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
   
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  @keyframes gradient {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
   }
   
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
+  .shimmer {
+    animation: shimmer 2s infinite;
   }
   
   .glow-text {
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  
+  .glow-text:hover {
+    text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .bg-fixed {
+    background-attachment: fixed;
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
+  }
+  
+  /* 3D Card Effects */
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card-3d-content {
+    transform: translateZ(20px);
+  }
+  
+  @media (max-width: 768px) {
+    .bg-fixed {
+      background-attachment: scroll;
+    }
   }
 `;
 
-// Backend URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Fallback image
-const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=800';
-
-// Top Bar Component (matching homepage)
-const TopBar = () => (
-  <div className="py-3 border-b border-gray-800 bg-black/90">
-    <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
-      <button className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white">
-        <FiMapPin className="w-4 h-4" />
-        FIND STORE
-      </button>
-      <span className="text-gray-700">|</span>
-      <button className="text-sm text-gray-400 transition-colors hover:text-white">
-        SHOP ONLINE
-      </button>
-    </div>
-  </div>
-);
-
-const Product = () => {
-  const { id } = useParams();
+// Top Bar Component
+const TopBar = () => {
   const navigate = useNavigate();
-  const { addToCart, refreshCart } = useCart();
-  const { isInWishlist, toggleWishlist } = useWishlist();
   
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [imageErrors, setImageErrors] = useState({});
-  const [shippingMethod, setShippingMethod] = useState('standard');
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
-  const [isZooming, setIsZooming] = useState(false);
-  
-  // Rating and review states
-  const [reviews, setReviews] = useState([]);
-  const [ratingDistribution, setRatingDistribution] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [userRating, setUserRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [editingReview, setEditingReview] = useState(null);
-  const [reviewPagination, setReviewPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    pages: 1
+  return (
+    <div className="py-3 border-b border-gray-800 bg-black/90">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Counter Component with scroll trigger
+const Counter = ({ end, label, icon, duration = 2, suffix = "+" }) => {
+  const [ref, inView] = useInView({
+    triggerOnce: true,
+    threshold: 0.3,
   });
 
-  // Check if user is logged in
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  return (
+    <div ref={ref} className="text-center">
+      <div className="stat-number">
+        {inView ? (
+          <CountUp 
+            end={end} 
+            duration={duration} 
+            delay={0.2}
+            separator=","
+            suffix={suffix}
+          />
+        ) : (
+          `0${suffix}`
+        )}
+      </div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+};
 
+// Helper function to normalize product data for ProductCard
+const normalizeProductForCard = (product) => {
+  if (!product) return null;
+  
+  return {
+    ...product,
+    // Ensure stock/quantity is properly set
+    quantity: product.quantity || product.stock || 0,
+    stock: product.stock || product.quantity || 0,
+    // Ensure price is set
+    price: product.price || 0,
+    // Ensure comparePrice is set for discounts
+    comparePrice: product.comparePrice || null,
+    // Ensure rating is set
+    rating: product.rating || 0,
+    reviewsCount: product.reviewsCount || product.reviews || 0,
+    // Ensure featured flag is set
+    featured: product.featured || false,
+    // Ensure badge flags are set
+    isTrending: product.isTrending || false,
+    isFlashSale: product.isFlashSale || false,
+    isJustArrived: product.isJustArrived || false,
+    // Ensure images are properly structured
+    images: product.images || [],
+    image: product.image || null,
+    primaryImage: product.primaryImage || null
+  };
+};
+
+const Home = () => {
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useContext(AppContext);
+  const { addToCart } = useCart();
+  
+  // Product states
+  const [products, setProducts] = useState([]);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [latestProducts, setLatestProducts] = useState([]);
+  const [flashSaleProducts, setFlashSaleProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [justArrivedProducts, setJustArrivedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [loadingFeatured, setLoadingFeatured] = useState(true);
+  const [loadingLatest, setLoadingLatest] = useState(true);
+  const [loadingFlashSale, setLoadingFlashSale] = useState(true);
+  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loadingJustArrived, setLoadingJustArrived] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [imageErrors, setImageErrors] = useState({});
+  
+  const categoryRef = useRef(null);
+  const featuredRef = useRef(null);
+  const videoRef = useRef(null);
+  const [activeCategory, setActiveCategory] = useState("all");
+
+  // Initialize AOS with scroll trigger
   useEffect(() => {
-    // Inject font styles
-    const style = document.createElement('style');
-    style.textContent = fontStyles + animationStyles;
-    document.head.appendChild(style);
+    AOS.init({
+      duration: 1000,
+      once: false,
+      mirror: true,
+      offset: 100,
+      easing: 'ease-out-cubic',
+      anchorPlacement: 'top-bottom',
+      disable: false,
+      startEvent: 'DOMContentLoaded',
+      initClassName: 'aos-init',
+      animatedClassName: 'aos-animate',
+      useClassNames: false,
+      disableMutationObserver: false,
+      debounceDelay: 50,
+      throttleDelay: 99,
+    });
     
-    // Check login status
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    if (token && user) {
-      setIsLoggedIn(true);
-      setCurrentUser(JSON.parse(user));
+    setTimeout(() => {
+      AOS.refresh();
+    }, 1000);
+  }, []);
+
+  // Fetch all products
+  const fetchProducts = async () => {
+    try {
+      const response = await clientProductService.getProducts({ 
+        limit: 20, 
+        sort: '-createdAt' 
+      });
+      
+      if (response.success) {
+        console.log('✅ Products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setProducts(normalizedProducts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
     }
+  };
+
+  // Fetch featured products
+  const fetchFeaturedProducts = async () => {
+    try {
+      setLoadingFeatured(true);
+      const response = await clientProductService.getFeaturedProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Featured products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setFeaturedProducts(normalizedProducts);
+      } else {
+        // Fallback to regular products with featured flag
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 8,
+          featured: true 
+        });
+        if (fallbackResponse.success) {
+          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductForCard);
+          setFeaturedProducts(normalizedProducts);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch featured products:", error);
+    } finally {
+      setLoadingFeatured(false);
+    }
+  };
+
+  // Fetch latest products
+  const fetchLatestProducts = async () => {
+    try {
+      setLoadingLatest(true);
+      const response = await clientProductService.getProducts({ 
+        limit: 8, 
+        sort: '-createdAt' 
+      });
+      
+      if (response.success) {
+        console.log('✅ Latest products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setLatestProducts(normalizedProducts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch latest products:", error);
+    } finally {
+      setLoadingLatest(false);
+    }
+  };
+
+  // Fetch flash sale products
+  const fetchFlashSaleProducts = async () => {
+    try {
+      setLoadingFlashSale(true);
+      const response = await clientProductService.getFlashSaleProducts(10);
+      
+      if (response.success) {
+        console.log('✅ Flash sale products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setFlashSaleProducts(normalizedProducts);
+      } else {
+        // Fallback to products with discount
+        const fallbackResponse = await clientProductService.getProducts({ 
+          onSale: true,
+          limit: 10,
+          sort: '-discountPercentage' 
+        });
+        if (fallbackResponse.success) {
+          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductForCard);
+          setFlashSaleProducts(normalizedProducts);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch flash sale products:", error);
+    } finally {
+      setLoadingFlashSale(false);
+    }
+  };
+
+  // Fetch trending products
+  const fetchTrendingProducts = async () => {
+    try {
+      setLoadingTrending(true);
+      const response = await clientProductService.getTrendingProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Trending products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setTrendingProducts(normalizedProducts);
+      } else {
+        // Fallback to top selling products
+        const fallbackResponse = await clientProductService.getTopSellingProducts(8);
+        if (fallbackResponse.success) {
+          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductForCard);
+          setTrendingProducts(normalizedProducts);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch trending products:", error);
+    } finally {
+      setLoadingTrending(false);
+    }
+  };
+
+  // Fetch just arrived products
+  const fetchJustArrivedProducts = async () => {
+    try {
+      setLoadingJustArrived(true);
+      const response = await clientProductService.getJustArrivedProducts(8);
+      
+      if (response.success) {
+        console.log('✅ Just arrived products fetched:', response.products);
+        const normalizedProducts = (response.products || []).map(normalizeProductForCard);
+        setJustArrivedProducts(normalizedProducts);
+      } else {
+        // Fallback to latest products
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 8,
+          sort: '-createdAt' 
+        });
+        if (fallbackResponse.success) {
+          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductForCard);
+          setJustArrivedProducts(normalizedProducts);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch just arrived products:", error);
+    } finally {
+      setLoadingJustArrived(false);
+    }
+  };
+
+  // Fetch categories from backend
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await clientProductService.getCategories();
+      
+      if (response.success) {
+        console.log('✅ Categories fetched from backend:', response.categories);
+        setCategories(response.categories || []);
+      } else {
+        console.log('❌ No categories from backend');
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  // Fetch all data
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      await Promise.all([
+        fetchProducts(),
+        fetchFeaturedProducts(),
+        fetchLatestProducts(),
+        fetchFlashSaleProducts(),
+        fetchTrendingProducts(),
+        fetchJustArrivedProducts(),
+        fetchCategories()
+      ]);
+      setLoading(false);
+      
+      setTimeout(() => {
+        AOS.refresh();
+      }, 500);
+    };
+    
+    fetchAllData();
+  }, []);
+
+  // VIDEO AUTOPLAY
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    
+    const playVideo = async () => {
+      try {
+        await video.play();
+        setVideoPlaying(true);
+        setVideoError(false);
+        console.log("✅ Tech video playing");
+      } catch (err) {
+        console.log("❌ Video autoplay failed:", err);
+        setVideoPlaying(false);
+        setVideoError(true);
+      }
+    };
+
+    playVideo();
+
+    const handleError = () => {
+      setVideoError(true);
+      setVideoPlaying(false);
+    };
+
+    video.addEventListener('error', handleError);
 
     return () => {
-      document.head.removeChild(style);
+      video.removeEventListener('error', handleError);
+      video.pause();
     };
   }, []);
 
-  // Get stock value from either stock or quantity field
-  const getStockValue = (product) => {
-    return product?.stock || product?.quantity || 0;
+  const toggleVideoPlay = () => {
+    const video = videoRef.current;
+    if (!video || videoError) return;
+
+    if (videoPlaying) {
+      video.pause();
+      setVideoPlaying(false);
+    } else {
+      video.play()
+        .then(() => setVideoPlaying(true))
+        .catch(err => console.log("Video play failed:", err));
+    }
   };
 
-  // Format KES currency
+  const scrollCategories = (dir) => {
+    if (categoryRef.current) {
+      const scrollAmount = dir === "left" ? -400 : 400;
+      categoryRef.current.scrollBy({ 
+        left: scrollAmount, 
+        behavior: "smooth" 
+      });
+    }
+  };
+
+  const scrollFeatured = (dir) => {
+    if (featuredRef.current) {
+      const scrollAmount = dir === "left" ? -300 : 300;
+      featuredRef.current.scrollBy({ 
+        left: scrollAmount, 
+        behavior: "smooth" 
+      });
+    }
+  };
+
   const formatKES = (price) => {
     if (!price && price !== 0) return "KSh 0";
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  // Construct full image URL
-  const getFullImageUrl = (imagePath) => {
-    if (!imagePath) return FALLBACK_IMAGE;
-    
-    if (imagePath.startsWith('http')) return imagePath;
-    
-    if (imagePath.startsWith('/uploads/')) {
-      return `${API_URL}${imagePath}`;
-    }
-    
-    if (imagePath.startsWith('uploads/')) {
-      return `${API_URL}/${imagePath}`;
-    }
-    
-    return `${API_URL}/uploads/products/${imagePath}`;
+  const handleAddToCart = async (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    await addToCart(product, 1);
   };
 
-  // Extract all product images
-  const getProductImages = (product) => {
-    if (!product) return [];
-    
-    let images = [];
-    
-    if (product.images && Array.isArray(product.images)) {
-      images = product.images.map(img => {
-        if (img && typeof img === 'object' && img.url) {
-          return {
-            url: getFullImageUrl(img.url),
-            isPrimary: img.isPrimary || false,
-            altText: img.altText || product.name
-          };
-        }
-        if (typeof img === 'string') {
-          return {
-            url: getFullImageUrl(img),
-            isPrimary: false,
-            altText: product.name
-          };
-        }
-        return null;
-      }).filter(Boolean);
-    } else if (product.image) {
-      images = [{
-        url: getFullImageUrl(product.image),
-        isPrimary: true,
-        altText: product.name
-      }];
-    }
-    
-    if (images.length === 0) {
-      images = [{
-        url: FALLBACK_IMAGE,
-        isPrimary: true,
-        altText: product.name
-      }];
-    }
-    
-    return images;
+  const handleImageError = (productId) => {
+    console.log(`❌ Image error for product: ${productId}`);
+    setImageErrors(prev => ({ ...prev, [productId]: true }));
   };
 
-  // Handle mouse move for zoom
-  const handleMouseMove = (e) => {
-    if (!isZooming) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
-    setZoomPosition({ x, y });
+  const getProductImage = (product) => {
+    if (imageErrors[product._id || product.id]) {
+      return null;
+    }
+    return product.primaryImage || product.images?.[0]?.url || product.image || null;
   };
 
-  // Toggle zoom
-  const toggleZoom = () => {
-    if (!isZooming) {
-      setZoomLevel(2);
-      setIsZooming(true);
-    } else {
-      setZoomLevel(1);
-      setIsZooming(false);
-      setZoomPosition({ x: 50, y: 50 });
+  const handleProductClick = (productId) => {
+    if (productId) {
+      navigate(`/product/${productId}`);
     }
   };
 
-  // Render stars for display
-  const renderStars = (rating, size = "w-3 h-3 sm:w-4 sm:h-4") => {
-    const stars = [];
-    const fullStars = Math.floor(rating || 0);
-    const hasHalfStar = (rating % 1) >= 0.5;
+  // Get category image based on category name
+  const getCategoryImage = (categoryName) => {
+    const name = categoryName?.toLowerCase() || '';
     
-    for (let i = 0; i < 5; i++) {
-      if (i < fullStars) {
-        stars.push(<AiFillStar key={i} className={`${size} text-yellow-400`} />);
-      } else if (i === fullStars && hasHalfStar) {
-        stars.push(
-          <div key={i} className="relative">
-            <AiFillStar className={`${size} text-gray-600`} />
-            <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
-              <AiFillStar className={`${size} text-yellow-400`} />
-            </div>
-          </div>
-        );
-      } else {
-        stars.push(<AiFillStar key={i} className={`${size} text-gray-600`} />);
-      }
+    if (name.includes('smartphone') || name.includes('phone') || name.includes('mobile')) {
+      return categoryImages.smartphones;
     }
-    return stars;
+    if (name.includes('laptop') || name.includes('computer') || name.includes('notebook')) {
+      return categoryImages.laptops;
+    }
+    if (name.includes('tablet') || name.includes('ipad')) {
+      return categoryImages.tablets;
+    }
+    if (name.includes('camera') || name.includes('photo') || name.includes('video')) {
+      return categoryImages.cameras;
+    }
+    if (name.includes('monitor') || name.includes('display') || name.includes('screen')) {
+      return categoryImages.monitors;
+    }
+    if (name.includes('gaming') || name.includes('game') || name.includes('console')) {
+      return categoryImages.gaming;
+    }
+    if (name.includes('electronics') || name.includes('electronic')) {
+      return categoryImages.electronics;
+    }
+    if (name.includes('headphone') || name.includes('earphone') || name.includes('headset') || name.includes('audio')) {
+      return categoryImages.headphones;
+    }
+    if (name.includes('speaker') || name.includes('sound')) {
+      return categoryImages.speakers;
+    }
+    if (name.includes('clothing') || name.includes('apparel') || name.includes('cloth')) {
+      return categoryImages.clothing;
+    }
+    if (name.includes('footwear') || name.includes('shoe') || name.includes('sneaker') || name.includes('boot')) {
+      return categoryImages.footwear;
+    }
+    if (name.includes('jewelry') || name.includes('jewellery') || name.includes('necklace') || name.includes('ring')) {
+      return categoryImages.jewelry;
+    }
+    if (name.includes('watch') || name.includes('wearable')) {
+      return categoryImages.watches;
+    }
+    if (name.includes('home') || name.includes('house')) {
+      return categoryImages.home;
+    }
+    if (name.includes('furniture') || name.includes('chair') || name.includes('table') || name.includes('sofa')) {
+      return categoryImages.furniture;
+    }
+    if (name.includes('kitchen') || name.includes('cook')) {
+      return categoryImages.kitchen;
+    }
+    if (name.includes('decor') || name.includes('decoration')) {
+      return categoryImages.decor;
+    }
+    if (name.includes('beauty') || name.includes('cosmetic')) {
+      return categoryImages.beauty;
+    }
+    if (name.includes('skincare') || name.includes('skin')) {
+      return categoryImages.skincare;
+    }
+    if (name.includes('makeup') || name.includes('make-up')) {
+      return categoryImages.makeup;
+    }
+    if (name.includes('hair') || name.includes('trimmer') || name.includes('clipper')) {
+      return categoryImages.haircare;
+    }
+    if (name.includes('accessory') || name.includes('accessories')) {
+      return categoryImages.accessories;
+    }
+    if (name.includes('bag') || name.includes('backpack') || name.includes('purse')) {
+      return categoryImages.bags;
+    }
+    if (name.includes('sunglass') || name.includes('eyewear')) {
+      return categoryImages.sunglasses;
+    }
+    if (name.includes('keyboard') || name.includes('type')) {
+      return categoryImages.keyboards;
+    }
+    if (name.includes('mouse') || name.includes('pointer')) {
+      return categoryImages.mice;
+    }
+    if (name.includes('fabric') || name.includes('textile')) {
+      return categoryImages.fabric;
+    }
+    if (name.includes('food') || name.includes('grocery')) {
+      return categoryImages.food;
+    }
+    if (name.includes('power') || name.includes('battery') || name.includes('bank')) {
+      return categoryImages.powerbanks;
+    }
+    
+    return categoryImages.electronics;
   };
 
-  // Rating Stars Component for interactive rating
-  const RatingStars = ({ interactive = false, size = "w-5 h-5" }) => {
-    const stars = [];
-    const currentRating = interactive ? (hoverRating || userRating) : (product?.rating || 0);
-
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <button
-          key={i}
-          type="button"
-          onClick={() => interactive && setUserRating(i)}
-          onMouseEnter={() => interactive && setHoverRating(i)}
-          onMouseLeave={() => interactive && setHoverRating(0)}
-          disabled={!interactive}
-          className={`${interactive ? 'cursor-pointer' : 'cursor-default'} focus:outline-none transition-transform hover:scale-110`}
-        >
-          <AiFillStar
-            className={`${size} ${
-              i <= currentRating
-                ? 'text-yellow-400'
-                : 'text-gray-600'
-            } transition-colors`}
-          />
-        </button>
-      );
+  // Build categories from backend only
+  const buildCategories = () => {
+    if (categories.length > 0) {
+      return categories.map(cat => ({
+        id: cat._id || cat.id || cat.name,
+        slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
+        name: cat.name,
+        image: getCategoryImage(cat.name),
+        count: cat.count ? `${cat.count}+` : (cat.productCount ? `${cat.productCount}+` : "0"),
+        link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
+      }));
     }
-    return <div className="flex gap-1">{stars}</div>;
+    
+    return [];
   };
 
+  const displayCategories = buildCategories();
+
+  // Trust stats
+  const trustStats = [
+    { number: 300, label: "HAPPY CLIENTS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600", duration: 2.5, suffix: "+" },
+    { number: 25, label: "COUNTIES SERVED", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600", duration: 2, suffix: "+" },
+    { number: 365, label: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600", duration: 2, suffix: "" },
+  ];
+
+  // Testimonials
+  const testimonials = [
+    {
+      name: "Unbox Therapy",
+      text: "OpenArc is the ultimate gym companion, from intense workouts to training sessions.",
+      image: "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=200",
+      rating: 5
+    },
+    {
+      name: "Fisayo Fosudo",
+      text: "Vocals and the instrumentals were very outstanding. Here I was impressed.",
+      image: "https://images.pexels.com/photos/91227/pexels-photo-91227.jpeg?auto=compress&cs=tinysrgb&w=200",
+      rating: 5
+    },
+    {
+      name: "Chouaib Reviews",
+      text: "The sound in music is impressive and the bass is very good and rich.",
+      image: "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=200",
+      rating: 4
+    }
+  ];
+
+  // Log products for debugging
   useEffect(() => {
-    fetchProductData();
-    fetchReviews();
-    window.scrollTo(0, 0);
-  }, [id]);
-
-  const fetchProductData = async () => {
-    try {
-      setLoading(true);
-      
-      const response = await clientProductService.getProduct(id);
-      console.log('📥 Product response:', response);
-      
-      if (response.success) {
-        const productData = response.product || response.data;
-        setProduct(productData);
-        setRelatedProducts(response.relatedProducts || []);
-      } else {
-        toast.error('Product not found');
-        navigate('/shop');
-      }
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      toast.error('Failed to load product details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchReviews = async (page = 1) => {
-    try {
-      const response = await clientProductService.getProductReviews(id, page, 10);
-      console.log('📥 Reviews response:', response);
-      
-      if (response.success) {
-        setReviews(response.reviews || []);
-        setRatingDistribution(response.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
-        setReviewPagination(response.pagination || {
-          page: 1,
-          limit: 10,
-          total: 0,
-          pages: 1
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    }
-  };
-
-  const handleImageError = (index) => {
-    setImageErrors(prev => ({ ...prev, [index]: true }));
-  };
-
-  // Calculate total price based on quantity
-  const calculateTotalPrice = () => {
-    if (!product) return 0;
-    const basePrice = product.discountedPrice || product.price;
-    return basePrice * quantity;
-  };
-
-  // Calculate savings
-  const calculateSavings = () => {
-    if (!product || !product.discountedPrice) return 0;
-    return (product.price - product.discountedPrice) * quantity;
-  };
-
-  // Calculate shipping cost
-  const calculateShippingCost = () => {
-    if (!product) return 0;
-    if (product.freeShipping) return 0;
-    if (product.flatShippingRate) return product.flatShippingRate;
+    console.log('📦 Current products state:', {
+      products: products.length,
+      featured: featuredProducts.length,
+      latest: latestProducts.length,
+      flashSale: flashSaleProducts.length,
+      trending: trendingProducts.length,
+      justArrived: justArrivedProducts.length,
+      categories: categories.length,
+      displayCategories: displayCategories.length
+    });
     
-    switch (shippingMethod) {
-      case 'express':
-        return 500;
-      case 'overnight':
-        return 1500;
-      default:
-        return 0;
+    // Log sample product to check stock field
+    if (featuredProducts.length > 0) {
+      console.log('📦 Sample featured product stock:', {
+        quantity: featuredProducts[0].quantity,
+        stock: featuredProducts[0].stock
+      });
     }
-  };
+  }, [products, featuredProducts, latestProducts, flashSaleProducts, trendingProducts, justArrivedProducts, categories, displayCategories]);
 
-  // Handle add to cart
-  const handleAddToCart = async () => {
-    if (!product) return;
-    
-    setIsAddingToCart(true);
-    const success = await addToCart(product, quantity);
-    if (success) {
-      await refreshCart();
-    }
-    setIsAddingToCart(false);
-  };
-
-  // Handle wishlist toggle
-  const handleWishlistToggle = async () => {
-    if (!isLoggedIn) {
-      toast.error('Please login to use wishlist');
-      navigate('/login');
-      return;
-    }
-    
-    await toggleWishlist(product);
-  };
-
-  // Handle review submission
-  const handleSubmitReview = async () => {
-    if (!isLoggedIn) {
-      toast.error('Please login to write a review');
-      navigate('/login');
-      return;
-    }
-
-    if (!userRating) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    if (!reviewText.trim()) {
-      toast.error('Please write a review');
-      return;
-    }
-
-    setSubmittingReview(true);
-    
-    try {
-      const reviewData = {
-        rating: userRating,
-        comment: reviewText.trim()
-      };
-
-      let response;
-      if (editingReview) {
-        response = await clientProductService.updateReview(editingReview._id, reviewData);
-      } else {
-        response = await clientProductService.addProductReview(id, reviewData);
-      }
-
-      console.log('📥 Review submission response:', response);
-
-      if (response.success) {
-        toast.success(editingReview ? 'Review updated successfully!' : 'Review added successfully!');
-        setUserRating(0);
-        setReviewText('');
-        setShowReviewForm(false);
-        setEditingReview(null);
-        fetchReviews();
-        fetchProductData();
-      } else {
-        toast.error(response.message || 'Failed to submit review');
-      }
-    } catch (error) {
-      console.error('Error submitting review:', error);
-      toast.error(error.response?.data?.message || 'Failed to submit review');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  // Handle edit review
-  const handleEditReview = (review) => {
-    setEditingReview(review);
-    setUserRating(review.rating);
-    setReviewText(review.comment);
-    setShowReviewForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Handle delete review
-  const handleDeleteReview = async (reviewId) => {
-    if (!window.confirm('Are you sure you want to delete this review?')) {
-      return;
-    }
-
-    try {
-      const response = await clientProductService.deleteReview(reviewId);
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
       
-      if (response.success) {
-        toast.success('Review deleted successfully');
-        fetchReviews();
-        fetchProductData();
-      } else {
-        toast.error(response.message || 'Failed to delete review');
-      }
-    } catch (error) {
-      console.error('Error deleting review:', error);
-      toast.error(error.response?.data?.message || 'Failed to delete review');
-    }
-  };
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient"></div>
+      
+      <TopBar />
 
-  // Format date
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('en-US', options);
-  };
+      {/* HERO SECTION */}
+      <div 
+        className="relative h-screen min-h-[800px] overflow-hidden"
+        data-aos="fade-in"
+        data-aos-duration="1500"
+        data-aos-delay="200"
+        data-aos-once="false"
+      >
+        <div className="absolute inset-0">
+          <video
+            ref={videoRef}
+            muted
+            loop
+            playsInline
+            autoPlay
+            preload="auto"
+            className="object-cover w-full h-full opacity-80"
+            poster="https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600"
+          >
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4" type="video/mp4" />
+          </video>
+          
+          <div className={`absolute inset-0 bg-gradient-to-r ${sectionGradients.hero} mix-blend-overlay`}></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+        </div>
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black">
-        <TopBar />
-        <div className="container px-6 py-8 mx-auto">
-          <div className="animate-pulse">
-            <div className="w-24 h-4 mb-6 bg-gray-800 rounded"></div>
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <div className="bg-gray-800 rounded-2xl aspect-square"></div>
-              <div className="space-y-4">
-                <div className="w-3/4 h-8 bg-gray-800 rounded"></div>
-                <div className="w-1/2 h-6 bg-gray-800 rounded"></div>
-                <div className="w-1/3 h-12 bg-gray-800 rounded"></div>
-                <div className="space-y-3">
-                  <div className="h-4 bg-gray-800 rounded"></div>
-                  <div className="h-4 bg-gray-800 rounded"></div>
-                  <div className="h-4 bg-gray-800 rounded"></div>
-                </div>
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
+
+        {!videoError && (
+          <button
+            onClick={toggleVideoPlay}
+            className="absolute z-20 p-4 text-white transition-all border rounded-full top-6 right-6 bg-white/10 backdrop-blur-md hover:bg-white/20 border-white/20 hover:border-white/40"
+          >
+            {videoPlaying ? <FiPause className="w-5 h-5" /> : <FiPlay className="w-5 h-5" />}
+          </button>
+        )}
+
+        <div className="relative z-10 flex items-center h-full">
+          <div className="w-full px-6 mx-auto max-w-7xl">
+            <div 
+              className="max-w-2xl"
+              data-aos="fade-right"
+              data-aos-duration="1200"
+              data-aos-delay="400"
+              data-aos-once="false"
+            >
+              <h1 className="text-6xl font-bold leading-tight text-white md:text-7xl lg:text-8xl">
+                SpaceBuds
+                <span className="block text-5xl text-gray-300 md:text-6xl lg:text-7xl">Pro</span>
+              </h1>
+              
+              <p className="mt-4 text-xl font-medium text-gray-300 md:text-2xl">
+                50dB Adaptive Hybrid ANC
+              </p>
+              
+              <p className="mt-2 text-lg text-gray-400">
+                TWS Earphones with Immersive Sound
+              </p>
+              
+              <div 
+                className="flex flex-wrap gap-6 mt-8"
+                data-aos="fade-up"
+                data-aos-duration="1000"
+                data-aos-delay="600"
+                data-aos-once="false"
+              >
+                <button 
+                  onClick={() => navigate('/product/spacebuds-pro')}
+                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+                >
+                  EXPLORE NOW
+                </button>
+                <button 
+                  onClick={() => navigate('/shop')}
+                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+                >
+                  SHOP ALL
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="absolute -translate-x-1/2 left-1/2 bottom-8 animate-bounce">
+          <div className="flex justify-center w-10 h-16 border-2 rounded-full border-white/20">
+            <div className="w-1 h-3 mt-2 rounded-full bg-gradient-to-b from-blue-500 to-purple-500 animate-pulse"></div>
           </div>
         </div>
       </div>
-    );
-  }
 
-  if (!product) return null;
-
-  const productImages = getProductImages(product);
-  const stockValue = getStockValue(product);
-  const discountedPrice = product.discountedPrice || product.price;
-  const originalPrice = product.price;
-  const hasDiscount = product.discountedPrice && product.discountedPrice < product.price;
-  const discountPercentage = hasDiscount 
-    ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100) 
-    : 0;
-  
-  const totalPrice = calculateTotalPrice();
-  const totalSavings = calculateSavings();
-  const shippingCost = calculateShippingCost();
-  const grandTotal = totalPrice + shippingCost;
-
-  // Calculate rating summary
-  const totalReviews = reviews.length;
-  const averageRating = totalReviews > 0 
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
-    : product.rating?.toFixed(1) || '0.0';
-
-  // Check if product is in wishlist
-  const inWishlist = isInWishlist(product._id || product.id);
-
-  return (
-    <div className="min-h-screen bg-black">
-      {/* Top Bar */}
-      <TopBar />
-
-      <div className="container px-6 py-8 mx-auto max-w-7xl">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 mb-6 text-sm">
-          <button onClick={() => navigate('/')} className="text-gray-400 transition-colors hover:text-white">Home</button>
-          <FiChevronRight className="w-4 h-4 text-gray-600" />
-          <button onClick={() => navigate('/shop')} className="text-gray-400 transition-colors hover:text-white">Shop</button>
-          <FiChevronRight className="w-4 h-4 text-gray-600" />
-          <span className="max-w-xs font-medium text-white truncate">{product.name}</span>
-        </nav>
-
-        {/* Product Main Section */}
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-          {/* Left Column - Images */}
-          <div className="space-y-4">
-            {/* Main Image */}
-            <div 
-              className="relative overflow-hidden border border-gray-700 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 aspect-square cursor-zoom-in group"
-              onClick={() => setLightboxOpen(true)}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={() => setIsZooming(false)}
-            >
-              {/* Glow Effect */}
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
-              
-              {/* Image */}
-              <div className="relative w-full h-full overflow-hidden rounded-2xl">
-                {productImages.length > 0 && !imageErrors[selectedImageIndex] ? (
-                  <img
-                    src={productImages[selectedImageIndex]?.url}
-                    alt={productImages[selectedImageIndex]?.altText || product.name}
-                    className={`w-full h-full object-contain transition-transform duration-300 ${
-                      isZooming ? 'scale-150' : 'scale-100'
-                    }`}
-                    style={{
-                      transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
-                    }}
-                    onError={() => handleImageError(selectedImageIndex)}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-gray-800">
-                    <img
-                      src={FALLBACK_IMAGE}
-                      alt="Fallback"
-                      className="object-contain w-2/3 opacity-50"
-                    />
-                  </div>
-                )}
-              </div>
-              
-              {/* Badges */}
-              <div className="absolute flex gap-2 top-4 left-4">
-                {hasDiscount && (
-                  <span className="badge-discount">
-                    -{discountPercentage}%
-                  </span>
-                )}
-                {product.featured && (
-                  <span className="badge-primary">
-                    <FiStar className="inline w-3 h-3 mr-1" /> Featured
-                  </span>
-                )}
-              </div>
-
-              {/* Zoom Controls */}
-              <div className="absolute flex gap-2 bottom-4 right-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleZoom();
-                  }}
-                  className="p-2 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group/btn"
-                >
-                  {isZooming ? (
-                    <FiMinimize2 className="w-4 h-4 text-white group-hover/btn:text-blue-500" />
-                  ) : (
-                    <FiMaximize2 className="w-4 h-4 text-white group-hover/btn:text-blue-500" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Thumbnail Gallery */}
-            {productImages.length > 1 && (
-              <div className="grid grid-cols-5 gap-2">
-                {productImages.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`relative overflow-hidden rounded-lg transition-all aspect-square ${
-                      selectedImageIndex === index 
-                        ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-black' 
-                        : ''
-                    }`}
-                  >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg opacity-0 group-hover:opacity-30 blur transition-opacity"></div>
-                    <div className={`relative w-full h-full rounded-lg overflow-hidden border ${
-                      selectedImageIndex === index 
-                        ? 'border-blue-500' 
-                        : 'border-gray-700 hover:border-gray-600'
-                    }`}>
-                      <img
-                        src={image.url}
-                        alt={`${product.name} - view ${index + 1}`}
-                        className="object-cover w-full h-full"
-                        onError={(e) => e.target.src = FALLBACK_IMAGE}
-                      />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+      {/* TRUST STATS SECTION */}
+      <section className="py-16 bg-black border-b border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.trust}
+              alt="Trusted by hundreds"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
           </div>
-
-          {/* Right Column - Product Info */}
-          <div className="space-y-6">
-            {/* Category */}
-            <div>
-              <span className="inline-block px-3 py-1 text-xs font-medium text-blue-500 border rounded-full bg-blue-500/10 border-blue-500/30">
-                {product.category || 'Uncategorized'}
-              </span>
-            </div>
-
-            {/* Title */}
-            <h1 className="product-title">{product.name}</h1>
-
-            {/* Rating */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                {renderStars(parseFloat(averageRating), "w-5 h-5")}
-              </div>
-              <span className="text-sm text-gray-400">
-                {averageRating} ({totalReviews} reviews)
-              </span>
-            </div>
-
-            {/* Price */}
-            <div className="flex items-baseline gap-4">
-              <span className="price-large">{formatKES(totalPrice)}</span>
-              {hasDiscount && (
-                <>
-                  <span className="text-lg line-through price-small">
-                    {formatKES(originalPrice * quantity)}
-                  </span>
-                  <span className="badge-discount">
-                    Save {formatKES(totalSavings)}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* Stock Status */}
-            <div className="flex items-center gap-2">
-              {stockValue > 0 ? (
-                <>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-green-500">In Stock</span>
-                  <span className="text-sm text-gray-400">({stockValue} units)</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-red-500">Out of Stock</span>
-                </>
-              )}
-            </div>
-
-            {/* Description */}
-            <div className="pt-4 border-t border-gray-800">
-              <p className="leading-relaxed text-gray-400">
-                {product.description || 'No description available.'}
-              </p>
-            </div>
-
-            {/* Quantity and Actions */}
-            {stockValue > 0 && (
-              <div className="pt-4 space-y-4 border-t border-gray-800">
-                {/* Quantity Selector */}
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-gray-300">Quantity:</span>
-                  <div className="flex items-center overflow-hidden border border-gray-700 rounded-full bg-gradient-to-br from-gray-800 to-gray-900">
-                    <button
-                      onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                      disabled={quantity <= 1}
-                      className="px-3 py-2 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
-                    >
-                      <FiMinus className="w-4 h-4" />
-                    </button>
-                    <span className="w-12 font-medium text-center text-white">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(prev => Math.min(stockValue, prev + 1))}
-                      disabled={quantity >= stockValue}
-                      className="px-3 py-2 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
-                    >
-                      <FiPlus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Action Buttons */}
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={stockValue === 0 || isAddingToCart}
-                    className="flex items-center justify-center flex-1 gap-2 btn-primary"
-                  >
-                    {isAddingToCart ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                        Adding...
-                      </>
-                    ) : (
-                      <>
-                        <FiShoppingCart className="w-5 h-5" />
-                        Add to Cart
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => navigate('/checkout')}
-                    disabled={stockValue === 0}
-                    className="flex-1 btn-secondary"
-                  >
-                    Buy Now
-                  </button>
-                </div>
-                
-                {/* Wishlist Button */}
-                <button
-                  onClick={handleWishlistToggle}
-                  className={`w-full ${inWishlist ? 'btn-wishlist active' : 'btn-wishlist'}`}
-                >
-                  <FiHeart className={`w-5 h-5 inline mr-2 ${inWishlist ? 'fill-white' : ''}`} />
-                  {inWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                </button>
-              </div>
-            )}
-
-            {/* Shipping Info */}
-            {product.requiresShipping !== false && (
-              <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-                <h3 className="flex items-center gap-2 mb-3 text-sm font-semibold text-white">
-                  <FiTruck className="w-4 h-4 text-blue-500" />
-                  Shipping Information
-                </h3>
-                
-                <div className="space-y-2 text-sm">
-                  {product.freeShipping && (
-                    <div className="flex items-center text-green-500">
-                      <FiCheck className="w-4 h-4 mr-2" />
-                      <span>Free Shipping</span>
-                    </div>
-                  )}
-                  
-                  {product.flatShippingRate > 0 && !product.freeShipping && (
-                    <div className="flex items-center text-gray-300">
-                      <FiDollarSign className="w-4 h-4 mr-2 text-gray-500" />
-                      <span>Flat Rate: {formatKES(product.flatShippingRate)}</span>
-                    </div>
-                  )}
-                  
-                  {product.weight > 0 && (
-                    <div className="flex items-center text-gray-300">
-                      <FiBox className="w-4 h-4 mr-2 text-gray-500" />
-                      <span>{product.weight}{product.weightUnit}</span>
-                    </div>
-                  )}
-                  
-                  {product.estimatedDeliveryMin && product.estimatedDeliveryMax && (
-                    <div className="flex items-center text-gray-300">
-                      <FiClock className="w-4 h-4 mr-2 text-gray-500" />
-                      <span>{product.estimatedDeliveryMin}-{product.estimatedDeliveryMax} days</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Shipping Method Selector */}
-                {!product.freeShipping && !product.flatShippingRate && (
-                  <div className="pt-3 mt-3 border-t border-gray-700">
-                    <select
-                      value={shippingMethod}
-                      onChange={(e) => setShippingMethod(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50"
-                    >
-                      <option value="standard">Standard Shipping (5-7 days) - Free</option>
-                      <option value="express">Express Shipping (2-3 days) - KSh 500</option>
-                      <option value="overnight">Overnight Shipping (Next day) - KSh 1,500</option>
-                    </select>
-
-                    {/* Total with shipping */}
-                    <div className="p-3 mt-3 border rounded-lg bg-blue-600/10 border-blue-600/20">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Subtotal:</span>
-                        <span className="font-medium text-white">{formatKES(totalPrice)}</span>
-                      </div>
-                      <div className="flex justify-between mt-1 text-sm">
-                        <span className="text-gray-400">Shipping:</span>
-                        <span className="font-medium text-blue-500">
-                          {shippingCost === 0 ? 'Free' : formatKES(shippingCost)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between pt-2 mt-2 font-bold border-t border-blue-600/20">
-                        <span className="text-white">Total:</span>
-                        <span className="text-lg price-large">{formatKES(grandTotal)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Info Icons */}
-            <div className="grid grid-cols-4 gap-3">
-              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
-                <FiTruck className="w-5 h-5 mb-2 text-blue-500" />
-                <span className="text-xs font-medium text-white">Free Shipping</span>
-                <span className="text-[10px] text-gray-400">Over 6K</span>
-              </div>
-              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
-                <FiShield className="w-5 h-5 mb-2 text-green-500" />
-                <span className="text-xs font-medium text-white">2 Year</span>
-                <span className="text-[10px] text-gray-400">Warranty</span>
-              </div>
-              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
-                <FiRefreshCw className="w-5 h-5 mb-2 text-purple-500" />
-                <span className="text-xs font-medium text-white">30-Day</span>
-                <span className="text-[10px] text-gray-400">Returns</span>
-              </div>
-              <div className="flex flex-col items-center p-3 info-icon rounded-xl">
-                <FiShare2 className="w-5 h-5 mb-2 text-orange-500" />
-                <span className="text-xs font-medium text-white">24/7</span>
-                <span className="text-[10px] text-gray-400">Support</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reviews Section */}
-        <div className="mt-16">
-          <h2 className="mb-8 section-header">— HEAR WHAT PEOPLE SAY —</h2>
           
-          {/* Rating Summary */}
-          <div className="p-6 mb-6 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-            <div className="flex flex-col gap-8 lg:flex-row">
-              {/* Average Rating */}
-              <div className="text-center lg:w-1/4">
-                <div className="text-5xl font-bold text-white">{averageRating}</div>
-                <div className="flex justify-center mt-2">
-                  {renderStars(parseFloat(averageRating), "w-6 h-6")}
-                </div>
-                <p className="mt-2 text-sm text-gray-400">{totalReviews} reviews</p>
-              </div>
-              
-              {/* Rating Distribution */}
-              <div className="flex-1 space-y-2">
-                {[5, 4, 3, 2, 1].map((star) => (
-                  <div key={star} className="flex items-center gap-3">
-                    <span className="w-2 text-sm text-gray-300">{star}</span>
-                    <FiStar className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                    <div className="flex-1 h-2 overflow-hidden bg-gray-700 rounded-full">
-                      <div 
-                        className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-orange-500"
-                        style={{ width: `${totalReviews > 0 ? (ratingDistribution[star] / totalReviews) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="w-8 text-sm text-gray-400">{ratingDistribution[star]}</span>
-                  </div>
-                ))}
-              </div>
-              
-              {/* Write Review Button */}
-              <div className="lg:w-1/5">
-                {!showReviewForm ? (
-                  <button
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        toast.error('Please login to write a review');
-                        navigate('/login');
-                        return;
-                      }
-                      setShowReviewForm(true);
-                    }}
-                    className="w-full btn-primary"
-                  >
-                    Write Review
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setShowReviewForm(false)}
-                    className="w-full btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">TRUSTED BY HUNDREDS</h2>
           </div>
-
-          {/* Review Form */}
-          {showReviewForm && (
-            <div className="p-6 mb-6 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50">
-              <h3 className="mb-4 text-xl font-bold text-white">
-                {editingReview ? 'Edit Review' : 'Write a Review'}
-              </h3>
-              
-              <div className="mb-4">
-                <RatingStars interactive={true} size="w-8 h-8" />
+          
+          <div className="flex flex-wrap items-center justify-center gap-16 md:gap-24">
+            {trustStats.map((stat, index) => (
+              <div 
+                key={index} 
+                className="text-center"
+                data-aos="flip-left"
+                data-aos-duration="1200"
+                data-aos-delay={400 + (index * 150)}
+                data-aos-once="false"
+              >
+                <Counter 
+                  end={stat.number} 
+                  label={stat.label} 
+                  icon={stat.icon}
+                  duration={stat.duration}
+                  suffix={stat.suffix}
+                />
               </div>
-
-              <textarea
-                value={reviewText}
-                onChange={(e) => setReviewText(e.target.value)}
-                rows="4"
-                className="w-full px-4 py-3 mb-4 text-white border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-                placeholder="Share your experience with this product..."
-              />
-
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowReviewForm(false);
-                    setEditingReview(null);
-                    setUserRating(0);
-                    setReviewText('');
-                  }}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitReview}
-                  disabled={submittingReview}
-                  className="btn-primary"
-                >
-                  {submittingReview ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                      {editingReview ? 'Updating...' : 'Submitting...'}
-                    </span>
-                  ) : (
-                    editingReview ? 'Update Review' : 'Submit Review'
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Reviews List */}
-          <div className="space-y-4">
-            {reviews.length > 0 ? (
-              reviews.map((review) => (
-                <div key={review._id || review.id} className="p-6 testimonial-card">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                        <FiUser className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{review.userName}</p>
-                        <div className="flex items-center gap-1 text-sm text-gray-400">
-                          <FiCalendar className="w-3 h-3" />
-                          <span>{formatDate(review.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {review.verified && (
-                        <span className="text-xs badge-primary">
-                          Verified Purchase
-                        </span>
-                      )}
-                      {isLoggedIn && currentUser && currentUser.name === review.userName && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditReview(review)}
-                            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-blue-500 hover:bg-blue-500/10"
-                          >
-                            <FiEdit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteReview(review._id)}
-                            className="p-2 text-gray-400 transition-colors rounded-lg hover:text-red-500 hover:bg-red-500/10"
-                          >
-                            <FiTrash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 mb-3">
-                    {renderStars(review.rating, "w-4 h-4")}
-                  </div>
-                  <p className="leading-relaxed text-gray-300">{review.comment}</p>
-                </div>
-              ))
-            ) : (
-              <div className="p-12 text-center testimonial-card">
-                <FiStar className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                <h3 className="mb-2 text-xl font-bold text-white">No reviews yet</h3>
-                <p className="text-gray-400">Be the first to review this product!</p>
-              </div>
-            )}
+            ))}
           </div>
         </div>
+      </section>
 
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-16">
-            <h2 className="mb-8 section-header">YOU MAY ALSO LIKE</h2>
+      {/* FEATURED PRODUCTS SECTION */}
+      <section className="py-20 bg-black">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src="https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              alt="Featured products"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+              onError={(e) => {
+                console.log('Featured image failed to load, using fallback');
+                e.target.src = "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">FEATURED PRODUCTS</h2>
+          </div>
+
+          {loadingFeatured ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {relatedProducts.slice(0, 4).map((relatedProduct) => {
-                const relatedImage = relatedProduct.images?.[0]?.url || relatedProduct.image || FALLBACK_IMAGE;
-                
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="bg-gray-900 rounded h-80 animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
+                ></div>
+              ))}
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {featuredProducts.slice(0, 4).map((product, index) => {
+                const productId = product._id || product.id;
                 return (
-                  <div
-                    key={relatedProduct._id || relatedProduct.id}
-                    onClick={() => {
-                      navigate(`/product/${relatedProduct._id || relatedProduct.id}`);
-                      window.scrollTo(0, 0);
-                    }}
-                    className="cursor-pointer group"
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group card-3d"
+                    onClick={() => productId && handleProductClick(productId)}
+                    data-aos="flip-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
+                    data-aos-easing="ease-out-cubic"
+                    data-aos-once="false"
                   >
-                    <div className="relative mb-3 overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
-                      <div className="relative overflow-hidden aspect-square">
-                        <img
-                          src={getFullImageUrl(relatedImage)}
-                          alt={relatedProduct.name}
-                          className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-                          onError={(e) => e.target.src = FALLBACK_IMAGE}
-                        />
-                      </div>
+                    <div className="card-3d-content">
+                      <ProductCard product={product} />
                     </div>
-                    <h3 className="font-medium text-white transition-colors group-hover:text-blue-500 line-clamp-2">
-                      {relatedProduct.name}
-                    </h3>
-                    <div className="flex items-center gap-1 mt-1">
-                      {renderStars(relatedProduct.rating || 0, "w-3 h-3")}
-                    </div>
-                    <p className="mt-1 text-lg font-bold text-blue-500">
-                      {formatKES(relatedProduct.discountedPrice || relatedProduct.price)}
-                    </p>
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No featured products available
+            </div>
+          )}
+        </div>
+      </section>
 
-      {/* Lightbox Modal */}
-      {lightboxOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-xl"
-          onClick={() => setLightboxOpen(false)}
-        >
+      {/* FLASH SALE SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
           <div 
-            className="relative flex items-center justify-center w-full h-full p-4"
-            onClick={(e) => e.stopPropagation()}
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
           >
-            {/* Glow Background */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 blur-3xl"></div>
-            
-            <div className="relative w-full max-w-6xl">
-              {/* Top Bar */}
-              <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4">
-                <div className="px-3 py-1 border rounded-full bg-black/50 backdrop-blur-md border-white/10">
-                  <span className="text-sm text-white">
-                    {selectedImageIndex + 1} / {productImages.length}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setLightboxOpen(false)}
-                  className="p-2 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-red-500/50 group"
-                >
-                  <FiX className="w-5 h-5 text-white group-hover:text-red-500" />
-                </button>
-              </div>
+            <img 
+              src={categoryHeaderImages.flashSale}
+              alt="Flash sale"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">FLASH SALE</h2>
+          </div>
 
-              {/* Navigation */}
-              {productImages.length > 1 && (
+          <div 
+            className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row"
+            data-aos="fade-left"
+            data-aos-duration="1000"
+            data-aos-delay="400"
+            data-aos-once="false"
+          >
+            <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
+            <button 
+              onClick={() => navigate('/shop?onSale=true')}
+              className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+            >
+              SHOP NOW
+            </button>
+          </div>
+
+          <div className="relative">
+            <div 
+              ref={featuredRef} 
+              className="flex gap-6 pb-4 overflow-x-auto scrollbar-hide"
+              style={{ scrollBehavior: 'smooth' }}
+            >
+              {loadingFlashSale ? (
+                [...Array(4)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"
+                  ></div>
+                ))
+              ) : flashSaleProducts.length > 0 ? (
+                flashSaleProducts.slice(0, 8).map((product, index) => {
+                  const productId = product._id || product.id;
+                  return (
+                    <div 
+                      key={`flash-${productId}`} 
+                      className="flex-shrink-0 w-48 cursor-pointer group"
+                      onClick={() => productId && handleProductClick(productId)}
+                      data-aos="zoom-in-up"
+                      data-aos-duration="1000"
+                      data-aos-delay={500 + (index * 100)}
+                      data-aos-once="false"
+                    >
+                      <ProductCard product={product} />
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="w-full py-12 text-center text-gray-400">
+                  No flash sale products available
+                </div>
+              )}
+            </div>
+            
+            {flashSaleProducts.length > 4 && (
+              <>
+                <button 
+                  onClick={() => scrollFeatured("left")}
+                  className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                >
+                  <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                </button>
+                <button 
+                  onClick={() => scrollFeatured("right")}
+                  className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                >
+                  <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* TRENDING PRODUCTS SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.trending}
+              alt="Trending products"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">TRENDING NOW</h2>
+          </div>
+
+          {loadingTrending ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="bg-gray-900 rounded h-80 animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
+                ></div>
+              ))}
+            </div>
+          ) : trendingProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {trendingProducts.slice(0, 4).map((product, index) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group card-3d"
+                    onClick={() => productId && handleProductClick(productId)}
+                    data-aos="slide-left"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
+                    data-aos-once="false"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No trending products available
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* JUST ARRIVED SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.justArrived}
+              alt="Just arrived"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">JUST ARRIVED</h2>
+          </div>
+
+          {loadingJustArrived ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="bg-gray-900 rounded h-80 animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
+                ></div>
+              ))}
+            </div>
+          ) : justArrivedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {justArrivedProducts.slice(0, 4).map((product, index) => {
+                const productId = product._id || product.id;
+                return (
+                  <div 
+                    key={productId} 
+                    className="cursor-pointer group card-3d"
+                    onClick={() => productId && handleProductClick(productId)}
+                    data-aos="fade-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={400 + (index * 150)}
+                    data-aos-once="false"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No new arrivals available
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* CATEGORIES SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.categories}
+              alt="Shop by category"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">SHOP BY CATEGORY</h2>
+          </div>
+          
+          {loadingCategories ? (
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+              {[1,2,3,4].map((i, index) => (
+                <div 
+                  key={i} 
+                  className="bg-gray-900 rounded h-80 animate-pulse"
+                  data-aos="fade-up"
+                  data-aos-delay={300 + (index * 100)}
+                  data-aos-once="false"
+                ></div>
+              ))}
+            </div>
+          ) : displayCategories.length > 0 ? (
+            <div className="relative">
+              <div 
+                ref={categoryRef} 
+                className="flex gap-8 pb-8 overflow-x-auto scrollbar-hide"
+                style={{ scrollBehavior: 'smooth' }}
+              >
+                {displayCategories.map((category, index) => (
+                  <div 
+                    key={category.id || index} 
+                    className="flex-shrink-0 cursor-pointer w-72 group card-3d"
+                    onClick={() => navigate(category.link)}
+                    onMouseEnter={() => setHoveredCategory(index)}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    data-aos="rotate-in-down-right"
+                    data-aos-duration="1200"
+                    data-aos-delay={400 + (index * 100)}
+                    data-aos-once="false"
+                  >
+                    <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
+                      <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:opacity-30 blur-xl"></div>
+                      
+                      <img 
+                        src={category.image}
+                        alt={category.name}
+                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+                        onError={(e) => {
+                          e.target.src = categoryImages.electronics;
+                        }}
+                      />
+                      
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+                      
+                      <div className="absolute bottom-0 left-0 right-0 p-5">
+                        <h3 className="text-xl font-semibold text-white">{category.name}</h3>
+                        <p className="text-sm text-gray-300">{category.count} Products</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              {displayCategories.length > 3 && (
                 <>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1);
-                      setZoomLevel(1);
-                      setIsZooming(false);
-                    }}
-                    className="absolute z-20 p-3 transition-all -translate-y-1/2 border rounded-full left-4 top-1/2 bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group"
+                  <button 
+                    onClick={() => scrollCategories("left")}
+                    className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                    aria-label="Previous categories"
                   >
-                    <FiChevronLeft className="w-6 h-6 text-white group-hover:text-blue-500" />
+                    <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0);
-                      setZoomLevel(1);
-                      setIsZooming(false);
-                    }}
-                    className="absolute z-20 p-3 transition-all -translate-y-1/2 border rounded-full right-4 top-1/2 bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50 group"
+                  <button 
+                    onClick={() => scrollCategories("right")}
+                    className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
+                    aria-label="Next categories"
                   >
-                    <FiChevronRight className="w-6 h-6 text-white group-hover:text-blue-500" />
+                    <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                   </button>
                 </>
               )}
-
-              {/* Image */}
-              <div className="flex items-center justify-center min-h-[80vh]">
-                <img
-                  src={productImages[selectedImageIndex]?.url}
-                  alt={product.name}
-                  className="max-w-full max-h-[80vh] object-contain"
-                  onError={() => handleImageError(selectedImageIndex)}
-                />
-              </div>
             </div>
+          ) : (
+            <div className="py-12 text-center text-gray-400">
+              No categories available
+            </div>
+          )}
+          
+          {displayCategories.length > 0 && (
+            <div 
+              className="mt-8 text-center"
+              data-aos="fade-up"
+              data-aos-duration="1000"
+              data-aos-delay="800"
+              data-aos-once="false"
+            >
+              <button 
+                onClick={() => navigate('/shop')}
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white transition-colors border border-gray-700 rounded-full hover:bg-white/10"
+              >
+                VIEW ALL CATEGORIES
+                <FiArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* TESTIMONIALS SECTION */}
+      <section className="py-20 bg-black border-t border-gray-800">
+        <div className="px-6 mx-auto max-w-7xl">
+          <div 
+            className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+            data-aos-once="false"
+          >
+            <img 
+              src={categoryHeaderImages.testimonials}
+              alt="What people say about us"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div 
+            className="section-header-container"
+            data-aos="fade-down"
+            data-aos-duration="1000"
+            data-aos-delay="300"
+            data-aos-once="false"
+          >
+            <h2 className="section-title">HEAR WHAT THEY ARE SAYING</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            {testimonials.map((testimonial, index) => (
+              <div 
+                key={index} 
+                className="p-6 transition-transform duration-300 rounded-lg bg-gray-900/50 hover:scale-105"
+                data-aos="fade-up"
+                data-aos-duration="1000"
+                data-aos-delay={400 + (index * 150)}
+                data-aos-easing="ease-out-back"
+                data-aos-once="false"
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <img 
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-12 h-12 rounded-full"
+                  />
+                  <div>
+                    <div className="font-medium text-white">{testimonial.name}</div>
+                    <div className="flex gap-1 mt-1">
+                      {[...Array(5)].map((_, i) => (
+                        i < testimonial.rating ? 
+                          <FaStar key={i} className="w-4 h-4 text-yellow-500" /> :
+                          <FaRegStar key={i} className="w-4 h-4 text-gray-600" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm leading-relaxed text-gray-400">"{testimonial.text}"</p>
+              </div>
+            ))}
           </div>
         </div>
-      )}
+      </section>
     </div>
   );
 };
 
-export default Product;
+export default Home;

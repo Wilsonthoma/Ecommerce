@@ -2,12 +2,12 @@
 import clientApi from './api';
 
 export const clientProductService = {
-  // Get all products with filters
+  // Get all products with comprehensive filtering
   getProducts: async (params = {}) => {
     try {
       console.log('📤 Fetching products with params:', params);
       
-      // ✅ Matches backend: /products with query params
+      // ✅ Matches backend: /products with all query params
       const response = await clientApi.get('/products', { params });
       
       console.log('📥 Products response:', response.data);
@@ -46,7 +46,7 @@ export const clientProductService = {
     }
   },
 
-  // Get single product
+  // Get single product by ID
   getProduct: async (id) => {
     try {
       console.log(`📤 Fetching product ${id}`);
@@ -82,6 +82,40 @@ export const clientProductService = {
     }
   },
 
+  // Get product by slug (SEO-friendly URL)
+  getProductBySlug: async (slug) => {
+    try {
+      console.log(`📤 Fetching product by slug: ${slug}`);
+      
+      // ✅ Matches backend: /products/slug/:slug
+      const response = await clientApi.get(`/products/slug/${slug}`);
+      
+      console.log('📥 Product by slug response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          product: response.data.product || null,
+          relatedProducts: response.data.relatedProducts || []
+        };
+      }
+      
+      return {
+        success: false,
+        product: null,
+        relatedProducts: []
+      };
+    } catch (error) {
+      console.error(`❌ Error fetching product by slug ${slug}:`, error);
+      return {
+        success: false,
+        product: null,
+        relatedProducts: [],
+        error: error.message
+      };
+    }
+  },
+
   // Get featured products
   getFeaturedProducts: async (limit = 8) => {
     try {
@@ -94,7 +128,6 @@ export const clientProductService = {
       
       console.log('📥 Featured products response:', response.data);
       
-      // Backend returns: { success, count, products }
       if (response.data && response.data.success) {
         return {
           success: true,
@@ -119,6 +152,114 @@ export const clientProductService = {
     }
   },
 
+  // Get trending products
+  getTrendingProducts: async (limit = 8) => {
+    try {
+      console.log('📤 Fetching trending products with limit:', limit);
+      
+      // ✅ Matches backend: /products/trending?limit=8
+      const response = await clientApi.get('/products/trending', {
+        params: { limit }
+      });
+      
+      console.log('📥 Trending products response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          products: response.data.products || [],
+          count: response.data.count || 0
+        };
+      }
+      
+      return {
+        success: true,
+        products: [],
+        count: 0
+      };
+    } catch (error) {
+      console.error('❌ Error fetching trending products:', error);
+      return {
+        success: false,
+        products: [],
+        count: 0,
+        error: error.message
+      };
+    }
+  },
+
+  // Get flash sale products
+  getFlashSaleProducts: async (limit = 10) => {
+    try {
+      console.log('📤 Fetching flash sale products with limit:', limit);
+      
+      // ✅ Matches backend: /products/flash-sale?limit=10
+      const response = await clientApi.get('/products/flash-sale', {
+        params: { limit }
+      });
+      
+      console.log('📥 Flash sale products response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          products: response.data.products || [],
+          count: response.data.count || 0
+        };
+      }
+      
+      return {
+        success: true,
+        products: [],
+        count: 0
+      };
+    } catch (error) {
+      console.error('❌ Error fetching flash sale products:', error);
+      return {
+        success: false,
+        products: [],
+        count: 0,
+        error: error.message
+      };
+    }
+  },
+
+  // Get just arrived products
+  getJustArrivedProducts: async (limit = 8) => {
+    try {
+      console.log('📤 Fetching just arrived products with limit:', limit);
+      
+      // ✅ Matches backend: /products/just-arrived?limit=8
+      const response = await clientApi.get('/products/just-arrived', {
+        params: { limit }
+      });
+      
+      console.log('📥 Just arrived products response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          products: response.data.products || [],
+          count: response.data.count || 0
+        };
+      }
+      
+      return {
+        success: true,
+        products: [],
+        count: 0
+      };
+    } catch (error) {
+      console.error('❌ Error fetching just arrived products:', error);
+      return {
+        success: false,
+        products: [],
+        count: 0,
+        error: error.message
+      };
+    }
+  },
+
   // Get top selling products
   getTopSellingProducts: async (limit = 10) => {
     try {
@@ -131,7 +272,6 @@ export const clientProductService = {
       
       console.log('📥 Top selling products response:', response.data);
       
-      // Backend returns: { success, count, products }
       if (response.data && response.data.success) {
         return {
           success: true,
@@ -156,33 +296,20 @@ export const clientProductService = {
     }
   },
 
-  // Get categories (from backend - you might need to create this endpoint)
+  // Get all categories with counts
   getCategories: async () => {
     try {
       console.log('📤 Fetching categories');
       
-      // Note: Your backend doesn't have a categories endpoint yet
-      // For now, we'll get categories from products
-      const response = await clientApi.get('/products', {
-        params: { limit: 100 }
-      });
+      // ✅ Matches backend: /products/categories/all
+      const response = await clientApi.get('/products/categories/all');
+      
+      console.log('📥 Categories response:', response.data);
       
       if (response.data && response.data.success) {
-        // Extract unique categories from products
-        const products = response.data.products || [];
-        const uniqueCategories = [...new Set(products.map(p => p.category).filter(Boolean))];
-        
-        // Format categories for the filter
-        const categories = uniqueCategories.map(cat => ({
-          _id: cat,
-          name: cat.charAt(0).toUpperCase() + cat.slice(1),
-          slug: cat,
-          productCount: products.filter(p => p.category === cat).length
-        }));
-        
         return {
           success: true,
-          categories
+          categories: response.data.categories || []
         };
       }
       
@@ -200,7 +327,81 @@ export const clientProductService = {
     }
   },
 
-  // Search products (using the main products endpoint with search param)
+  // Get all vendors
+  getVendors: async () => {
+    try {
+      console.log('📤 Fetching vendors');
+      
+      // ✅ Matches backend: /products/vendors/all
+      const response = await clientApi.get('/products/vendors/all');
+      
+      console.log('📥 Vendors response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          vendors: response.data.vendors || []
+        };
+      }
+      
+      return {
+        success: true,
+        vendors: []
+      };
+    } catch (error) {
+      console.error('❌ Error fetching vendors:', error);
+      return {
+        success: false,
+        vendors: [],
+        error: error.message
+      };
+    }
+  },
+
+  // Get filter data (price ranges, etc)
+  getFilterData: async () => {
+    try {
+      console.log('📤 Fetching filter data');
+      
+      // ✅ Matches backend: /products/filters/data
+      const response = await clientApi.get('/products/filters/data');
+      
+      console.log('📥 Filter data response:', response.data);
+      
+      if (response.data && response.data.success) {
+        return {
+          success: true,
+          filters: response.data.filters || {
+            priceRange: { minPrice: 0, maxPrice: 0 },
+            categories: [],
+            vendors: []
+          }
+        };
+      }
+      
+      return {
+        success: true,
+        filters: {
+          priceRange: { minPrice: 0, maxPrice: 0 },
+          categories: [],
+          vendors: []
+        }
+      };
+    } catch (error) {
+      console.error('❌ Error fetching filter data:', error);
+      return {
+        success: false,
+        filters: {
+          priceRange: { minPrice: 0, maxPrice: 0 },
+          categories: [],
+          vendors: []
+        },
+        error: error.message
+      };
+    }
+  },
+
+  // Search products (uses main products endpoint with search param)
   searchProducts: async (query, params = {}) => {
     try {
       console.log(`📤 Searching products with query: ${query}`);
@@ -217,7 +418,8 @@ export const clientProductService = {
           success: true,
           products: response.data.products || [],
           total: response.data.total || 0,
-          pages: response.data.totalPages || 1
+          pages: response.data.totalPages || 1,
+          currentPage: response.data.currentPage || 1
         };
       }
       
@@ -225,7 +427,8 @@ export const clientProductService = {
         success: true,
         products: [],
         total: 0,
-        pages: 1
+        pages: 1,
+        currentPage: 1
       };
     } catch (error) {
       console.error('❌ Error searching products:', error);
@@ -234,19 +437,21 @@ export const clientProductService = {
         products: [],
         total: 0,
         pages: 1,
+        currentPage: 1,
         error: error.message
       };
     }
   },
 
-  // Get related products (already included in getProduct response)
-  getRelatedProducts: async (productId, category) => {
+  // Get related products (standalone endpoint)
+  getRelatedProducts: async (productId, category, limit = 4) => {
     try {
-      // This is already handled in getProduct, but if you need standalone:
+      console.log(`📤 Fetching related products for ${productId} in category ${category}`);
+      
       const response = await clientApi.get('/products', {
         params: {
           category,
-          limit: 4,
+          limit,
           exclude: productId
         }
       });
@@ -267,36 +472,6 @@ export const clientProductService = {
       return {
         success: false,
         products: [],
-        error: error.message
-      };
-    }
-  },
-
-  // Get product by slug (if you have slugs)
-  getProductBySlug: async (slug) => {
-    try {
-      // First find the product by slug
-      const response = await clientApi.get('/products', {
-        params: { search: slug, limit: 1 }
-      });
-      
-      if (response.data && response.data.success && response.data.products.length > 0) {
-        const product = response.data.products[0];
-        // Then get full details
-        return await clientProductService.getProduct(product._id);
-      }
-      
-      return {
-        success: false,
-        product: null,
-        relatedProducts: []
-      };
-    } catch (error) {
-      console.error(`❌ Error fetching product by slug ${slug}:`, error);
-      return {
-        success: false,
-        product: null,
-        relatedProducts: [],
         error: error.message
       };
     }
@@ -392,7 +567,6 @@ export const clientProductService = {
     try {
       console.log(`📤 Adding review to product ${productId}`, reviewData);
       
-      // Get token from localStorage
       const token = localStorage.getItem('token');
       
       const response = await clientApi.post(`/reviews/products/${productId}/reviews`, reviewData, {
@@ -415,7 +589,6 @@ export const clientProductService = {
     try {
       console.log(`📤 Updating review ${reviewId}`, reviewData);
       
-      // Get token from localStorage
       const token = localStorage.getItem('token');
       
       const response = await clientApi.put(`/reviews/reviews/${reviewId}`, reviewData, {
@@ -438,7 +611,6 @@ export const clientProductService = {
     try {
       console.log(`📤 Deleting review ${reviewId}`);
       
-      // Get token from localStorage
       const token = localStorage.getItem('token');
       
       const response = await clientApi.delete(`/reviews/reviews/${reviewId}`, {
@@ -453,6 +625,16 @@ export const clientProductService = {
     } catch (error) {
       console.error('❌ Error deleting review:', error);
       throw error;
+    }
+  },
+
+  // Check if product exists (quick check)
+  checkProductExists: async (productId) => {
+    try {
+      const response = await clientApi.head(`/products/${productId}`);
+      return response.status === 200;
+    } catch (error) {
+      return false;
     }
   }
 };

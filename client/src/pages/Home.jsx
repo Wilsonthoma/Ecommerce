@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - UPDATED with fixed product data mapping for cart
+// src/pages/Home.jsx - COMPLETELY FIXED with proper product data mapping
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -13,7 +13,6 @@ import { useInView } from 'react-intersection-observer';
 import { 
   FiChevronLeft, 
   FiChevronRight, 
-  FiChevronDown,
   FiTruck, 
   FiShield, 
   FiRefreshCw, 
@@ -21,59 +20,39 @@ import {
   FiSmartphone,
   FiWatch,
   FiArrowRight,
-  FiCheckCircle,
   FiPlay,
   FiPause,
   FiPackage,
   FiTrendingUp,
   FiStar,
   FiMapPin,
-  FiSearch,
-  FiBattery,
   FiZap,
-  FiMusic,
   FiClock,
   FiUsers,
   FiGlobe,
   FiAward,
-  FiThumbsUp,
-  FiShoppingBag,
-  FiGift
 } from "react-icons/fi";
 import { 
   BsArrowRight,
-  BsFire,
   BsLightningCharge,
-  BsShieldCheck,
   BsTruck,
-  BsArrowRepeat,
-  BsHeadphones,
-  BsStarFill,
-  BsStarHalf,
-  BsSmartwatch,
-  BsPhone,
-  BsBatteryCharging,
-  BsGift
 } from "react-icons/bs";
-import { AiFillFire } from "react-icons/ai";
-import { IoHeadsetOutline, IoWatchOutline, IoFlashOutline } from "react-icons/io5";
-import { MdOutlineSecurity, MdOutlineLocalShipping } from "react-icons/md";
-import { FaStar, FaRegStar, FaStarHalfAlt } from "react-icons/fa";
+import { IoFlashOutline } from "react-icons/io5";
+import { FaStar, FaRegStar } from "react-icons/fa";
 
 // Category header images - DISTINCT images for each section
 const categoryHeaderImages = {
-  trust: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1600", // Office/trust
-  featured: "https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600", // Featured products showcase
-  categories: "https://images.pexels.com/photos/4498127/pexels-photo-4498127.jpeg?auto=compress&cs=tinysrgb&w=1600", // Shopping categories
-  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600", // Happy customers
-  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600", // Flash sale
-  trending: "https://images.pexels.com/photos/4210858/pexels-photo-4210858.jpeg?auto=compress&cs=tinysrgb&w=1600", // Trending/popular
-  justArrived: "https://images.pexels.com/photos/4210863/pexels-photo-4210863.jpeg?auto=compress&cs=tinysrgb&w=1600" // New arrivals
+  trust: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  featured: "https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  categories: "https://images.pexels.com/photos/4498127/pexels-photo-4498127.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  testimonials: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  flashSale: "https://images.pexels.com/photos/5632398/pexels-photo-5632398.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  trending: "https://images.pexels.com/photos/4210858/pexels-photo-4210858.jpeg?auto=compress&cs=tinysrgb&w=1600",
+  justArrived: "https://images.pexels.com/photos/4210863/pexels-photo-4210863.jpeg?auto=compress&cs=tinysrgb&w=1600"
 };
 
 // Category images for EACH SPECIFIC category - UNIQUE images for each
 const categoryImages = {
-  // Electronics & Tech
   electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
   smartphones: "https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600",
   laptops: "https://images.pexels.com/photos/18105/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=600",
@@ -81,37 +60,25 @@ const categoryImages = {
   cameras: "https://images.pexels.com/photos/51383/photo-camera-subject-photographer-51383.jpeg?auto=compress&cs=tinysrgb&w=600",
   monitors: "https://images.pexels.com/photos/1029757/pexels-photo-1029757.jpeg?auto=compress&cs=tinysrgb&w=600",
   gaming: "https://images.pexels.com/photos/3945657/pexels-photo-3945657.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Audio
   audio: "https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=600",
   headphones: "https://images.pexels.com/photos/3394659/pexels-photo-3394659.jpeg?auto=compress&cs=tinysrgb&w=600",
   speakers: "https://images.pexels.com/photos/257904/pexels-photo-257904.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Fashion
   clothing: "https://images.pexels.com/photos/2983464/pexels-photo-2983464.jpeg?auto=compress&cs=tinysrgb&w=600",
   footwear: "https://images.pexels.com/photos/267320/pexels-photo-267320.jpeg?auto=compress&cs=tinysrgb&w=600",
   jewelry: "https://images.pexels.com/photos/1927259/pexels-photo-1927259.jpeg?auto=compress&cs=tinysrgb&w=600",
   watches: "https://images.pexels.com/photos/190819/pexels-photo-190819.jpeg?auto=compress&cs=tinysrgb&w=600",
   wearables: "https://images.pexels.com/photos/4370372/pexels-photo-4370372.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Home & Living
   home: "https://images.pexels.com/photos/276583/pexels-photo-276583.jpeg?auto=compress&cs=tinysrgb&w=600",
   furniture: "https://images.pexels.com/photos/1866149/pexels-photo-1866149.jpeg?auto=compress&cs=tinysrgb&w=600",
   kitchen: "https://images.pexels.com/photos/2724748/pexels-photo-2724748.jpeg?auto=compress&cs=tinysrgb&w=600",
   decor: "https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Beauty & Personal Care
   beauty: "https://images.pexels.com/photos/3738083/pexels-photo-3738083.jpeg?auto=compress&cs=tinysrgb&w=600",
   skincare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
   makeup: "https://images.pexels.com/photos/2533266/pexels-photo-2533266.jpeg?auto=compress&cs=tinysrgb&w=600",
   haircare: "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Accessories
   accessories: "https://images.pexels.com/photos/577769/pexels-photo-577769.jpeg?auto=compress&cs=tinysrgb&w=600",
   bags: "https://images.pexels.com/photos/1152077/pexels-photo-1152077.jpeg?auto=compress&cs=tinysrgb&w=600",
   sunglasses: "https://images.pexels.com/photos/164661/pexels-photo-164661.jpeg?auto=compress&cs=tinysrgb&w=600",
-  
-  // Other
   fabric: "https://images.pexels.com/photos/994517/pexels-photo-994517.jpeg?auto=compress&cs=tinysrgb&w=600",
   food: "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=600",
   powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -120,9 +87,9 @@ const categoryImages = {
   mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
 };
 
-// Font configuration - EXACTLY LIKE SCREENSHOT
+// Font configuration
 const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
   * {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -130,14 +97,7 @@ const fontStyles = `
   
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
-    letter-spacing: normal;
-  }
-  
-  .nav-link {
-    font-weight: 500;
-    font-size: 0.9rem;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    letter-spacing: -0.02em;
   }
   
   .section-title {
@@ -177,17 +137,6 @@ const fontStyles = `
     color: #9CA3AF;
   }
   
-  .product-title {
-    font-weight: 500;
-    font-size: 0.9rem;
-  }
-  
-  .product-price {
-    font-weight: 500;
-    font-size: 0.9rem;
-    color: #9CA3AF;
-  }
-  
   .badge-flash {
     background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
@@ -217,6 +166,10 @@ const fontStyles = `
     font-size: 0.75rem;
     box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
   }
+  
+  .glow-text {
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
 `;
 
 // Beautiful gradient combinations for each section
@@ -244,16 +197,32 @@ const animationStyles = `
     100% { opacity: 0.1; }
   }
   
-  .shimmer {
-    animation: shimmer 2s infinite;
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   
-  .glow-text {
-    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
-  .glow-text:hover {
-    text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
   }
   
   .scrollbar-hide::-webkit-scrollbar {
@@ -269,10 +238,6 @@ const animationStyles = `
     background-attachment: fixed;
   }
   
-  .animate-gradient {
-    animation: gradient 8s ease-in-out infinite;
-  }
-  
   /* 3D Card Effects */
   .card-3d {
     transform-style: preserve-3d;
@@ -282,15 +247,9 @@ const animationStyles = `
   .card-3d-content {
     transform: translateZ(20px);
   }
-  
-  @media (max-width: 768px) {
-    .bg-fixed {
-      background-attachment: scroll;
-    }
-  }
 `;
 
-// Top Bar Component (FIND STORE | SHOP ONLINE) - EXACTLY LIKE SCREENSHOT
+// Top Bar Component
 const TopBar = () => {
   const navigate = useNavigate();
   
@@ -317,7 +276,7 @@ const TopBar = () => {
 };
 
 // Counter Component with scroll trigger
-const Counter = ({ end, label, icon, duration = 2, suffix = "+" }) => {
+const Counter = ({ end, label, duration = 2, suffix = "+" }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.3,
@@ -343,13 +302,37 @@ const Counter = ({ end, label, icon, duration = 2, suffix = "+" }) => {
   );
 };
 
+// Helper function to normalize product data for ProductCard
+const normalizeProductData = (product) => {
+  if (!product) return null;
+  
+  return {
+    ...product,
+    _id: product._id || product.id,
+    id: product.id || product._id,
+    // CRITICAL FIX: Always use quantity field (from your database)
+    quantity: product.quantity !== undefined ? product.quantity : 0,
+    stock: product.stock !== undefined ? product.stock : (product.quantity || 0),
+    price: product.price || 0,
+    comparePrice: product.comparePrice || null,
+    images: product.images || [],
+    image: product.image || null,
+    primaryImage: product.primaryImage || product.image || null,
+    rating: product.rating || 0,
+    reviewsCount: product.reviewsCount || product.reviews || 0,
+    featured: product.featured || false,
+    isTrending: product.isTrending || false,
+    isFlashSale: product.isFlashSale || false,
+    isJustArrived: product.isJustArrived || false
+  };
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useContext(AppContext);
   const { addToCart } = useCart();
   
   // Product states
-  const [products, setProducts] = useState([]);
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [latestProducts, setLatestProducts] = useState([]);
   const [flashSaleProducts, setFlashSaleProducts] = useState([]);
@@ -358,7 +341,6 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   
   // Loading states
-  const [loading, setLoading] = useState(true);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
   const [loadingLatest, setLoadingLatest] = useState(true);
   const [loadingFlashSale, setLoadingFlashSale] = useState(true);
@@ -369,93 +351,26 @@ const Home = () => {
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [imageErrors, setImageErrors] = useState({});
   
   const categoryRef = useRef(null);
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
-  const [activeCategory, setActiveCategory] = useState("all");
 
-  // Initialize AOS with scroll trigger
+  // Initialize AOS
   useEffect(() => {
     AOS.init({
       duration: 1000,
       once: false,
       mirror: true,
-      offset: 100, // Trigger when element is 100px from viewport
+      offset: 100,
       easing: 'ease-out-cubic',
-      anchorPlacement: 'top-bottom', // Trigger when top of element hits bottom of viewport
-      disable: false, // Never disable
-      startEvent: 'DOMContentLoaded',
-      initClassName: 'aos-init',
-      animatedClassName: 'aos-animate',
-      useClassNames: false,
-      disableMutationObserver: false,
-      debounceDelay: 50,
-      throttleDelay: 99,
+      anchorPlacement: 'top-bottom',
     });
     
-    // Refresh AOS when content loads
     setTimeout(() => {
       AOS.refresh();
     }, 1000);
   }, []);
-
-  // ============ FIXED: Normalize product data function ============
-  // This ensures all products have the correct fields that ProductCard expects
-  const normalizeProductData = (product) => {
-    if (!product) return null;
-    
-    return {
-      ...product,
-      // Ensure we have both _id and id
-      _id: product._id || product.id,
-      id: product.id || product._id,
-      // Ensure stock/quantity fields are present
-      stock: product.stock !== undefined ? product.stock : 
-             (product.quantity !== undefined ? product.quantity : 0),
-      quantity: product.quantity !== undefined ? product.quantity :
-                (product.stock !== undefined ? product.stock : 0),
-      // Ensure price fields
-      price: product.price || 0,
-      comparePrice: product.comparePrice || product.originalPrice || null,
-      // Ensure image fields
-      images: product.images || [],
-      image: product.image || null,
-      primaryImage: product.primaryImage || product.image || null,
-      // Ensure rating fields
-      rating: product.rating || 0,
-      reviewsCount: product.reviewsCount || product.reviews || 0,
-      // Ensure boolean flags
-      featured: product.featured || false,
-      isTrending: product.isTrending || false,
-      isFlashSale: product.isFlashSale || false,
-      isJustArrived: product.isJustArrived || false
-    };
-  };
-
-  // ============ FIXED: Normalize array of products ============
-  const normalizeProductsArray = (productsArray) => {
-    if (!Array.isArray(productsArray)) return [];
-    return productsArray.map(normalizeProductData).filter(Boolean);
-  };
-
-  // Fetch all products
-  const fetchProducts = async () => {
-    try {
-      const response = await clientProductService.getProducts({ 
-        limit: 20, 
-        sort: '-createdAt' 
-      });
-      
-      if (response.success) {
-        console.log('✅ Products fetched:', response.products);
-        setProducts(normalizeProductsArray(response.products || []));
-      }
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    }
-  };
 
   // Fetch featured products
   const fetchFeaturedProducts = async () => {
@@ -465,16 +380,8 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Featured products fetched:', response.products);
-        setFeaturedProducts(normalizeProductsArray(response.products || []));
-      } else {
-        // Fallback to regular products with featured flag
-        const fallbackResponse = await clientProductService.getProducts({ 
-          limit: 8,
-          featured: true 
-        });
-        if (fallbackResponse.success) {
-          setFeaturedProducts(normalizeProductsArray(fallbackResponse.products || []));
-        }
+        const normalizedProducts = (response.products || []).map(normalizeProductData);
+        setFeaturedProducts(normalizedProducts);
       }
     } catch (error) {
       console.error("Failed to fetch featured products:", error);
@@ -494,7 +401,8 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Latest products fetched:', response.products);
-        setLatestProducts(normalizeProductsArray(response.products || []));
+        const normalizedProducts = (response.products || []).map(normalizeProductData);
+        setLatestProducts(normalizedProducts);
       }
     } catch (error) {
       console.error("Failed to fetch latest products:", error);
@@ -511,17 +419,8 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Flash sale products fetched:', response.products);
-        setFlashSaleProducts(normalizeProductsArray(response.products || []));
-      } else {
-        // Fallback to products with discount
-        const fallbackResponse = await clientProductService.getProducts({ 
-          onSale: true,
-          limit: 10,
-          sort: '-discountPercentage' 
-        });
-        if (fallbackResponse.success) {
-          setFlashSaleProducts(normalizeProductsArray(fallbackResponse.products || []));
-        }
+        const normalizedProducts = (response.products || []).map(normalizeProductData);
+        setFlashSaleProducts(normalizedProducts);
       }
     } catch (error) {
       console.error("Failed to fetch flash sale products:", error);
@@ -538,13 +437,8 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Trending products fetched:', response.products);
-        setTrendingProducts(normalizeProductsArray(response.products || []));
-      } else {
-        // Fallback to top selling products
-        const fallbackResponse = await clientProductService.getTopSellingProducts(8);
-        if (fallbackResponse.success) {
-          setTrendingProducts(normalizeProductsArray(fallbackResponse.products || []));
-        }
+        const normalizedProducts = (response.products || []).map(normalizeProductData);
+        setTrendingProducts(normalizedProducts);
       }
     } catch (error) {
       console.error("Failed to fetch trending products:", error);
@@ -561,16 +455,8 @@ const Home = () => {
       
       if (response.success) {
         console.log('✅ Just arrived products fetched:', response.products);
-        setJustArrivedProducts(normalizeProductsArray(response.products || []));
-      } else {
-        // Fallback to latest products
-        const fallbackResponse = await clientProductService.getProducts({ 
-          limit: 8,
-          sort: '-createdAt' 
-        });
-        if (fallbackResponse.success) {
-          setJustArrivedProducts(normalizeProductsArray(fallbackResponse.products || []));
-        }
+        const normalizedProducts = (response.products || []).map(normalizeProductData);
+        setJustArrivedProducts(normalizedProducts);
       }
     } catch (error) {
       console.error("Failed to fetch just arrived products:", error);
@@ -579,18 +465,15 @@ const Home = () => {
     }
   };
 
-  // Fetch categories from backend
+  // Fetch categories
   const fetchCategories = async () => {
     try {
       setLoadingCategories(true);
       const response = await clientProductService.getCategories();
       
       if (response.success) {
-        console.log('✅ Categories fetched from backend:', response.categories);
+        console.log('✅ Categories fetched:', response.categories);
         setCategories(response.categories || []);
-      } else {
-        console.log('❌ No categories from backend');
-        setCategories([]);
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
@@ -603,9 +486,7 @@ const Home = () => {
   // Fetch all data
   useEffect(() => {
     const fetchAllData = async () => {
-      setLoading(true);
       await Promise.all([
-        fetchProducts(),
         fetchFeaturedProducts(),
         fetchLatestProducts(),
         fetchFlashSaleProducts(),
@@ -613,9 +494,7 @@ const Home = () => {
         fetchJustArrivedProducts(),
         fetchCategories()
       ]);
-      setLoading(false);
       
-      // Refresh AOS after data loads
       setTimeout(() => {
         AOS.refresh();
       }, 500);
@@ -639,7 +518,6 @@ const Home = () => {
         await video.play();
         setVideoPlaying(true);
         setVideoError(false);
-        console.log("✅ Tech video playing");
       } catch (err) {
         console.log("❌ Video autoplay failed:", err);
         setVideoPlaying(false);
@@ -701,35 +579,16 @@ const Home = () => {
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
-  const handleAddToCart = async (product, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    await addToCart(product, 1);
-  };
-
-  const handleImageError = (productId) => {
-    console.log(`❌ Image error for product: ${productId}`);
-    setImageErrors(prev => ({ ...prev, [productId]: true }));
-  };
-
-  const getProductImage = (product) => {
-    if (imageErrors[product._id || product.id]) {
-      return null; // Will trigger fallback in ProductCard
-    }
-    return product.primaryImage || product.images?.[0]?.url || product.image || null;
-  };
-
   const handleProductClick = (productId) => {
     if (productId) {
       navigate(`/product/${productId}`);
     }
   };
 
-  // Get category image based on category name - IMPROVED for more specific matching
+  // Get category image based on category name
   const getCategoryImage = (categoryName) => {
     const name = categoryName?.toLowerCase() || '';
     
-    // Electronics & Tech
     if (name.includes('smartphone') || name.includes('phone') || name.includes('mobile')) {
       return categoryImages.smartphones;
     }
@@ -751,16 +610,12 @@ const Home = () => {
     if (name.includes('electronics') || name.includes('electronic')) {
       return categoryImages.electronics;
     }
-    
-    // Audio
     if (name.includes('headphone') || name.includes('earphone') || name.includes('headset') || name.includes('audio')) {
       return categoryImages.headphones;
     }
     if (name.includes('speaker') || name.includes('sound')) {
       return categoryImages.speakers;
     }
-    
-    // Fashion
     if (name.includes('clothing') || name.includes('apparel') || name.includes('cloth')) {
       return categoryImages.clothing;
     }
@@ -773,8 +628,6 @@ const Home = () => {
     if (name.includes('watch') || name.includes('wearable')) {
       return categoryImages.watches;
     }
-    
-    // Home & Living
     if (name.includes('home') || name.includes('house')) {
       return categoryImages.home;
     }
@@ -787,8 +640,6 @@ const Home = () => {
     if (name.includes('decor') || name.includes('decoration')) {
       return categoryImages.decor;
     }
-    
-    // Beauty & Personal Care
     if (name.includes('beauty') || name.includes('cosmetic')) {
       return categoryImages.beauty;
     }
@@ -801,8 +652,6 @@ const Home = () => {
     if (name.includes('hair') || name.includes('trimmer') || name.includes('clipper')) {
       return categoryImages.haircare;
     }
-    
-    // Accessories
     if (name.includes('accessory') || name.includes('accessories')) {
       return categoryImages.accessories;
     }
@@ -818,8 +667,6 @@ const Home = () => {
     if (name.includes('mouse') || name.includes('pointer')) {
       return categoryImages.mice;
     }
-    
-    // Other
     if (name.includes('fabric') || name.includes('textile')) {
       return categoryImages.fabric;
     }
@@ -830,35 +677,24 @@ const Home = () => {
       return categoryImages.powerbanks;
     }
     
-    // Default fallback
     return categoryImages.electronics;
   };
 
-  // Build categories from backend only - with unique images
-  const buildCategories = () => {
-    // If we have categories from API, use them with appropriate images
-    if (categories.length > 0) {
-      return categories.map(cat => ({
-        id: cat._id || cat.id || cat.name,
-        slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
-        name: cat.name,
-        image: getCategoryImage(cat.name),
-        count: cat.count ? `${cat.count}+` : (cat.productCount ? `${cat.productCount}+` : "0"),
-        link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
-      }));
-    }
-    
-    // Return empty array if no categories from backend
-    return [];
-  };
+  // Build categories
+  const displayCategories = categories.map(cat => ({
+    id: cat._id || cat.id || cat.name,
+    slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
+    name: cat.name,
+    image: getCategoryImage(cat.name),
+    count: cat.count ? `${cat.count}+` : (cat.productCount ? `${cat.productCount}+` : "0"),
+    link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
+  }));
 
-  const displayCategories = buildCategories();
-
-  // Trust stats with corrected numbers
+  // Trust stats
   const trustStats = [
-    { number: 300, label: "HAPPY CLIENTS", icon: <FiUsers className="w-6 h-6" />, gradient: "from-blue-600 to-cyan-600", duration: 2.5, suffix: "+" },
-    { number: 25, label: "COUNTIES SERVED", icon: <FiGlobe className="w-6 h-6" />, gradient: "from-emerald-600 to-green-600", duration: 2, suffix: "+" },
-    { number: 365, label: "DAYS WARRANTY", icon: <FiAward className="w-6 h-6" />, gradient: "from-orange-600 to-red-600", duration: 2, suffix: "" },
+    { number: 300, label: "HAPPY CLIENTS", duration: 2.5, suffix: "+" },
+    { number: 25, label: "COUNTIES SERVED", duration: 2, suffix: "+" },
+    { number: 365, label: "DAYS WARRANTY", duration: 2, suffix: "" },
   ];
 
   // Testimonials
@@ -883,33 +719,19 @@ const Home = () => {
     }
   ];
 
-  // Log products for debugging
-  useEffect(() => {
-    console.log('📦 Current products state:', {
-      products: products.length,
-      featured: featuredProducts.length,
-      latest: latestProducts.length,
-      flashSale: flashSaleProducts.length,
-      trending: trendingProducts.length,
-      justArrived: justArrivedProducts.length,
-      categories: categories.length,
-      displayCategories: displayCategories.length
-    });
-  }, [products, featuredProducts, latestProducts, flashSaleProducts, trendingProducts, justArrivedProducts, categories, displayCategories]);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Inject font styles and animations */}
+      {/* Inject styles */}
       <style>{fontStyles}</style>
       <style>{animationStyles}</style>
       
-      {/* Animated gradient overlay for entire page */}
+      {/* Animated gradient overlay */}
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient"></div>
       
-      {/* Top Bar - FIND STORE | SHOP ONLINE */}
+      {/* Top Bar */}
       <TopBar />
 
-      {/* HERO SECTION - Fade In */}
+      {/* HERO SECTION */}
       <div 
         className="relative h-screen min-h-[800px] overflow-hidden"
         data-aos="fade-in"
@@ -1001,10 +823,9 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUST STATS SECTION - 3D Flip Cards with Counters */}
+      {/* TRUST STATS SECTION */}
       <section className="py-16 bg-black border-b border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image with Zoom Effect - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1043,7 +864,6 @@ const Home = () => {
                 <Counter 
                   end={stat.number} 
                   label={stat.label} 
-                  icon={stat.icon}
                   duration={stat.duration}
                   suffix={stat.suffix}
                 />
@@ -1053,10 +873,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FEATURED PRODUCTS SECTION - Cards with staggered animations */}
+      {/* FEATURED PRODUCTS SECTION */}
       <section className="py-20 bg-black">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image with Zoom - DISTINCT image - FIXED with working URL */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1065,11 +884,10 @@ const Home = () => {
             data-aos-once="false"
           >
             <img 
-              src="https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600"
+              src={categoryHeaderImages.featured}
               alt="Featured products"
               className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
               onError={(e) => {
-                console.log('Featured image failed to load, using fallback');
                 e.target.src = "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=1600";
               }}
             />
@@ -1088,37 +906,28 @@ const Home = () => {
 
           {loadingFeatured ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i, index) => (
-                <div 
-                  key={i} 
-                  className="bg-gray-900 rounded h-80 animate-pulse"
-                  data-aos="fade-up"
-                  data-aos-delay={300 + (index * 100)}
-                  data-aos-once="false"
-                ></div>
+              {[1,2,3,4].map((i) => (
+                <div key={i} className="bg-gray-900 rounded h-80 animate-pulse"></div>
               ))}
             </div>
           ) : featuredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {featuredProducts.slice(0, 4).map((product, index) => {
-                const productId = product._id || product.id;
-                return (
-                  <div 
-                    key={productId} 
-                    className="cursor-pointer group card-3d"
-                    onClick={() => productId && handleProductClick(productId)}
-                    data-aos="flip-up"
-                    data-aos-duration="1000"
-                    data-aos-delay={400 + (index * 150)}
-                    data-aos-easing="ease-out-cubic"
-                    data-aos-once="false"
-                  >
-                    <div className="card-3d-content">
-                      <ProductCard product={product} />
-                    </div>
+              {featuredProducts.slice(0, 4).map((product, index) => (
+                <div 
+                  key={product._id || product.id} 
+                  className="cursor-pointer group card-3d"
+                  onClick={() => handleProductClick(product._id || product.id)}
+                  data-aos="flip-up"
+                  data-aos-duration="1000"
+                  data-aos-delay={400 + (index * 150)}
+                  data-aos-easing="ease-out-cubic"
+                  data-aos-once="false"
+                >
+                  <div className="card-3d-content">
+                    <ProductCard product={product} />
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="py-12 text-center text-gray-400">
@@ -1128,10 +937,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* FLASH SALE SECTION - Zoom In Cards */}
+      {/* FLASH SALE SECTION */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1181,28 +989,22 @@ const Home = () => {
             >
               {loadingFlashSale ? (
                 [...Array(4)].map((_, i) => (
-                  <div 
-                    key={i} 
-                    className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"
-                  ></div>
+                  <div key={i} className="flex-shrink-0 w-48 bg-gray-900 rounded-lg h-80 animate-pulse"></div>
                 ))
               ) : flashSaleProducts.length > 0 ? (
-                flashSaleProducts.slice(0, 8).map((product, index) => {
-                  const productId = product._id || product.id;
-                  return (
-                    <div 
-                      key={`flash-${productId}`} 
-                      className="flex-shrink-0 w-48 cursor-pointer group"
-                      onClick={() => productId && handleProductClick(productId)}
-                      data-aos="zoom-in-up"
-                      data-aos-duration="1000"
-                      data-aos-delay={500 + (index * 100)}
-                      data-aos-once="false"
-                    >
-                      <ProductCard product={product} />
-                    </div>
-                  );
-                })
+                flashSaleProducts.slice(0, 8).map((product, index) => (
+                  <div 
+                    key={product._id || product.id} 
+                    className="flex-shrink-0 w-48 cursor-pointer group"
+                    onClick={() => handleProductClick(product._id || product.id)}
+                    data-aos="zoom-in-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={500 + (index * 100)}
+                    data-aos-once="false"
+                  >
+                    <ProductCard product={product} />
+                  </div>
+                ))
               ) : (
                 <div className="w-full py-12 text-center text-gray-400">
                   No flash sale products available
@@ -1230,10 +1032,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TRENDING PRODUCTS SECTION - Slide In Left */}
+      {/* TRENDING PRODUCTS SECTION */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1261,34 +1062,25 @@ const Home = () => {
 
           {loadingTrending ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i, index) => (
-                <div 
-                  key={i} 
-                  className="bg-gray-900 rounded h-80 animate-pulse"
-                  data-aos="fade-up"
-                  data-aos-delay={300 + (index * 100)}
-                  data-aos-once="false"
-                ></div>
+              {[1,2,3,4].map((i) => (
+                <div key={i} className="bg-gray-900 rounded h-80 animate-pulse"></div>
               ))}
             </div>
           ) : trendingProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {trendingProducts.slice(0, 4).map((product, index) => {
-                const productId = product._id || product.id;
-                return (
-                  <div 
-                    key={productId} 
-                    className="cursor-pointer group card-3d"
-                    onClick={() => productId && handleProductClick(productId)}
-                    data-aos="slide-left"
-                    data-aos-duration="1000"
-                    data-aos-delay={400 + (index * 150)}
-                    data-aos-once="false"
-                  >
-                    <ProductCard product={product} />
-                  </div>
-                );
-              })}
+              {trendingProducts.slice(0, 4).map((product, index) => (
+                <div 
+                  key={product._id || product.id} 
+                  className="cursor-pointer group card-3d"
+                  onClick={() => handleProductClick(product._id || product.id)}
+                  data-aos="slide-left"
+                  data-aos-duration="1000"
+                  data-aos-delay={400 + (index * 150)}
+                  data-aos-once="false"
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="py-12 text-center text-gray-400">
@@ -1298,10 +1090,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* JUST ARRIVED SECTION - NEW SECTION with DISTINCT header image */}
+      {/* JUST ARRIVED SECTION */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1329,34 +1120,25 @@ const Home = () => {
 
           {loadingJustArrived ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i, index) => (
-                <div 
-                  key={i} 
-                  className="bg-gray-900 rounded h-80 animate-pulse"
-                  data-aos="fade-up"
-                  data-aos-delay={300 + (index * 100)}
-                  data-aos-once="false"
-                ></div>
+              {[1,2,3,4].map((i) => (
+                <div key={i} className="bg-gray-900 rounded h-80 animate-pulse"></div>
               ))}
             </div>
           ) : justArrivedProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {justArrivedProducts.slice(0, 4).map((product, index) => {
-                const productId = product._id || product.id;
-                return (
-                  <div 
-                    key={productId} 
-                    className="cursor-pointer group card-3d"
-                    onClick={() => productId && handleProductClick(productId)}
-                    data-aos="fade-up"
-                    data-aos-duration="1000"
-                    data-aos-delay={400 + (index * 150)}
-                    data-aos-once="false"
-                  >
-                    <ProductCard product={product} />
-                  </div>
-                );
-              })}
+              {justArrivedProducts.slice(0, 4).map((product, index) => (
+                <div 
+                  key={product._id || product.id} 
+                  className="cursor-pointer group card-3d"
+                  onClick={() => handleProductClick(product._id || product.id)}
+                  data-aos="fade-up"
+                  data-aos-duration="1000"
+                  data-aos-delay={400 + (index * 150)}
+                  data-aos-once="false"
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
             </div>
           ) : (
             <div className="py-12 text-center text-gray-400">
@@ -1366,10 +1148,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CATEGORIES SECTION - 3D Rotating Cards with UNIQUE category images */}
+      {/* CATEGORIES SECTION */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"
@@ -1397,19 +1178,12 @@ const Home = () => {
           
           {loadingCategories ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i, index) => (
-                <div 
-                  key={i} 
-                  className="bg-gray-900 rounded h-80 animate-pulse"
-                  data-aos="fade-up"
-                  data-aos-delay={300 + (index * 100)}
-                  data-aos-once="false"
-                ></div>
+              {[1,2,3,4].map((i) => (
+                <div key={i} className="bg-gray-900 rounded h-80 animate-pulse"></div>
               ))}
             </div>
           ) : displayCategories.length > 0 ? (
             <div className="relative">
-              {/* Category Carousel - Larger cards for desktop (3 visible) */}
               <div 
                 ref={categoryRef} 
                 className="flex gap-8 pb-8 overflow-x-auto scrollbar-hide"
@@ -1428,24 +1202,19 @@ const Home = () => {
                     data-aos-once="false"
                   >
                     <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
-                      {/* Glow Effect */}
                       <div className="absolute inset-0 transition-opacity duration-300 opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 group-hover:opacity-30 blur-xl"></div>
                       
-                      {/* Category Image - UNIQUE per category */}
                       <img 
                         src={category.image}
                         alt={category.name}
                         className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
                         onError={(e) => {
-                          // Fallback if image fails to load
                           e.target.src = categoryImages.electronics;
                         }}
                       />
                       
-                      {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                       
-                      {/* Category Name */}
                       <div className="absolute bottom-0 left-0 right-0 p-5">
                         <h3 className="text-xl font-semibold text-white">{category.name}</h3>
                         <p className="text-sm text-gray-300">{category.count} Products</p>
@@ -1455,20 +1224,17 @@ const Home = () => {
                 ))}
               </div>
               
-              {/* Navigation Buttons */}
               {displayCategories.length > 3 && (
                 <>
                   <button 
                     onClick={() => scrollCategories("left")}
                     className="absolute left-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
-                    aria-label="Previous categories"
                   >
                     <FiChevronLeft className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                   </button>
                   <button 
                     onClick={() => scrollCategories("right")}
                     className="absolute right-0 p-3 transition-all -translate-y-1/2 border border-gray-800 rounded-full top-1/2 bg-black/50 hover:bg-black/80 group"
-                    aria-label="Next categories"
                   >
                     <FiChevronRight className="w-6 h-6 text-white transition-colors group-hover:text-blue-500" />
                   </button>
@@ -1481,7 +1247,6 @@ const Home = () => {
             </div>
           )}
           
-          {/* View All Categories Link */}
           {displayCategories.length > 0 && (
             <div 
               className="mt-8 text-center"
@@ -1502,10 +1267,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* TESTIMONIALS SECTION - Fade Up with Delay */}
+      {/* TESTIMONIALS SECTION */}
       <section className="py-20 bg-black border-t border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
-          {/* Header Image - DISTINCT image */}
           <div 
             className="relative w-full mb-12 overflow-hidden rounded-2xl h-96"
             data-aos="zoom-in"

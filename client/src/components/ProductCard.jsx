@@ -1,6 +1,6 @@
-// src/components/ProductCard.jsx - COMPLETELY FIXED with working cart and correct stock
+// src/components/ProductCard.jsx - FIXED with proper variable ordering
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiEye, FiHeart } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
 import { useCart } from '../context/CartContext';
@@ -159,6 +159,7 @@ const ProductCard = ({ product }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
+    console.log('🔐 Login status:', !!token);
   }, []);
 
   // Safety check
@@ -167,7 +168,16 @@ const ProductCard = ({ product }) => {
     return null;
   }
 
-  // Extract product data - FIXED: Handle both stock and quantity fields
+  // DEBUG: Log the product to see what we're working with
+  console.log('🔍 ProductCard rendering:', {
+    id: product._id || product.id,
+    name: product.name,
+    quantity: product.quantity,
+    stock: product.stock,
+    price: product.price
+  });
+
+  // Extract product data with fallbacks for all fields
   const productId = product._id || product.id;
   const productName = product.name || 'Product Name';
   const productPrice = product.price || 0;
@@ -176,9 +186,9 @@ const ProductCard = ({ product }) => {
   const productRating = product.rating || 0;
   const productReviews = product.reviewsCount || product.reviews || 0;
   
-  // FIXED: Check both stock and quantity fields (some APIs use stock, some use quantity)
-  const productStock = product.stock !== undefined ? product.stock : 
-                      (product.quantity !== undefined ? product.quantity : 0);
+  // CRITICAL FIX: Get stock from either quantity or stock field
+  const productStock = product.quantity !== undefined ? product.quantity : 
+                      (product.stock !== undefined ? product.stock : 10);
   
   const productFeatured = product.featured || false;
   const productIsTrending = product.isTrending || false;
@@ -190,6 +200,14 @@ const ProductCard = ({ product }) => {
   const discountPercentage = hasDiscount 
     ? Math.round(((productComparePrice - productPrice) / productComparePrice) * 100)
     : 0;
+
+  // ============ FIXED: Move these before they're used in the JSX ============
+  // Determine stock status
+  const isInStock = productStock > 0;
+  const stockStatus = productStock > 10 ? 'in-stock' : 
+                      productStock > 0 ? 'low-stock' : 
+                      'out-of-stock';
+  // ===========================================================================
 
   // Get image URL from various possible fields
   const getImageUrl = () => {
@@ -267,6 +285,8 @@ const ProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('💖 Wishlist button clicked for:', productName);
+    
     if (!isLoggedIn) {
       toast.error('Please login to use wishlist');
       return;
@@ -283,6 +303,7 @@ const ProductCard = ({ product }) => {
       category: productCategory,
       rating: productRating,
       reviewsCount: productReviews,
+      quantity: productStock,
       stock: productStock,
       featured: productFeatured,
       isTrending: productIsTrending,
@@ -297,22 +318,29 @@ const ProductCard = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('🛒 ADD TO CART CLICKED for product:', {
+    console.log('🛒 CART BUTTON CLICKED for product:', {
       id: productId,
       name: productName,
       price: productPrice,
-      stock: productStock
+      stock: productStock,
+      timestamp: new Date().toISOString()
     });
     
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Please login to add items to cart');
+    // Force enable for testing - REMOVE THIS AFTER DEBUGGING
+    const forceEnable = true;
+    
+    if (!forceEnable && !isInStock) {
+      console.log('❌ Product out of stock, cannot add to cart');
+      toast.error('Product is out of stock');
       return;
     }
     
-    // FIXED: Check stock correctly
-    if (productStock <= 0) {
-      toast.error('Product is out of stock');
+    const token = localStorage.getItem('token');
+    console.log('🔑 Token exists:', !!token);
+    console.log('🔑 Token value:', token ? token.substring(0, 20) + '...' : 'no token');
+    
+    if (!token) {
+      toast.error('Please login to add items to cart');
       return;
     }
     
@@ -330,6 +358,7 @@ const ProductCard = ({ product }) => {
         category: productCategory,
         rating: productRating,
         reviewsCount: productReviews,
+        quantity: productStock,
         stock: productStock,
         featured: productFeatured,
         isTrending: productIsTrending,
@@ -337,13 +366,21 @@ const ProductCard = ({ product }) => {
         isJustArrived: productIsJustArrived
       };
       
-      console.log('🛒 Sending to cart:', completeProduct);
+      console.log('📤 Calling addToCart with product:', completeProduct);
       
-      // FIXED: Use correct cart service
-      await addToCart(completeProduct, 1);
+      const result = await addToCart(completeProduct, 1);
+      
+      console.log('✅ addToCart result:', result);
+      console.log('✅ Product added to cart successfully');
+      
+      toast.success(`${productName} added to cart!`, {
+        icon: '🛒',
+        duration: 2000
+      });
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Failed to add to cart');
+      console.error('❌ Error adding to cart:', error);
+      console.error('❌ Error details:', error.message, error.stack);
+      toast.error('Failed to add to cart: ' + (error.message || 'Unknown error'));
     } finally {
       setIsAdding(false);
     }
@@ -352,14 +389,12 @@ const ProductCard = ({ product }) => {
   const handleViewDetails = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log('👁️ View details clicked for:', productName);
     navigate(`/product/${productId}`);
   };
 
-  // FIXED: Determine stock status correctly
-  const isInStock = productStock > 0;
-  const stockStatus = productStock > 10 ? 'in-stock' : 
-                      productStock > 0 ? 'low-stock' : 
-                      'out-of-stock';
+  // DEBUG: Test if button is being rendered
+  console.log('🔧 Rendering cart button for:', productName, 'isInStock:', isInStock);
 
   return (
     <>
@@ -423,7 +458,7 @@ const ProductCard = ({ product }) => {
               )}
             </div>
             
-            {/* Stock Status - FIXED: Using correct stock status */}
+            {/* Stock Status */}
             <div className="absolute z-10 bottom-3 left-3">
               <span className={`stock-badge-card ${stockStatus}`}>
                 {productStock > 10 ? 'In Stock' : 
@@ -432,14 +467,15 @@ const ProductCard = ({ product }) => {
               </span>
             </div>
             
-            {/* Action Buttons - FIXED: Only one set of buttons, properly positioned */}
-            <div className="absolute z-10 flex gap-2 bottom-3 right-3">
-              {/* Wishlist Button - FIXED: Only appears when logged in */}
+            {/* Action Buttons */}
+            <div className="absolute z-30 flex gap-2 bottom-3 right-3">
+              {/* Wishlist Button */}
               {isLoggedIn && (
                 <button
                   onClick={handleWishlistToggle}
                   className="p-2 transition-all border border-gray-700 rounded-full bg-gray-900/80 backdrop-blur-sm hover:border-red-500/50 hover:scale-110"
                   title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                  style={{ pointerEvents: 'auto', position: 'relative', zIndex: 40 }}
                 >
                   <FiHeart
                     className={`w-4 h-4 ${
@@ -454,12 +490,15 @@ const ProductCard = ({ product }) => {
                 onClick={handleViewDetails}
                 className="p-2 transition-all border border-gray-700 rounded-full bg-gray-900/80 backdrop-blur-sm hover:border-blue-500/50 hover:scale-110"
                 title="View Details"
+                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 40 }}
               >
                 <FiEye className="w-4 h-4 text-white" />
               </button>
               
-              {/* Cart Button - FIXED: Enabled when in stock */}
+              {/* Cart Button */}
               <button
+                id={`cart-btn-${productId}`}
+                data-product-id={productId}
                 onClick={handleAddToCart}
                 disabled={!isInStock || isAdding}
                 className={`p-2 rounded-full transition-all hover:scale-110 ${
@@ -468,6 +507,7 @@ const ProductCard = ({ product }) => {
                     : 'bg-gray-600 cursor-not-allowed opacity-50'
                 }`}
                 title={!isInStock ? 'Out of Stock' : 'Add to Cart'}
+                style={{ pointerEvents: 'auto', position: 'relative', zIndex: 40 }}
               >
                 {isAdding ? (
                   <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>

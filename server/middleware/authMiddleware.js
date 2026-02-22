@@ -1,6 +1,7 @@
+// server/middleware/authMiddleware.js
 import jwt from 'jsonwebtoken';
 import Admin from '../models/Admin.js';
-import User from '../models/User.js'; // ✅ ADDED: Import User model
+import User from '../models/User.js';
 import config from '../config/env.js';
 
 // ✅ FIXED: Import from your own errorHandler, NOT express-async-handler
@@ -52,12 +53,13 @@ export const protect = asyncHandler(async (req, res, next) => {
       });
     }
 
-    if (!admin.isActive) {
-      console.log(`❌ Admin account deactivated: ${admin.email}`);
+    // Check if admin is active (using status field)
+    if (admin.status !== 'active') {
+      console.log(`❌ Admin account not active: ${admin.email}, status: ${admin.status}`);
       return res.status(403).json({
         success: false,
-        error: 'Account is deactivated. Please contact support.',
-        code: 'ACCOUNT_DEACTIVATED'
+        error: 'Account is not active. Please contact support.',
+        code: 'ACCOUNT_INACTIVE'
       });
     }
 
@@ -124,7 +126,7 @@ export const protectUser = asyncHandler(async (req, res, next) => {
 
     // Get user from token
     const user = await User.findById(decoded.id)
-      .select('-password -resetPasswordToken -resetPasswordExpire');
+      .select('-password -resetPasswordToken -resetPasswordExpire -verifyOtp -resetOtp');
 
     if (!user) {
       console.log(`❌ User not found for ID: ${decoded.id}`);
@@ -135,12 +137,14 @@ export const protectUser = asyncHandler(async (req, res, next) => {
       });
     }
 
-    if (!user.isActive) {
-      console.log(`❌ User account deactivated: ${user.email}`);
+    // ✅ FIXED: Check status field instead of non-existent isActive
+    // Your User model uses 'status' field with values: active, inactive, suspended, pending
+    if (user.status !== 'active') {
+      console.log(`❌ User account not active: ${user.email}, status: ${user.status}`);
       return res.status(403).json({
         success: false,
-        error: 'Account is deactivated. Please contact support.',
-        code: 'ACCOUNT_DEACTIVATED'
+        error: 'Account is not active. Please contact support.',
+        code: 'ACCOUNT_INACTIVE'
       });
     }
 
@@ -247,10 +251,45 @@ export const hasPermission = (resource, action) => {
   };
 };
 
+/**
+ * @desc    Optional authentication - doesn't fail if no token
+ */
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies?.token) {
+    token = req.cookies.token;
+  }
+
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const decoded = jwt.verify(token, config.jwt.secret);
+    const user = await User.findById(decoded.id).select('-password');
+    
+    if (user && user.status === 'active') {
+      req.user = user;
+    }
+  } catch (error) {
+    // Silently fail for optional auth
+    console.log('⚠️ Optional auth failed:', error.message);
+  }
+
+  next();
+});
+
 export default {
   protect,
-  protectUser, // ✅ ADDED: Export the new user protection
+  protectUser,
   authorize,
   hasPermission,
-  authenticateAdmin
+  authenticateAdmin,
+  optionalAuth
 };

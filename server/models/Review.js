@@ -108,52 +108,69 @@ reviewSchema.pre('save', function(next) {
   next();
 });
 
-// ✅ STATIC: Update product rating
+// ✅ STATIC: Update product rating - FIXED
 reviewSchema.statics.updateProductRating = async function(productId) {
-  const result = await this.aggregate([
-    { $match: { product: mongoose.Types.ObjectId(productId), status: 'approved' } },
-    { 
-      $group: {
-        _id: '$product',
-        averageRating: { $avg: '$rating' },
-        reviewCount: { $sum: 1 }
+  try {
+    // ✅ FIXED: Convert string to ObjectId properly
+    const mongoose = require('mongoose');
+    const objectId = new mongoose.Types.ObjectId(productId);
+    
+    const result = await this.aggregate([
+      { $match: { product: objectId, status: 'approved' } },
+      { 
+        $group: {
+          _id: '$product',
+          averageRating: { $avg: '$rating' },
+          reviewCount: { $sum: 1 }
+        }
       }
-    }
-  ]);
+    ]);
 
-  if (result.length > 0) {
-    const { averageRating, reviewCount } = result[0];
-    const roundedRating = Math.round(averageRating * 10) / 10;
-    
-    await mongoose.model('Product').findByIdAndUpdate(productId, {
-      rating: roundedRating,
-      reviewsCount: reviewCount,
-      'ratings.average': roundedRating,
-      'ratings.count': reviewCount
-    });
-    
-    return { averageRating: roundedRating, reviewCount };
-  } else {
-    // No reviews, reset to 0
-    await mongoose.model('Product').findByIdAndUpdate(productId, {
-      rating: 0,
-      reviewsCount: 0,
-      'ratings.average': 0,
-      'ratings.count': 0
-    });
-    
-    return { averageRating: 0, reviewCount: 0 };
+    if (result.length > 0) {
+      const { averageRating, reviewCount } = result[0];
+      const roundedRating = Math.round(averageRating * 10) / 10;
+      
+      await mongoose.model('Product').findByIdAndUpdate(productId, {
+        rating: roundedRating,
+        reviewsCount: reviewCount,
+        'ratings.average': roundedRating,
+        'ratings.count': reviewCount
+      });
+      
+      return { averageRating: roundedRating, reviewCount };
+    } else {
+      // No reviews, reset to 0
+      await mongoose.model('Product').findByIdAndUpdate(productId, {
+        rating: 0,
+        reviewsCount: 0,
+        'ratings.average': 0,
+        'ratings.count': 0
+      });
+      
+      return { averageRating: 0, reviewCount: 0 };
+    }
+  } catch (error) {
+    console.error('Error updating product rating:', error);
+    throw error;
   }
 };
 
 // ✅ POST-SAVE: Update product rating
 reviewSchema.post('save', async function() {
-  await this.constructor.updateProductRating(this.product);
+  try {
+    await this.constructor.updateProductRating(this.product);
+  } catch (error) {
+    console.error('Error in post-save hook:', error);
+  }
 });
 
 // ✅ POST-REMOVE: Update product rating
 reviewSchema.post('remove', async function() {
-  await this.constructor.updateProductRating(this.product);
+  try {
+    await this.constructor.updateProductRating(this.product);
+  } catch (error) {
+    console.error('Error in post-remove hook:', error);
+  }
 });
 
 const Review = mongoose.model('Review', reviewSchema);

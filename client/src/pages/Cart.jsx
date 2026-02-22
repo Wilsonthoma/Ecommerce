@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx - COMPLETE with all Kenyan towns and individual shipping prices (FIXED duplicate)
+// src/pages/Cart.jsx - COMPLETE with black theme, indigo/blue/cyan gradient, and 3D effects
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -18,10 +18,43 @@ import {
   ChevronLeft,
   ChevronRight as ChevronRightIcon,
   Clock,
-  RefreshCw,
-  MapPin
+  RefreshCw
 } from 'lucide-react';
 import { BsArrowRight } from 'react-icons/bs';
+import { FiMapPin } from 'react-icons/fi';  // ← FIXED: Added missing import
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+
+// Font styles matching homepage
+const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin-bottom: 0;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+  
+  .glow-text:hover {
+    text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+  }
+`;
 
 // Animation styles
 const animationStyles = `
@@ -30,12 +63,46 @@ const animationStyles = `
     to { opacity: 1; transform: translateY(0); }
   }
   
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes gradient {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
+  }
+  
   .animate-fadeIn {
     animation: fadeIn 0.2s ease-out;
   }
   
-  .glow-text {
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
+  }
+  
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card-3d-content {
+    transform: translateZ(20px);
+  }
+  
+  .glow-border {
+    animation: glow 2s ease-in-out infinite;
   }
 `;
 
@@ -45,7 +112,13 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
 
-// Complete Kenyan locations data with individual shipping prices for each town - FIXED: Removed duplicate Kitui
+// Cart header image
+const cartHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+
+// Gradient for header bottom transition - indigo/blue/cyan
+const headerGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+
+// Complete Kenyan locations data with individual shipping prices for each town
 const KENYAN_LOCATIONS = {
   // Nairobi County
   'Nairobi': {
@@ -601,6 +674,32 @@ const KENYAN_LOCATIONS = {
   }
 };
 
+// Top Bar Component
+const TopBar = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="py-3 bg-black border-b border-gray-800">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Cart = () => {
   const navigate = useNavigate();
   const { 
@@ -626,6 +725,37 @@ const Cart = () => {
   const [pickupDate, setPickupDate] = useState('');
   const [readyDate, setReadyDate] = useState('');
   const [timeLeft, setTimeLeft] = useState('');
+
+  // Initialize AOS
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: false,
+      mirror: true,
+      offset: 100,
+      easing: 'ease-out-cubic',
+      anchorPlacement: 'top-bottom',
+    });
+    
+    setTimeout(() => {
+      AOS.refresh();
+    }, 1000);
+  }, []);
+
+  // Refresh AOS when cart changes
+  useEffect(() => {
+    setTimeout(() => {
+      AOS.refresh();
+    }, 500);
+  }, [cart.items]);
+
+  // Inject styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = fontStyles + animationStyles;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   // Get available towns for selected county
   const getTownsForCounty = () => {
@@ -787,13 +917,22 @@ const Cart = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-        <style>{animationStyles}</style>
-        <div className="max-w-6xl px-4 py-8 mx-auto">
+      <div className="min-h-screen bg-black">
+        <TopBar />
+        <div className="container px-4 py-8 mx-auto max-w-7xl">
           <div className="animate-pulse">
-            <div className="w-32 h-6 mb-4 bg-gray-700 rounded"></div>
-            <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
-              <div className="h-40 bg-gray-700 rounded"></div>
+            <div className="w-48 h-8 mb-8 bg-gray-800 rounded"></div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <div className="p-4 bg-gray-900 border border-gray-800 rounded-xl">
+                  <div className="h-40 bg-gray-800 rounded"></div>
+                </div>
+              </div>
+              <div className="lg:col-span-1">
+                <div className="p-5 bg-gray-900 border border-gray-800 rounded-xl">
+                  <div className="bg-gray-800 rounded h-60"></div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -803,29 +942,34 @@ const Cart = () => {
 
   if (cart.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-        <style>{animationStyles}</style>
-        <div className="max-w-6xl px-4 py-8 mx-auto text-center">
-          <div className="relative p-8 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-20 blur-xl"></div>
-            <div className="relative">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                <ShoppingCart className="w-8 h-8 text-white" />
+      <div className="min-h-screen bg-black">
+        <TopBar />
+        <div className="container px-4 py-12 mx-auto">
+          <div 
+            className="max-w-md mx-auto text-center"
+            data-aos="zoom-in"
+            data-aos-duration="1200"
+            data-aos-delay="200"
+          >
+            <div className="relative inline-block mb-6">
+              <div className="flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                <ShoppingCart className="w-12 h-12 text-white" />
               </div>
-              <h2 className="mb-2 text-xl font-semibold text-white glow-text">Your cart is empty</h2>
-              <p className="mb-4 text-sm text-gray-400">Add some products to your cart to continue shopping</p>
-              <Link 
-                to="/shop" 
-                className="relative inline-flex items-center gap-2 px-6 py-3 mt-2 overflow-hidden font-medium text-white transition-all rounded-full group"
-              >
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
-                <span className="relative flex items-center gap-2">
-                  Continue Shopping
-                  <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </span>
-              </Link>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full opacity-50 blur-xl"></div>
             </div>
+            <h1 className="mb-3 text-2xl font-bold text-white">Your Cart is Empty</h1>
+            <p className="mb-8 text-gray-400">Add some products to your cart to continue shopping</p>
+            <Link 
+              to="/shop" 
+              className="relative inline-flex items-center gap-2 px-6 py-3 overflow-hidden font-medium text-white transition-all rounded-full group"
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+              <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+              <span className="relative flex items-center gap-2">
+                Continue Shopping
+                <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </Link>
           </div>
         </div>
       </div>
@@ -833,28 +977,75 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-      <style>{animationStyles}</style>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
-      
-      <div className="max-w-6xl px-3 py-6 mx-auto">
+    <div className="min-h-screen bg-black">
+      <TopBar />
+
+      {/* Cart Header Image - with indigo/blue/cyan gradient at bottom */}
+      <div 
+        className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
+        data-aos="fade-in"
+        data-aos-duration="1500"
+        data-aos-delay="200"
+      >
+        <div className="absolute inset-0">
+          <img 
+            src={cartHeaderImage}
+            alt="Shopping Cart"
+            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+          />
+          {/* Dark overlay for text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          {/* Bottom gradient - indigo/blue/cyan that transitions to black */}
+          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+          {/* Final black gradient at the very bottom to blend with background */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+        </div>
+        
+        {/* Header Content */}
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full px-6 mx-auto max-w-7xl">
+            <div 
+              className="max-w-2xl"
+              data-aos="fade-right"
+              data-aos-duration="1200"
+              data-aos-delay="400"
+            >
+              <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl">
+                SHOPPING CART
+              </h1>
+              <p className="mt-1 text-sm text-gray-300 sm:text-base">
+                {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Breadcrumbs */}
-        <nav className="flex items-center mb-4 text-xs">
+        <nav 
+          className="flex items-center gap-2 mb-6 text-sm"
+          data-aos="fade-up"
+          data-aos-duration="1000"
+          data-aos-delay="300"
+        >
           <Link to="/" className="text-gray-400 transition-colors hover:text-white">Home</Link>
-          <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
+          <ChevronRight className="w-4 h-4 text-gray-600" />
           <Link to="/shop" className="text-gray-400 transition-colors hover:text-white">Shop</Link>
-          <ChevronRight className="w-3 h-3 mx-1 text-gray-600" />
-          <span className="font-medium text-white glow-text">Shopping Cart</span>
+          <ChevronRight className="w-4 h-4 text-gray-600" />
+          <span className="font-medium text-white">Shopping Cart</span>
         </nav>
 
-        <h1 className="mb-1 text-2xl font-bold text-white">Shopping Cart</h1>
-        <p className="mb-4 text-sm text-gray-400">{cart.items.length} {cart.items.length === 1 ? 'item' : 'items'}</p>
-        
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Cart Items */}
-          <div className="lg:col-span-2">
-            <div className="overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
+          <div 
+            className="lg:col-span-2"
+            data-aos="fade-right"
+            data-aos-duration="1000"
+            data-aos-delay="400"
+          >
+            <div className="overflow-hidden bg-gray-900 border border-gray-800 rounded-xl">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
                 <h2 className="font-semibold text-white">Cart Items ({cart.items.length})</h2>
                 <button 
                   onClick={handleClearCart}
@@ -865,8 +1056,8 @@ const Cart = () => {
                 </button>
               </div>
               
-              <div className="divide-y divide-gray-700">
-                {cart.items.map((item) => {
+              <div className="divide-y divide-gray-800">
+                {cart.items.map((item, index) => {
                   const price = item.discountPrice || item.price || 0;
                   const itemTotal = price * item.quantity;
                   const stockBadge = getStockBadge(item);
@@ -883,89 +1074,98 @@ const Cart = () => {
                   const currentImage = images[currentImageIndex] || { url: FALLBACK_IMAGE };
                   
                   return (
-                    <div key={item.id} className="p-4 transition-colors hover:bg-white/5">
-                      <div className="flex gap-4">
-                        {/* Image with gallery */}
-                        <div className="relative flex-shrink-0">
-                          <div className="relative w-24 h-24 group/image">
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded opacity-0 group-hover/image:opacity-30 blur transition-opacity"></div>
-                            <img 
-                              src={getFullImageUrl(currentImage.url)} 
-                              alt={item.name}
-                              className="relative object-contain w-full h-full rounded cursor-pointer"
-                              onClick={() => handleImageClick(item, currentImageIndex)}
-                            />
-                          </div>
-                          
-                          {/* Thumbnails */}
-                          {images.length > 1 && (
-                            <div className="flex gap-1 mt-2">
-                              {images.slice(0, 3).map((img, idx) => (
-                                <button
-                                  key={idx}
-                                  onClick={() => setSelectedImageIndex(prev => ({ ...prev, [item.id]: idx }))}
-                                  className={`w-6 h-6 rounded overflow-hidden border transition-all ${
-                                    currentImageIndex === idx 
-                                      ? 'border-blue-500 ring-1 ring-blue-500/50' 
-                                      : 'border-gray-700 hover:border-gray-600'
-                                  }`}
-                                >
-                                  <img 
-                                    src={getFullImageUrl(img.url)} 
-                                    alt={`${item.name} ${idx + 1}`}
-                                    className="object-cover w-full h-full"
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Item Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between">
-                            <div className="flex-1">
-                              <h3 className="text-sm font-medium text-white truncate">{item.name}</h3>
-                              <p className="text-xs text-gray-400">{formatKES(price)} each</p>
-                              
-                              {/* Stock Badge */}
-                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 mt-2 text-xs font-medium text-white rounded-full ${stockBadge.bg}`}>
-                                {stockBadge.icon}
-                                {stockBadge.label}
-                              </div>
-                              
-                              {/* Quantity Controls */}
-                              <div className="flex items-center gap-3 mt-3">
-                                <div className="flex items-center overflow-hidden border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900">
-                                  <button 
-                                    onClick={() => handleQuantityChange(item, -1)}
-                                    className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
-                                    disabled={item.quantity <= 1}
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </button>
-                                  <span className="w-8 text-xs font-medium text-center text-white">
-                                    {item.quantity}
-                                  </span>
-                                  <button 
-                                    onClick={() => handleQuantityChange(item, 1)}
-                                    className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
-                                    disabled={item.quantity >= (item.stockQuantity || 10)}
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </button>
-                                </div>
-                                <span className="text-sm font-medium text-blue-400">= {formatKES(itemTotal)}</span>
-                              </div>
+                    <div 
+                      key={item.id} 
+                      className="p-4 transition-colors hover:bg-white/5 group card-3d"
+                      data-aos="flip-up"
+                      data-aos-duration="1000"
+                      data-aos-delay={500 + (index * 100)}
+                    >
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
+                      <div className="relative card-3d-content">
+                        <div className="flex gap-4">
+                          {/* Image with gallery */}
+                          <div className="relative flex-shrink-0">
+                            <div className="relative w-24 h-24 group/image">
+                              <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded opacity-0 group-hover/image:opacity-30 blur transition-opacity"></div>
+                              <img 
+                                src={getFullImageUrl(currentImage.url)} 
+                                alt={item.name}
+                                className="relative object-contain w-full h-full rounded cursor-pointer"
+                                onClick={() => handleImageClick(item, currentImageIndex)}
+                              />
                             </div>
                             
-                            <button 
-                              onClick={() => handleRemoveItem(item)}
-                              className="p-1 text-gray-500 transition-colors rounded hover:text-red-500 hover:bg-red-500/10"
-                              title="Remove item"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {/* Thumbnails */}
+                            {images.length > 1 && (
+                              <div className="flex gap-1 mt-2">
+                                {images.slice(0, 3).map((img, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => setSelectedImageIndex(prev => ({ ...prev, [item.id]: idx }))}
+                                    className={`w-6 h-6 rounded overflow-hidden border transition-all ${
+                                      currentImageIndex === idx 
+                                        ? 'border-indigo-500 ring-1 ring-indigo-500/50' 
+                                        : 'border-gray-700 hover:border-gray-600'
+                                    }`}
+                                  >
+                                    <img 
+                                      src={getFullImageUrl(img.url)} 
+                                      alt={`${item.name} ${idx + 1}`}
+                                      className="object-cover w-full h-full"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Item Details */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between">
+                              <div className="flex-1">
+                                <h3 className="text-sm font-medium text-white truncate">{item.name}</h3>
+                                <p className="text-xs text-gray-400">{formatKES(price)} each</p>
+                                
+                                {/* Stock Badge */}
+                                <div className={`inline-flex items-center gap-1 px-2 py-0.5 mt-2 text-xs font-medium text-white rounded-full ${stockBadge.bg}`}>
+                                  {stockBadge.icon}
+                                  {stockBadge.label}
+                                </div>
+                                
+                                {/* Quantity Controls */}
+                                <div className="flex items-center gap-3 mt-3">
+                                  <div className="flex items-center overflow-hidden bg-gray-800 border border-gray-700 rounded-lg">
+                                    <button 
+                                      onClick={() => handleQuantityChange(item, -1)}
+                                      className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                                      disabled={item.quantity <= 1}
+                                    >
+                                      <Minus className="w-3 h-3" />
+                                    </button>
+                                    <span className="w-8 text-xs font-medium text-center text-white">
+                                      {item.quantity}
+                                    </span>
+                                    <button 
+                                      onClick={() => handleQuantityChange(item, 1)}
+                                      className="px-2 py-1 text-gray-400 transition-colors hover:text-white hover:bg-white/5 disabled:opacity-50"
+                                      disabled={item.quantity >= (item.stockQuantity || 10)}
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                  <span className="text-sm font-medium text-indigo-400">= {formatKES(itemTotal)}</span>
+                                </div>
+                              </div>
+                              
+                              <button 
+                                onClick={() => handleRemoveItem(item)}
+                                className="p-1 text-gray-500 transition-colors rounded hover:text-red-500 hover:bg-red-500/10"
+                                title="Remove item"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -976,7 +1176,7 @@ const Cart = () => {
             </div>
             
             <div className="mt-4">
-              <Link to="/shop" className="inline-flex items-center text-xs text-blue-500 transition-colors hover:text-blue-400">
+              <Link to="/shop" className="inline-flex items-center text-xs text-indigo-500 transition-colors hover:text-indigo-400">
                 <ChevronLeft className="w-3 h-3 mr-1" />
                 Continue Shopping
               </Link>
@@ -984,10 +1184,15 @@ const Cart = () => {
           </div>
           
           {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="sticky p-5 border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 top-4">
+          <div 
+            className="lg:col-span-1"
+            data-aos="fade-left"
+            data-aos-duration="1000"
+            data-aos-delay="500"
+          >
+            <div className="sticky p-5 bg-gray-900 border border-gray-800 rounded-xl top-4">
               <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
-                <Package className="w-5 h-5 text-blue-500" />
+                <Package className="w-5 h-5 text-indigo-500" />
                 Order Summary
               </h2>
               
@@ -1007,11 +1212,11 @@ const Cart = () => {
               </div>
               
               {/* Delivery Selection */}
-              <div className="relative p-4 mb-4 overflow-hidden border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-blue-500/20">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10"></div>
+              <div className="relative p-4 mb-4 overflow-hidden bg-gray-800 border rounded-lg border-indigo-500/20">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 via-blue-600/10 to-cyan-600/10"></div>
                 
                 <div className="relative">
-                  <h3 className="flex items-center gap-1 mb-3 font-medium text-blue-500">
+                  <h3 className="flex items-center gap-1 mb-3 font-medium text-indigo-500">
                     <Truck className="w-4 h-4" />
                     Delivery Location
                   </h3>
@@ -1022,11 +1227,11 @@ const Cart = () => {
                     <select
                       value={selectedCounty}
                       onChange={(e) => handleCountyChange(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg outline-none bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      className="w-full px-3 py-2 text-sm text-white bg-gray-900 border border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
                     >
-                      <option value="" className="bg-gray-800">Select County</option>
+                      <option value="" className="bg-gray-900">Select County</option>
                       {Object.keys(KENYAN_LOCATIONS).sort().map(county => (
-                        <option key={county} value={county} className="bg-gray-800">
+                        <option key={county} value={county} className="bg-gray-900">
                           {county}
                         </option>
                       ))}
@@ -1040,11 +1245,11 @@ const Cart = () => {
                       value={selectedTown}
                       onChange={(e) => handleTownChange(e.target.value)}
                       disabled={!selectedCounty}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg outline-none bg-gradient-to-br from-gray-800 to-gray-900 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-3 py-2 text-sm text-white bg-gray-900 border border-gray-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="" className="bg-gray-800">Select Town</option>
+                      <option value="" className="bg-gray-900">Select Town</option>
                       {getTownsForCounty().map(town => (
-                        <option key={town.name} value={town.name} className="bg-gray-800">
+                        <option key={town.name} value={town.name} className="bg-gray-900">
                           {town.name} - {formatKES(town.fee)}
                         </option>
                       ))}
@@ -1056,7 +1261,7 @@ const Cart = () => {
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-400">Delivery Fee:</span>
-                        <span className="font-medium text-blue-500">{formatKES(deliveryFee)}</span>
+                        <span className="font-medium text-indigo-500">{formatKES(deliveryFee)}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-gray-400">
                         <Clock className="w-3 h-3" />
@@ -1080,19 +1285,19 @@ const Cart = () => {
               </div>
               
               {/* Totals */}
-              <div className="pt-4 space-y-3 border-t border-gray-700">
+              <div className="pt-4 space-y-3 border-t border-gray-800">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Subtotal</span>
                   <span className="text-white">{formatKES(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Delivery</span>
-                  <span className="text-blue-500">{formatKES(deliveryFee)}</span>
+                  <span className="text-indigo-500">{formatKES(deliveryFee)}</span>
                 </div>
-                <div className="pt-3 mt-3 border-t border-gray-700">
+                <div className="pt-3 mt-3 border-t border-gray-800">
                   <div className="flex justify-between text-lg font-bold">
                     <span className="text-white">Total</span>
-                    <span className="text-blue-500 glow-text">{formatKES(grandTotal)}</span>
+                    <span className="text-indigo-500 glow-text">{formatKES(grandTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -1103,8 +1308,8 @@ const Cart = () => {
                 disabled={cart.items.length === 0 || !selectedTown}
                 className="relative w-full py-3 mt-5 overflow-hidden text-sm font-medium text-white transition-all rounded-full group disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl group-hover:opacity-100"></span>
+                <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
                 <span className="relative flex items-center justify-center gap-2">
                   Proceed to Checkout
                   <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -1112,7 +1317,7 @@ const Cart = () => {
               </button>
               
               {/* Security Note */}
-              <div className="flex items-center justify-center gap-1 mt-3 text-xs text-blue-500">
+              <div className="flex items-center justify-center gap-1 mt-3 text-xs text-indigo-500">
                 <Shield className="w-3 h-3" />
                 <span>Secure checkout · 100% protected</span>
               </div>
@@ -1128,7 +1333,7 @@ const Cart = () => {
             {/* Close button */}
             <button
               onClick={closeLightbox}
-              className="absolute p-2 transition-all rounded-full shadow-lg -right-2 -top-12 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] group sm:-right-12 sm:-top-12"
+              className="absolute p-2 transition-all rounded-full shadow-lg -right-2 -top-12 bg-gray-900 border border-gray-700 hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.5)] group sm:-right-12 sm:-top-12"
             >
               <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 to-pink-600 rounded-full opacity-0 group-hover:opacity-50 blur transition-opacity"></div>
               <X className="relative w-5 h-5 text-gray-400 transition-colors group-hover:text-white" />
@@ -1139,21 +1344,21 @@ const Cart = () => {
               <>
                 <button
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
+                  className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gray-900 border border-gray-700 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronLeft className="w-5 h-5 text-gray-400 transition-colors group-hover:text-blue-500" />
+                  <ChevronLeft className="w-5 h-5 text-gray-400 transition-colors group-hover:text-indigo-500" />
                 </button>
                 <button
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
+                  className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gray-900 border border-gray-700 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] group"
                 >
-                  <ChevronRightIcon className="w-5 h-5 text-gray-400 transition-colors group-hover:text-blue-500" />
+                  <ChevronRightIcon className="w-5 h-5 text-gray-400 transition-colors group-hover:text-indigo-500" />
                 </button>
               </>
             )}
 
             {/* Image */}
-            <div className="relative overflow-hidden border border-gray-700 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900">
+            <div className="relative overflow-hidden bg-gray-900 border border-gray-700 rounded-xl">
               <img 
                 src={getFullImageUrl(lightboxImages[lightboxIndex]?.url)} 
                 alt={selectedProduct?.name || 'Product'} 
@@ -1161,7 +1366,7 @@ const Cart = () => {
               />
               
               {/* Image counter */}
-              <div className="absolute px-3 py-1 text-xs font-medium text-white rounded-full bottom-4 right-4 bg-gradient-to-r from-blue-600 to-purple-600">
+              <div className="absolute px-3 py-1 text-xs font-medium text-white rounded-full bottom-4 right-4 bg-gradient-to-r from-indigo-600 to-blue-600">
                 {lightboxIndex + 1} / {lightboxImages.length}
               </div>
             </div>

@@ -1,4 +1,4 @@
-// src/pages/ResetPassword.jsx
+// src/pages/ResetPassword.jsx - UPDATED with full-page background, centered card, and no scrolling
 import React, { useState, useRef, useContext, useEffect, useCallback } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,79 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { IoArrowBack } from "react-icons/io5";
+import { FiMapPin } from "react-icons/fi";
+
+// Font styles matching homepage
+const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+`;
+
+// Animation styles
+const animationStyles = `
+  @keyframes gradient {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
+  }
+  
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card-3d-content {
+    transform: translateZ(20px);
+  }
+`;
+
+// Background image
+const resetBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+
+// Gradient for bottom transition - indigo/blue/cyan
+const bottomGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+
+// Top Bar Component (matching homepage)
+const TopBar = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="py-3 border-b border-gray-800 bg-black/90 backdrop-blur-sm">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -26,6 +99,14 @@ const ResetPassword = () => {
   const inputRefs = useRef([]);
   const autoSubmitTimeoutRef = useRef(null);
   const isAutoSubmittingRef = useRef(false);
+
+  // Inject styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = fontStyles + animationStyles;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   // Step 2: Verify OTP
   const handleVerifyOtp = useCallback(async (e) => {
@@ -510,204 +591,241 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-4 bg-gradient-to-br from-blue-200 to-purple-400">
-      {/* Card with Styled Back Arrow */}
-      <div className="relative w-full max-w-md p-8 text-center bg-white shadow-2xl rounded-2xl">
-        {/* Styled Back Arrow Button - Top Left Corner */}
-        <button
-          onClick={handleBack}
-          className="absolute -left-3 -top-3 p-2.5 bg-white border border-gray-200 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          aria-label="Go back"
-        >
-          <IoArrowBack className="w-5 h-5 text-gray-500 transition-colors duration-300 group-hover:text-gray-700" />
-        </button>
+    <div className="relative h-screen overflow-hidden bg-black">
+      {/* Full-page Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src={resetBackgroundImage}
+          alt="Background"
+          className="object-cover w-full h-full"
+        />
+        {/* Dark overlay for better text visibility */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        {/* Bottom gradient - indigo/blue/cyan */}
+        <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
+        {/* Final black gradient at the very bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+      </div>
 
-        {/* Step 1: Email input */}
-        {step === 1 && (
-          <>
-            <h2 className="mb-2 text-2xl font-semibold text-gray-800">Reset Password</h2>
-            <p className="mb-6 text-sm text-gray-600">
-              Enter your registered email address to receive a verification code.
-            </p>
+      {/* Top Bar - with semi-transparent background */}
+      <div className="absolute top-0 left-0 right-0 z-20">
+        <TopBar />
+      </div>
 
-            <form onSubmit={handleSendResetOtp}>
-              <div className="flex items-center w-full px-5 py-3 mb-6 bg-gray-100 rounded-full">
-                <img
-                  src={assets.mail_icon}
-                  alt="Mail"
-                  className="w-5 h-5 opacity-70"
-                />
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  className="w-full px-3 text-gray-800 placeholder-gray-400 bg-transparent outline-none"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+      {/* Centered Reset Password Card - No scrolling */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <div className="w-full max-w-md px-4">
+          {/* Card with Styled Back Arrow */}
+          <div className="relative p-8 text-center border border-gray-800 rounded-2xl bg-gray-900/95 backdrop-blur-sm card-3d">
+            {/* Styled Back Arrow Button - Top Left Corner */}
+            <button
+              onClick={handleBack}
+              className="absolute p-2 transition-all duration-300 border border-gray-700 rounded-full shadow-lg -left-3 -top-3 bg-gray-900/95 backdrop-blur-sm hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900"
+              aria-label="Go back"
+            >
+              <IoArrowBack className="w-5 h-5 text-gray-400 transition-colors duration-300 group-hover:text-white" />
+            </button>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 font-medium text-white transition-all duration-300 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Sending Code..." : "Send Verification Code"}
-              </button>
-            </form>
+            {/* Step 1: Email input */}
+            {step === 1 && (
+              <>
+                <h2 className="mb-2 text-2xl font-semibold text-white">Reset Password</h2>
+                <p className="mb-6 text-sm text-gray-400">
+                  Enter your registered email address to receive a verification code.
+                </p>
 
-            <div className="mt-4 text-sm text-gray-600">
-              Remember your password?{" "}
-              <span 
-                className="text-green-600 cursor-pointer hover:underline"
-                onClick={() => navigate("/login")}
-              >
-                Sign In
-              </span>
-            </div>
-          </>
-        )}
-
-        {/* Step 2: OTP Verification */}
-        {step === 2 && (
-          <>
-            <h2 className="mb-2 text-2xl font-semibold text-gray-800">Verify Your Email</h2>
-            <p className="mb-2 text-sm text-gray-600">
-              Enter the 6-digit code sent to
-            </p>
-            <p className="mb-6 text-sm font-medium text-gray-800">{email}</p>
-
-            <form onSubmit={handleVerifyOtp}>
-              <div
-                className="flex justify-center mb-6 space-x-2 sm:space-x-3"
-                onPaste={handlePaste}
-              >
-                {Array(6)
-                  .fill(0)
-                  .map((_, index) => (
-                    <input
-                      key={index}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength="1"
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      onInput={(e) => handleInput(e, index)}
-                      onKeyDown={(e) => handleKeyDown(e, index)}
-                      className="w-12 text-xl font-semibold text-center text-gray-800 transition-colors border border-gray-300 rounded-lg shadow-sm outline-none h-14 focus:ring-2 focus:ring-green-400 focus:border-green-400"
-                      disabled={isLoading || otpAutoSubmit}
+                <form onSubmit={handleSendResetOtp}>
+                  <div className="flex items-center w-full px-5 py-3 mb-6 border border-gray-700 rounded-full bg-gray-800/95 backdrop-blur-sm focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50">
+                    <img
+                      src={assets.mail_icon}
+                      alt="Mail"
+                      className="w-5 h-5 opacity-70"
                     />
-                  ))}
-              </div>
+                    <input
+                      type="email"
+                      placeholder="Enter your email address"
+                      className="w-full px-3 text-white placeholder-gray-400 bg-transparent outline-none"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
 
-              <button
-                type="submit"
-                disabled={isLoading || otpAutoSubmit}
-                className="w-full py-3 mb-4 font-medium text-white transition-all duration-300 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading || otpAutoSubmit ? "Verifying..." : "Verify Code"}
-              </button>
-            </form>
-
-            <div className="text-sm text-gray-600">
-              {otpAutoSubmit ? (
-                <span className="text-green-600">Verifying OTP...</span>
-              ) : (
-                <>
-                  Didn't receive the code?{" "}
-                  {resendTimer > 0 ? (
-                    <span className="text-gray-400">
-                      Resend in {resendTimer}s
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="relative w-full py-3 mt-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                    <span className="relative flex items-center justify-center">
+                      {isLoading ? "Sending Code..." : "Send Verification Code"}
                     </span>
+                  </button>
+                </form>
+
+                <div className="mt-4 text-sm text-gray-400">
+                  Remember your password?{" "}
+                  <span 
+                    className="text-indigo-500 cursor-pointer hover:text-indigo-400 hover:underline"
+                    onClick={() => navigate("/login")}
+                  >
+                    Sign In
+                  </span>
+                </div>
+              </>
+            )}
+
+            {/* Step 2: OTP Verification */}
+            {step === 2 && (
+              <>
+                <h2 className="mb-2 text-2xl font-semibold text-white">Verify Your Email</h2>
+                <p className="mb-2 text-sm text-gray-400">
+                  Enter the 6-digit code sent to
+                </p>
+                <p className="mb-6 text-sm font-medium text-indigo-500">{email}</p>
+
+                <form onSubmit={handleVerifyOtp}>
+                  <div
+                    className="flex justify-center mb-6 space-x-2 sm:space-x-3"
+                    onPaste={handlePaste}
+                  >
+                    {Array(6)
+                      .fill(0)
+                      .map((_, index) => (
+                        <input
+                          key={index}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength="1"
+                          ref={(el) => (inputRefs.current[index] = el)}
+                          onInput={(e) => handleInput(e, index)}
+                          onKeyDown={(e) => handleKeyDown(e, index)}
+                          className="w-12 text-xl font-semibold text-center text-white transition-colors border border-gray-700 rounded-lg shadow-sm outline-none h-14 bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                          disabled={isLoading || otpAutoSubmit}
+                        />
+                      ))}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || otpAutoSubmit}
+                    className="relative w-full py-3 mb-4 overflow-hidden text-sm font-medium text-white transition-all rounded-full group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                    <span className="relative flex items-center justify-center">
+                      {isLoading || otpAutoSubmit ? "Verifying..." : "Verify Code"}
+                    </span>
+                  </button>
+                </form>
+
+                <div className="text-sm text-gray-400">
+                  {otpAutoSubmit ? (
+                    <span className="text-indigo-500">Verifying OTP...</span>
                   ) : (
-                    <span 
-                      className="text-green-600 cursor-pointer hover:underline"
-                      onClick={handleResendOtp}
+                    <>
+                      Didn't receive the code?{" "}
+                      {resendTimer > 0 ? (
+                        <span className="text-gray-500">
+                          Resend in {resendTimer}s
+                        </span>
+                      ) : (
+                        <span 
+                          className="text-indigo-500 cursor-pointer hover:text-indigo-400 hover:underline"
+                          onClick={handleResendOtp}
+                        >
+                          Resend Code
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Step 3: Reset Password */}
+            {step === 3 && (
+              <>
+                <h2 className="mb-2 text-2xl font-semibold text-white">Create New Password</h2>
+                <p className="mb-6 text-sm text-gray-400">
+                  Enter your new password below.
+                </p>
+
+                <form onSubmit={handleResetPassword}>
+                  <div className="relative flex items-center w-full px-5 py-3 mb-4 border border-gray-700 rounded-full bg-gray-800/95 backdrop-blur-sm focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50">
+                    <img
+                      src={assets.lock_icon}
+                      alt="Password"
+                      className="w-5 h-5 opacity-70"
+                    />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="New password (min. 6 characters)"
+                      className="w-full px-3 text-white placeholder-gray-400 bg-transparent outline-none"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength="6"
+                      disabled={isLoading}
+                    />
+                    <span
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute text-gray-400 transition cursor-pointer right-3 top-3 hover:text-indigo-500"
                     >
-                      Resend Code
+                      {showPassword ? (
+                        <AiOutlineEyeInvisible size={20} />
+                      ) : (
+                        <AiOutlineEye size={20} />
+                      )}
                     </span>
-                  )}
-                </>
-              )}
-            </div>
-          </>
-        )}
+                  </div>
 
-        {/* Step 3: Reset Password */}
-        {step === 3 && (
-          <>
-            <h2 className="mb-2 text-2xl font-semibold text-gray-800">Create New Password</h2>
-            <p className="mb-6 text-sm text-gray-600">
-              Enter your new password below.
-            </p>
+                  <div className="relative flex items-center w-full px-5 py-3 mb-6 border border-gray-700 rounded-full bg-gray-800/95 backdrop-blur-sm focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/50">
+                    <img
+                      src={assets.lock_icon}
+                      alt="Confirm Password"
+                      className="w-5 h-5 opacity-70"
+                    />
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      className="w-full px-3 text-white placeholder-gray-400 bg-transparent outline-none"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                    />
+                    <span
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute text-gray-400 transition cursor-pointer right-3 top-3 hover:text-indigo-500"
+                    >
+                      {showConfirmPassword ? (
+                        <AiOutlineEyeInvisible size={20} />
+                      ) : (
+                        <AiOutlineEye size={20} />
+                      )}
+                    </span>
+                  </div>
 
-            <form onSubmit={handleResetPassword}>
-              <div className="relative flex items-center w-full px-5 py-3 mb-4 bg-gray-100 rounded-full">
-                <img
-                  src={assets.lock_icon}
-                  alt="Password"
-                  className="w-5 h-5 opacity-70"
-                />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="New password (min. 6 characters)"
-                  className="w-full px-3 text-gray-800 placeholder-gray-400 bg-transparent outline-none"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength="6"
-                  disabled={isLoading}
-                />
-                <span
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute text-gray-400 transition cursor-pointer right-3 top-3 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <AiOutlineEyeInvisible size={20} />
-                  ) : (
-                    <AiOutlineEye size={20} />
-                  )}
-                </span>
-              </div>
-
-              <div className="relative flex items-center w-full px-5 py-3 mb-6 bg-gray-100 rounded-full">
-                <img
-                  src={assets.lock_icon}
-                  alt="Confirm Password"
-                  className="w-5 h-5 opacity-70"
-                />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm new password"
-                  className="w-full px-3 text-gray-800 placeholder-gray-400 bg-transparent outline-none"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  disabled={isLoading}
-                />
-                <span
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute text-gray-400 transition cursor-pointer right-3 top-3 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? (
-                    <AiOutlineEyeInvisible size={20} />
-                  ) : (
-                    <AiOutlineEye size={20} />
-                  )}
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 font-medium text-white transition-all duration-300 rounded-full bg-gradient-to-r from-green-400 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? "Resetting Password..." : "Reset Password"}
-              </button>
-            </form>
-          </>
-        )}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="relative w-full py-3 mt-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                    <span className="relative flex items-center justify-center">
+                      {isLoading ? "Resetting Password..." : "Reset Password"}
+                    </span>
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

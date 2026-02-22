@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx - TRANSFORMED with oraimo black gradients and glowing effects
+// src/pages/Dashboard.jsx - COMPLETE FIXED VERSION
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,6 @@ import {
   FiHeart,
   FiClock,
   FiCheckCircle,
-  FiAlertCircle,
   FiShield,
   FiArrowRight,
   FiHome,
@@ -21,27 +20,64 @@ import {
   FiPackage,
   FiDollarSign,
   FiCalendar,
-  FiTrendingUp,
-  FiAward,
-  FiStar
+  FiMapPin
 } from 'react-icons/fi';
-import { BsLightningCharge, BsArrowRight } from 'react-icons/bs';
+import { BsArrowRight } from 'react-icons/bs';
+
+// Backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Dashboard background image
+const dashboardBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+
+// Get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  if (imagePath.startsWith('/uploads/')) return `${API_URL}${imagePath}`;
+  if (imagePath.startsWith('uploads/')) return `${API_URL}/${imagePath}`;
+  return `${API_URL}/uploads/${imagePath}`;
+};
+
+// Top Bar Component
+const TopBar = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="py-3 bg-black border-b border-gray-800">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const { userData, logout, isLoggedIn, getUserData, backendUrl, getToken } = useContext(AppContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [ordersLoading, setOrdersLoading] = useState(true);
   const [sendingOtp, setSendingOtp] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   
   // Data states
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
     averageOrderValue: 0,
-    pendingOrders: 0,
-    completedOrders: 0
+    pendingOrders: 0
   });
   
   const [recentOrders, setRecentOrders] = useState([]);
@@ -75,7 +111,6 @@ const Dashboard = () => {
   }, [isLoggedIn, navigate, getUserData]);
 
   const fetchUserStats = async () => {
-    setStatsLoading(true);
     try {
       const token = getToken?.() || localStorage.getItem('token');
       const response = await axios.get(`${backendUrl}/api/user/stats`, { 
@@ -86,13 +121,10 @@ const Dashboard = () => {
       if (response.data.success) setStats(response.data.stats);
     } catch (error) {
       console.error('Error fetching user stats:', error);
-    } finally {
-      setStatsLoading(false);
     }
   };
 
   const fetchRecentOrders = async () => {
-    setOrdersLoading(true);
     try {
       const token = getToken?.() || localStorage.getItem('token');
       const response = await axios.get(`${backendUrl}/api/user/orders?limit=5`, { 
@@ -103,8 +135,6 @@ const Dashboard = () => {
       if (response.data.success) setRecentOrders(response.data.orders || []);
     } catch (error) {
       console.error('Error fetching orders:', error);
-    } finally {
-      setOrdersLoading(false);
     }
   };
 
@@ -205,18 +235,16 @@ const Dashboard = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      'delivered': 'from-green-600 to-emerald-600',
-      'completed': 'from-green-600 to-emerald-600',
-      'processing': 'from-yellow-600 to-orange-600',
-      'pending': 'from-yellow-600 to-orange-600',
-      'shipped': 'from-blue-600 to-cyan-600',
-      'cancelled': 'from-red-600 to-pink-600'
+      'delivered': 'bg-gradient-to-r from-green-600 to-emerald-600',
+      'completed': 'bg-gradient-to-r from-green-600 to-emerald-600',
+      'processing': 'bg-gradient-to-r from-yellow-600 to-orange-600',
+      'pending': 'bg-gradient-to-r from-yellow-600 to-orange-600',
+      'shipped': 'bg-gradient-to-r from-blue-600 to-cyan-600',
+      'cancelled': 'bg-gradient-to-r from-red-600 to-pink-600'
     };
     
-    const gradient = statusConfig[status?.toLowerCase()] || 'from-gray-600 to-gray-700';
-    
     return (
-      <span className={`px-2 py-1 text-xs font-medium text-white rounded-full bg-gradient-to-r ${gradient}`}>
+      <span className={`px-2 py-1 text-xs font-medium text-white rounded-full ${statusConfig[status?.toLowerCase()] || 'bg-gradient-to-r from-gray-600 to-gray-700'}`}>
         {status || 'Pending'}
       </span>
     );
@@ -229,91 +257,52 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-        <div className="relative">
-          <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-blue-600 animate-spin"></div>
-          <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-xl opacity-20 animate-pulse"></div>
+      <div className="min-h-screen bg-black">
+        <TopBar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
+            <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
+          </div>
+          <p className="mt-6 text-gray-400">Loading your dashboard...</p>
         </div>
-        <p className="mt-6 text-gray-400 glow-text">Loading your dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent pointer-events-none"></div>
-      
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-gradient-to-br from-gray-900 to-gray-800 border-gray-800 backdrop-blur-lg">
-        <div className="container flex items-center justify-between px-4 py-4 mx-auto">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                {userData?.avatar ? (
-                  <img
-                    src={userData.avatar}
-                    alt={userData.name}
-                    className="object-cover w-full h-full rounded-full"
-                  />
-                ) : (
-                  <span className="text-lg font-bold text-white">
-                    {userData?.name?.charAt(0)?.toUpperCase() || 'K'}
-                  </span>
-                )}
-              </div>
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50 blur"></div>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white glow-text">KwetuShop</h1>
-              <p className="text-sm text-gray-400">Welcome back, {userData?.name?.split(' ')[0] || 'User'}!</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => navigate('/')}
-              className="p-3 text-gray-400 transition-all rounded-full hover:text-white hover:bg-white/5"
-              title="Home"
-            >
-              <FiHome className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => navigate('/settings')}
-              className="p-3 text-gray-400 transition-all rounded-full hover:text-white hover:bg-white/5"
-              title="Settings"
-            >
-              <FiSettings className="w-5 h-5" />
-            </button>
-            <button
-              onClick={handleLogout}
-              className="group relative px-6 py-3 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
-              title="Logout"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600"></span>
-              <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
-              <span className="relative flex items-center gap-2">
-                <FiLogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </span>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-black">
+      {/* BACKGROUND LAYER - Lowest z-index */}
+      <div className="fixed inset-0">
+        <img 
+          src={dashboardBackgroundImage}
+          alt="Background"
+          className="object-cover w-full h-full"
+        />
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+      </div>
 
-      {/* Main Content */}
-      <main className="container px-4 py-8 mx-auto">
-        {/* Profile Summary */}
-        <div className="relative p-6 mb-8 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/20 via-transparent to-transparent"></div>
-          <div className="relative flex flex-wrap items-center justify-between gap-4">
+      {/* TOP BAR - Highest z-index */}
+      <div className="relative z-50">
+        <TopBar />
+      </div>
+
+      {/* MAIN CONTENT - Middle z-index */}
+      <main className="container relative z-10 px-4 py-8 mx-auto">
+        {/* Header Section */}
+        <div className="mb-8 overflow-hidden border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 p-6">
             <div className="flex items-center gap-4">
+              {/* Avatar - Fixed to show actual user image */}
               <div className="relative">
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                  {userData?.avatar ? (
+                <div className="flex items-center justify-center w-20 h-20 overflow-hidden rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                  {userData?.avatar && !avatarError ? (
                     <img
-                      src={userData.avatar}
+                      src={getFullImageUrl(userData.avatar)}
                       alt={userData.name}
-                      className="object-cover w-full h-full rounded-full"
+                      className="object-cover w-full h-full"
+                      onError={() => setAvatarError(true)}
                     />
                   ) : (
                     <span className="text-3xl font-bold text-white">
@@ -321,7 +310,6 @@ const Dashboard = () => {
                     </span>
                   )}
                 </div>
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50 blur"></div>
                 {userData?.isAccountVerified && (
                   <div className="absolute bottom-0 right-0 p-1 bg-green-500 rounded-full">
                     <FiCheckCircle className="w-4 h-4 text-white" />
@@ -329,48 +317,59 @@ const Dashboard = () => {
                 )}
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">{userData?.name || 'User'}</h2>
+                <h1 className="text-2xl font-bold text-white">Welcome back, {userData?.name?.split(' ')[0] || 'User'}!</h1>
                 <p className="text-gray-400">{userData?.email}</p>
                 <div className="flex flex-wrap gap-2 mt-3">
-                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full text-white ${
                     userData?.isAccountVerified 
-                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' 
-                      : 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white'
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
+                      : 'bg-gradient-to-r from-yellow-600 to-orange-600'
                   }`}>
                     {userData?.isAccountVerified ? 'Verified' : 'Pending'}
                   </span>
-                  <span className="px-3 py-1 text-xs font-medium text-white rounded-full bg-gradient-to-r from-red-600 to-pink-600">
+                  <span className="px-3 py-1 text-xs font-medium text-white rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
                     {wishlistCount} ❤️
                   </span>
-                  <span className="px-3 py-1 text-xs font-medium text-white rounded-full bg-gradient-to-r from-purple-600 to-indigo-600">
+                  <span className="px-3 py-1 text-xs font-medium text-white rounded-full bg-gradient-to-r from-purple-600 to-pink-600">
                     {reviewsCount} ⭐
                   </span>
                 </div>
               </div>
             </div>
             
-            <button
-              onClick={() => navigate('/shop')}
-              className="group relative px-6 py-3 text-sm font-medium text-white transition-all rounded-full overflow-hidden"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
-              <span className="relative flex items-center gap-2">
-                <FiShoppingBag className="w-4 h-4" />
-                Shop Now
-                <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/')}
+                className="p-3 text-gray-400 transition-all rounded-full hover:text-white hover:bg-white/5"
+              >
+                <FiHome className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => navigate('/settings')}
+                className="p-3 text-gray-400 transition-all rounded-full hover:text-white hover:bg-white/5"
+              >
+                <FiSettings className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleLogout}
+                className="relative px-6 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
+              >
+                <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-pink-600"></span>
+                <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-red-600 to-pink-600 blur-xl group-hover:opacity-100"></span>
+                <span className="relative flex items-center gap-2">
+                  <FiLogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Status Card */}
-          <div className="group relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
-            <div className="relative flex items-center gap-4">
+          <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
               <div className={`p-3 rounded-xl ${
                 userData?.isAccountVerified 
                   ? 'bg-gradient-to-r from-green-600 to-emerald-600' 
@@ -389,7 +388,7 @@ const Dashboard = () => {
                   <button
                     onClick={handleSendVerificationOtp}
                     disabled={sendingOtp}
-                    className="mt-1 text-xs text-blue-500 hover:text-blue-400 transition-colors"
+                    className="mt-1 text-xs text-indigo-500 transition-colors hover:text-indigo-400"
                   >
                     {sendingOtp ? 'Sending...' : 'Verify now'}
                   </button>
@@ -399,54 +398,36 @@ const Dashboard = () => {
           </div>
 
           {/* Orders Card */}
-          <div className="group relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
-            <div className="relative flex items-center gap-4">
+          <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600">
                 <FiPackage className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-400">Orders</p>
-                {statsLoading ? (
-                  <div className="w-16 h-6 bg-gray-700 rounded animate-pulse"></div>
-                ) : (
-                  <>
-                    <p className="text-lg font-semibold text-white">{stats.totalOrders}</p>
-                    <p className="text-xs text-gray-400">{stats.pendingOrders} pending</p>
-                  </>
-                )}
+                <p className="text-lg font-semibold text-white">{stats.totalOrders}</p>
+                <p className="text-xs text-gray-400">{stats.pendingOrders} pending</p>
               </div>
             </div>
           </div>
 
           {/* Spent Card */}
-          <div className="group relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
-            <div className="relative flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600">
+          <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600">
                 <FiDollarSign className="w-6 h-6 text-white" />
               </div>
               <div>
                 <p className="text-sm text-gray-400">Spent</p>
-                {statsLoading ? (
-                  <div className="w-20 h-6 bg-gray-700 rounded animate-pulse"></div>
-                ) : (
-                  <>
-                    <p className="text-lg font-semibold text-white">{formatKES(stats.totalSpent)}</p>
-                    <p className="text-xs text-gray-400">Avg {formatKES(stats.averageOrderValue)}</p>
-                  </>
-                )}
+                <p className="text-lg font-semibold text-white">{formatKES(stats.totalSpent)}</p>
+                <p className="text-xs text-gray-400">Avg {formatKES(stats.averageOrderValue)}</p>
               </div>
             </div>
           </div>
 
           {/* Member Since Card */}
-          <div className="group relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-            <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-600 to-red-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity"></div>
-            <div className="relative flex items-center gap-4">
+          <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
               <div className="p-3 rounded-xl bg-gradient-to-r from-orange-600 to-red-600">
                 <FiCalendar className="w-6 h-6 text-white" />
               </div>
@@ -463,19 +444,18 @@ const Dashboard = () => {
           {/* Left Column - Account & Orders */}
           <div className="space-y-6 lg:col-span-2">
             {/* Account Details */}
-            <div className="relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent"></div>
-              <h3 className="relative mb-4 text-lg font-bold text-white">Account Details</h3>
-              <div className="relative space-y-3">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
+            <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-bold text-white">Account Details</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800/95">
                   <div>
                     <p className="text-xs text-gray-400">Full Name</p>
                     <p className="font-medium text-white">{userData?.name || 'Not provided'}</p>
                   </div>
-                  <button className="text-xs text-blue-500 hover:text-blue-400 transition-colors">Edit</button>
+                  <button className="text-xs text-indigo-500 transition-colors hover:text-indigo-400">Edit</button>
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
+                <div className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800/95">
                   <div>
                     <p className="text-xs text-gray-400">Email</p>
                     <p className="font-medium text-white">{userData?.email}</p>
@@ -484,14 +464,14 @@ const Dashboard = () => {
                     <button
                       onClick={handleSendVerificationOtp}
                       disabled={sendingOtp}
-                      className="text-xs text-blue-500 hover:text-blue-400 transition-colors"
+                      className="text-xs text-indigo-500 transition-colors hover:text-indigo-400"
                     >
                       {sendingOtp ? 'Sending...' : 'Verify'}
                     </button>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700">
+                <div className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800/95">
                   <div>
                     <p className="text-xs text-gray-400">Account Type</p>
                     <p className="font-medium text-white capitalize">{userData?.authMethod === 'google' ? 'Google' : 'Standard'}</p>
@@ -501,31 +481,23 @@ const Dashboard = () => {
             </div>
 
             {/* Recent Orders */}
-            <div className="relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-600/10 via-transparent to-transparent"></div>
-              <div className="relative flex items-center justify-between mb-4">
+            <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-white">Recent Orders</h3>
-                <button className="text-sm text-blue-500 hover:text-blue-400 transition-colors flex items-center gap-1">
+                <button className="flex items-center gap-1 text-sm text-indigo-500 transition-colors hover:text-indigo-400">
                   View All <FiArrowRight className="w-4 h-4" />
                 </button>
               </div>
               
-              {ordersLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map(i => (
-                    <div key={i} className="h-20 bg-gray-700 rounded-lg animate-pulse"></div>
-                  ))}
-                </div>
-              ) : recentOrders.length > 0 ? (
+              {recentOrders.length > 0 ? (
                 <div className="space-y-3">
                   {recentOrders.map(order => (
                     <div 
                       key={order._id} 
-                      className="relative p-4 overflow-hidden transition-all border rounded-lg cursor-pointer bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-blue-500/50 group"
+                      className="p-4 transition-all border border-gray-700 rounded-lg cursor-pointer bg-gray-800/95 hover:border-indigo-500/50"
                       onClick={() => navigate(`/orders/${order._id}`)}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                      <div className="relative flex items-center justify-between">
+                      <div className="flex items-center justify-between">
                         <div>
                           <p className="font-medium text-white">#{order.orderNumber || order._id.slice(-6)}</p>
                           <p className="text-xs text-gray-400">{formatRelativeTime(order.createdAt)}</p>
@@ -549,85 +521,52 @@ const Dashboard = () => {
 
           {/* Right Column - Quick Actions */}
           <div className="space-y-4">
-            <div className="relative p-6 overflow-hidden border rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/10 via-transparent to-transparent"></div>
-              <h3 className="relative mb-4 text-lg font-bold text-white">Quick Actions</h3>
-              <div className="relative space-y-3">
+            <div className="p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-bold text-white">Quick Actions</h3>
+              <div className="space-y-3">
                 <button
                   onClick={() => navigate('/shop')}
-                  className="group relative flex items-center justify-between w-full p-4 overflow-hidden transition-all border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-blue-500/50"
+                  className="flex items-center justify-between w-full p-4 transition-all border border-gray-700 rounded-lg bg-gray-800/95 hover:border-indigo-500/50 group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600">
                       <FiShoppingBag className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-medium text-white">Shop</span>
                   </div>
-                  <FiArrowRight className="relative w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  <FiArrowRight className="w-5 h-5 text-gray-400 transition-colors group-hover:text-indigo-500" />
                 </button>
 
                 <button
                   onClick={() => navigate('/wishlist')}
-                  className="group relative flex items-center justify-between w-full p-4 overflow-hidden transition-all border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-pink-500/50"
+                  className="flex items-center justify-between w-full p-4 transition-all border border-gray-700 rounded-lg bg-gray-800/95 hover:border-pink-500/50 group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-pink-600 to-red-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="relative flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-gradient-to-r from-pink-600 to-red-600">
                       <FiHeart className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-medium text-white">Wishlist ({wishlistCount})</span>
                   </div>
-                  <FiArrowRight className="relative w-5 h-5 text-gray-400 group-hover:text-pink-500 transition-colors" />
+                  <FiArrowRight className="w-5 h-5 text-gray-400 transition-colors group-hover:text-pink-500" />
                 </button>
 
                 <button
                   onClick={() => navigate('/reset-password')}
-                  className="group relative flex items-center justify-between w-full p-4 overflow-hidden transition-all border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-yellow-500/50"
+                  className="flex items-center justify-between w-full p-4 transition-all border border-gray-700 rounded-lg bg-gray-800/95 hover:border-yellow-500/50 group"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="relative flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600">
                       <FiLock className="w-5 h-5 text-white" />
                     </div>
                     <span className="font-medium text-white">Change Password</span>
                   </div>
-                  <FiArrowRight className="relative w-5 h-5 text-gray-400 group-hover:text-yellow-500 transition-colors" />
-                </button>
-
-                <button
-                  onClick={() => navigate('/profile')}
-                  className="group relative flex items-center justify-between w-full p-4 overflow-hidden transition-all border rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 hover:border-purple-500/50"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-indigo-600 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600">
-                      <FiUser className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="font-medium text-white">Edit Profile</span>
-                  </div>
-                  <FiArrowRight className="relative w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors" />
+                  <FiArrowRight className="w-5 h-5 text-gray-400 transition-colors group-hover:text-yellow-500" />
                 </button>
               </div>
             </div>
           </div>
         </div>
       </main>
-
-      <style jsx>{`
-        .glow-text {
-          text-shadow: 0 0 20px currentColor;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

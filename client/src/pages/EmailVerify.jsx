@@ -1,4 +1,4 @@
-// src/pages/EmailVerify.jsx - TRANSFORMED with oraimo black gradients and glowing effects
+// src/pages/EmailVerify.jsx - UPDATED with full-page background, centered card, and no scrolling
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
@@ -6,7 +6,92 @@ import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { BsLightningCharge, BsArrowRight } from "react-icons/bs";
-import { FiMail } from "react-icons/fi";
+import { FiMail, FiMapPin } from "react-icons/fi";
+
+// Font styles matching homepage
+const fontStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  
+  * {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  }
+`;
+
+// Animation styles
+const animationStyles = `
+  @keyframes gradient {
+    0% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
+  
+  .animate-gradient {
+    animation: gradient 8s ease-in-out infinite;
+  }
+  
+  .animate-pulse {
+    animation: pulse 3s ease-in-out infinite;
+  }
+  
+  .delay-1000 {
+    animation-delay: 1s;
+  }
+  
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+  
+  .card-3d-content {
+    transform: translateZ(20px);
+  }
+`;
+
+// Background image
+const emailVerifyBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+
+// Gradient for bottom transition - indigo/blue/cyan
+const bottomGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+
+// Top Bar Component (matching homepage)
+const TopBar = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <div className="py-3 border-b border-gray-800 bg-black/90 backdrop-blur-sm">
+      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+        <button 
+          onClick={() => navigate('/stores')}
+          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          <FiMapPin className="w-4 h-4" />
+          FIND STORE
+        </button>
+        <span className="text-gray-700">|</span>
+        <button 
+          onClick={() => navigate('/shop')}
+          className="text-sm text-gray-400 transition-colors hover:text-white"
+        >
+          SHOP ONLINE
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const EmailVerify = () => {
   const navigate = useNavigate();
@@ -14,6 +99,14 @@ const EmailVerify = () => {
   const inputRefs = useRef([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+
+  // Inject styles
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = fontStyles + animationStyles;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
 
   // Configure Axios
   axios.defaults.withCredentials = true;
@@ -167,144 +260,146 @@ const EmailVerify = () => {
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen px-4 overflow-hidden bg-gradient-to-b from-gray-900 via-gray-800 to-black">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/20 via-transparent to-transparent"></div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-purple-600/20 via-transparent to-transparent"></div>
-      
-      {/* Animated Glow Orbs */}
-      <div className="absolute w-96 h-96 bg-blue-600/30 rounded-full blur-3xl -top-48 -left-48 animate-pulse"></div>
-      <div className="absolute w-96 h-96 bg-purple-600/30 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse delay-1000"></div>
+    <div className="relative h-screen overflow-hidden bg-black">
+      {/* Full-page Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src={emailVerifyBackgroundImage}
+          alt="Background"
+          className="object-cover w-full h-full"
+        />
+        {/* Dark overlay for better text visibility */}
+        <div className="absolute inset-0 bg-black/60"></div>
+        {/* Bottom gradient - indigo/blue/cyan */}
+        <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
+        {/* Final black gradient at the very bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+      </div>
 
-      {/* Logo with glow */}
+      {/* Animated Glow Orbs - positioned on top of background */}
+      <div className="absolute rounded-full w-96 h-96 bg-indigo-600/30 blur-3xl -top-48 -left-48 animate-pulse"></div>
+      <div className="absolute delay-1000 rounded-full w-96 h-96 bg-blue-600/30 blur-3xl -bottom-48 -right-48 animate-pulse"></div>
+
+      {/* Top Bar - with semi-transparent background */}
+      <div className="absolute top-0 left-0 right-0 z-20">
+        <TopBar />
+      </div>
+
+      {/* Logo with glow - positioned absolutely */}
       <div 
         onClick={() => navigate("/")} 
-        className="absolute cursor-pointer left-5 sm:left-20 top-5 group"
+        className="absolute z-30 cursor-pointer left-5 sm:left-20 top-20 group"
       >
         <div className="relative">
-          <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-0 group-hover:opacity-30 blur-xl transition-opacity"></div>
+          <div className="absolute transition-opacity rounded-full opacity-0 -inset-2 bg-gradient-to-r from-indigo-600 to-blue-600 group-hover:opacity-30 blur-xl"></div>
           <img 
             src={assets.logo} 
             alt="Logo" 
-            className="relative w-28 sm:w-32 transition-transform group-hover:scale-105" 
+            className="relative transition-transform w-28 sm:w-32 group-hover:scale-105" 
           />
         </div>
       </div>
 
-      {/* Verification Card */}
-      <div className="relative w-full max-w-md">
-        {/* Glow Effect */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-30 blur-xl"></div>
-        
-        <div className="relative p-6 border rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 sm:p-8">
-          {/* Icon */}
-          <div className="flex items-center justify-center mb-4">
-            <div className="relative">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
-                <FiMail className="w-8 h-8 text-white" />
+      {/* Centered Verification Card - No scrolling */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <div className="w-full max-w-md px-4">
+          {/* Verification Card */}
+          <div className="relative card-3d">
+            {/* Glow Effect */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-30 blur-xl"></div>
+            
+            <div className="relative p-6 border border-gray-800 rounded-2xl bg-gray-900/95 backdrop-blur-sm sm:p-8 card-3d-content">
+              {/* Icon */}
+              <div className="flex items-center justify-center mb-4">
+                <div className="relative">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                    <FiMail className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full opacity-50 blur-xl"></div>
+                </div>
               </div>
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full opacity-50 blur-xl"></div>
-            </div>
-          </div>
 
-          <h2 className="mb-2 text-2xl font-bold text-center text-white glow-text">
-            Verify Your Email
-          </h2>
-          <p className="mb-6 text-sm text-center text-gray-400">
-            Enter the 6-digit code sent to your email
-          </p>
+              <h2 className="mb-2 text-2xl font-bold text-center text-white">
+                Verify Your Email
+              </h2>
+              <p className="mb-6 text-sm text-center text-gray-400">
+                Enter the 6-digit code sent to your email
+              </p>
 
-          <form onSubmit={onSubmitHandler}>
-            {/* OTP Inputs - Glowing */}
-            <div
-              className="flex justify-center mb-8 space-x-2 sm:space-x-3"
-              onPaste={handlePaste}
-            >
-              {Array(6).fill(0).map((_, index) => (
-                <input
-                  key={index}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  onInput={(e) => handleInput(e, index)}
-                  onKeyDown={(e) => handleKeyDown(e, index)}
-                  className="w-11 h-12 text-lg font-semibold text-center text-white transition-all border rounded-lg shadow-sm outline-none sm:w-12 sm:h-14 sm:text-xl bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+              <form onSubmit={onSubmitHandler}>
+                {/* OTP Inputs */}
+                <div
+                  className="flex justify-center mb-8 space-x-2 sm:space-x-3"
+                  onPaste={handlePaste}
+                >
+                  {Array(6).fill(0).map((_, index) => (
+                    <input
+                      key={index}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      ref={(el) => (inputRefs.current[index] = el)}
+                      onInput={(e) => handleInput(e, index)}
+                      onKeyDown={(e) => handleKeyDown(e, index)}
+                      className="h-12 text-lg font-semibold text-center text-white transition-all border border-gray-700 rounded-lg shadow-sm outline-none w-11 sm:w-12 sm:h-14 sm:text-xl bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                      disabled={isLoading}
+                      autoFocus={index === 0}
+                    />
+                  ))}
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
                   disabled={isLoading}
-                  autoFocus={index === 0}
-                />
-              ))}
-            </div>
+                  className="group relative w-full py-3 font-medium text-white transition-all rounded-full overflow-hidden sm:py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="relative flex items-center justify-center gap-2">
+                    {isLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        Verify Email
+                        <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </span>
+                </button>
+              </form>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full py-3 font-medium text-white transition-all rounded-full overflow-hidden sm:py-3.5"
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600"></span>
-              <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
-              <span className="relative flex items-center justify-center gap-2">
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                    Verifying...
-                  </>
+              {/* Resend Section */}
+              <div className="mt-4 text-sm text-center">
+                {resendTimer > 0 ? (
+                  <span className="text-gray-500">
+                    Resend code in {resendTimer}s
+                  </span>
                 ) : (
-                  <>
-                    Verify Email
-                    <BsArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </>
+                  <button
+                    onClick={handleResendOtp}
+                    disabled={isLoading}
+                    className="text-indigo-500 transition-colors hover:text-indigo-400 hover:underline disabled:opacity-50"
+                  >
+                    Didn't receive the code? Resend
+                  </button>
                 )}
-              </span>
-            </button>
-          </form>
+              </div>
 
-          {/* Resend Section */}
-          <div className="mt-4 text-sm text-center">
-            {resendTimer > 0 ? (
-              <span className="text-gray-500">
-                Resend code in {resendTimer}s
-              </span>
-            ) : (
-              <button
-                onClick={handleResendOtp}
-                disabled={isLoading}
-                className="text-blue-500 hover:text-blue-400 hover:underline disabled:opacity-50 transition-colors"
-              >
-                Didn't receive the code? Resend
-              </button>
-            )}
-          </div>
-
-          {/* Security Note */}
-          <div className="flex items-center gap-2 p-3 mt-4 text-xs border rounded-lg bg-blue-600/10 border-blue-600/20">
-            <BsLightningCharge className="w-4 h-4 text-blue-500" />
-            <span className="text-blue-400">
-              Never share your verification code
-            </span>
+              {/* Security Note */}
+              <div className="flex items-center gap-2 p-3 mt-4 text-xs border rounded-lg bg-indigo-600/10 border-indigo-600/20">
+                <BsLightningCharge className="w-4 h-4 text-indigo-500" />
+                <span className="text-indigo-400">
+                  Never share your verification code
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-        
-        .animate-pulse {
-          animation: pulse 3s ease-in-out infinite;
-        }
-        
-        .delay-1000 {
-          animation-delay: 1s;
-        }
-        
-        .glow-text {
-          text-shadow: 0 0 20px currentColor;
-        }
-      `}</style>
     </div>
   );
 };

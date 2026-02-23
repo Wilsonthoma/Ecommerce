@@ -1,3 +1,4 @@
+// backend/app.js - COMPLETE FIXED VERSION WITH ALL CORRECTIONS
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -10,6 +11,7 @@ import { fileURLToPath } from 'url';
 import colors from 'colors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import MongoStore from 'connect-mongo';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -91,7 +93,7 @@ try {
 const app = express();
 
 // ==================== REQUEST LOGGING ====================
-if (config.isDevelopment()) {
+if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
     app.use((req, res, next) => {
         console.log(`📥 ${req.method} ${req.url}`.cyan);
         next();
@@ -104,7 +106,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // ==================== HTTP LOGGING ====================
-if (config.isDevelopment()) {
+if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 } else {
     app.use(morgan('combined', { 
@@ -133,15 +135,15 @@ const allowedOrigins = [
     'http://localhost:5174',
     'http://localhost:3000',
     'http://localhost:5175',
-    config.server.frontendUrl,
-    config.server.adminUrl
+    config.server?.frontendUrl,
+    config.server?.adminUrl
 ].filter(Boolean);
 
 app.use(
     cors({
         origin: function (origin, callback) {
             if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) !== -1 || config.isDevelopment()) {
+            if (allowedOrigins.indexOf(origin) !== -1 || config.isDevelopment?.()) {
                 callback(null, true);
             } else {
                 logger.warn?.(`CORS blocked origin: ${origin}`) || console.warn(`⚠️ CORS blocked: ${origin}`);
@@ -170,34 +172,69 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 
-// ==================== SESSION MANAGEMENT ====================
-app.use(session({
-    secret: config.session?.secret || process.env.SESSION_SECRET || 'kwetushop-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
+// ==================== ✅ FIXED: SESSION MANAGEMENT WITH ALL CORRECTIONS ====================
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET || '9771ea993cb28fde5e239b22a2d3d98abb0d197917c8e8ca15df65df31e169c8',
+    resave: true,
+    saveUninitialized: true,
     cookie: {
         maxAge: 20 * 60 * 1000, // 20 minutes
-        secure: config.isProduction?.() || process.env.NODE_ENV === 'production',
+        secure: false, // Set to false for development (HTTP)
         httpOnly: true,
-        sameSite: config.isProduction?.() || process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+        sameSite: 'lax', // Use 'lax' for development
+        domain: 'localhost' // Added domain for localhost
     },
     name: 'kwetu.sid',
-    rolling: true
-}));
+    rolling: true,
+    proxy: true // Added proxy for localhost
+};
 
-// Session debugging (development only)
-if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
-    app.use((req, res, next) => {
-        console.log('📊 Session Status:'.cyan, {
+// Use MongoDB for session store
+try {
+    sessionConfig.store = MongoStore.create({
+        mongoUrl: process.env.DB_URI || process.env.MONGODB_URI,
+        ttl: 20 * 60, // 20 minutes in seconds
+        autoRemove: 'native',
+        touchAfter: 24 * 3600 // lazy session update
+    });
+    console.log('📦 Using MongoDB session store'.green);
+} catch (error) {
+    console.log('⚠️ Could not connect to MongoDB for sessions, using memory store'.yellow);
+}
+
+app.use(session(sessionConfig));
+
+// ✅ ADDED: Comprehensive cookie debugging middleware
+app.use((req, res, next) => {
+    console.log('🍪 Complete Cookie Debug:', {
+        path: req.path,
+        headers: req.headers.cookie,
+        signedCookies: req.signedCookies,
+        cookies: req.cookies,
+        sessionID: req.sessionID,
+        sessionExists: !!req.session,
+        sessionKeys: req.session ? Object.keys(req.session) : [],
+        hasOAuthState: req.session ? !!req.session.oauthState : false,
+        sessionStore: req.sessionStore ? 'configured' : 'missing'
+    });
+    next();
+});
+
+// ✅ Enhanced session debugging middleware
+app.use((req, res, next) => {
+    if (req.path.includes('/auth/google') || req.path.includes('/debug/session') || req.path.includes('/auth/google/callback')) {
+        console.log('📊 Session Debug (Auth):', {
             path: req.path,
             sessionID: req.sessionID,
-            sessionExists: !!req.session,
-            sessionKeys: req.session ? Object.keys(req.session) : 'none',
-            maxAge: req.session?.cookie?.maxAge
+            hasSession: !!req.session,
+            sessionKeys: req.session ? Object.keys(req.session) : [],
+            hasOAuthState: req.session ? !!req.session.oauthState : false,
+            oauthState: req.session?.oauthState || null,
+            cookies: req.headers.cookie
         });
-        next();
-    });
-}
+    }
+    next();
+});
 
 // ==================== RATE LIMITING ====================
 app.use('/api', apiLimiter);
@@ -216,7 +253,7 @@ app.use('/api', (req, res, next) => {
         req.path.includes('/health') ||
         req.path.includes('/csrf-token') ||
         req.path.includes('/webhook') ||
-        req.path.includes('/debug')) {  // Allow debug endpoints
+        req.path.includes('/debug')) {
         return next();
     }
 
@@ -229,8 +266,8 @@ app.use('/api', (req, res, next) => {
 // CSRF Token endpoint
 app.get('/api/csrf-token', getCsrfToken);
 
-// ==================== ✅ FIXED: STATIC FILES WITH SUBFOLDER SUPPORT ====================
-// Serve static files from main uploads directory (this automatically serves subfolders)
+// ==================== STATIC FILES ====================
+// Serve static files from main uploads directory
 app.use('/uploads', express.static(uploadsPath, {
     maxAge: config.isProduction?.() ? '30d' : 0,
     etag: true,
@@ -242,7 +279,7 @@ app.use('/uploads', express.static(uploadsPath, {
     }
 }));
 
-// Explicitly serve products subfolder (redundant but safe)
+// Explicitly serve products subfolder
 app.use('/uploads/products', express.static(path.join(uploadsPath, 'products'), {
     maxAge: config.isProduction?.() ? '30d' : 0,
     etag: true,
@@ -296,37 +333,42 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ==================== API ROUTES ====================
-// Mount all routes through index router
-app.use('/api', indexRouter);
-
-// ==================== ROOT ENDPOINT ====================
-app.get('/', (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: '🚀 KwetuShop API is running',
-        version: process.env.npm_package_version || '1.0.0',
-        environment: config.server?.env || process.env.NODE_ENV || 'development',
-        timestamp: new Date().toISOString(),
-        documentation: '/api',
-        health: '/api/health',
-        auth: '/api/auth',
-        csrf: '/api/csrf-token',
-        uploads: '/uploads',
-        debug: '/api/debug/uploads',
-        endpoints: {
-            products: '/api/products',
-            categories: '/api/categories',
-            cart: '/api/cart',
-            admin: '/api/admin'
-        }
-    });
-});
-
-// ==================== ENHANCED DEBUG ENDPOINTS ====================
+// ==================== DEBUG ENDPOINTS (MUST COME BEFORE API ROUTES) ====================
 if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
     
-    // 🆕 ENHANCED: Uploads debug endpoint with subfolder support
+    // ✅ Session debug endpoint
+    app.get('/api/debug/session', (req, res) => {
+        try {
+            const sessionData = {
+                sessionID: req.sessionID,
+                sessionExists: !!req.session,
+                sessionKeys: req.session ? Object.keys(req.session) : [],
+                hasOAuthState: req.session ? !!req.session.oauthState : false,
+                oauthState: req.session?.oauthState || null,
+                cookie: req.session?.cookie,
+                cookies: req.headers.cookie,
+                signedCookies: req.signedCookies,
+                sessionStore: req.sessionStore ? 'configured' : 'missing'
+            };
+            
+            console.log('📊 Session Debug Endpoint Called:', sessionData);
+            res.json({ 
+                success: true, 
+                message: 'Session debug info',
+                data: sessionData,
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error('❌ Session debug error:', error);
+            res.status(500).json({ 
+                success: false, 
+                error: error.message,
+                timestamp: new Date().toISOString()
+            });
+        }
+    });
+
+    // Uploads debug endpoint
     app.get('/api/debug/uploads', (req, res) => {
         try {
             const folderExists = fs.existsSync(uploadsPath);
@@ -343,10 +385,7 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                 });
             }
             
-            // Check main uploads folder
             const files = fs.readdirSync(uploadsPath);
-            
-            // Check products subfolder
             const productsPath_check = path.join(uploadsPath, 'products');
             const productsExists = fs.existsSync(productsPath_check);
             let productFiles = [];
@@ -355,56 +394,6 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                 productFiles = fs.readdirSync(productsPath_check);
             }
             
-            // Get file stats for main folder
-            const fileDetails = files.slice(0, 20).map(filename => {
-                const filePath = path.join(uploadsPath, filename);
-                try {
-                    const stats = fs.statSync(filePath);
-                    return {
-                        name: filename,
-                        size: stats.size,
-                        isFile: stats.isFile(),
-                        isDirectory: stats.isDirectory(),
-                        created: stats.birthtime,
-                        modified: stats.mtime,
-                        url: `/uploads/${filename}`,
-                        fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/${filename}`
-                    };
-                } catch (err) {
-                    return {
-                        name: filename,
-                        error: err.message
-                    };
-                }
-            });
-            
-            // Get stats for product files
-            const productDetails = productFiles.slice(0, 20).map(filename => {
-                const filePath = path.join(productsPath_check, filename);
-                try {
-                    const stats = fs.statSync(filePath);
-                    return {
-                        name: filename,
-                        size: stats.size,
-                        isFile: stats.isFile(),
-                        created: stats.birthtime,
-                        modified: stats.mtime,
-                        url: `/uploads/products/${filename}`,
-                        fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${filename}`
-                    };
-                } catch (err) {
-                    return {
-                        name: filename,
-                        error: err.message
-                    };
-                }
-            });
-            
-            // Check for specific product image
-            const specificImage = 'screenshot-from-2026-01-11-20-54-58-1770967558948-9d92599d.png';
-            const specificImagePath = path.join(uploadsPath, 'products', specificImage);
-            const specificImageExists = fs.existsSync(specificImagePath);
-            
             res.json({
                 success: true,
                 message: 'Uploads folder structure',
@@ -412,29 +401,15 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                 exists: true,
                 mainFolder: {
                     fileCount: files.length,
-                    files: fileDetails
+                    files: files.slice(0, 20)
                 },
                 productsSubfolder: {
                     exists: productsExists,
                     path: productsPath_check,
                     fileCount: productFiles.length,
-                    files: productDetails
-                },
-                yourSpecificImage: {
-                    filename: specificImage,
-                    exists: specificImageExists,
-                    path: specificImagePath,
-                    url: `/uploads/products/${specificImage}`,
-                    fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${specificImage}`,
-                    size: specificImageExists ? fs.statSync(specificImagePath).size : null
-                },
-                testYourImage: productFiles.length > 0 ? {
-                    filename: productFiles[0],
-                    url: `/uploads/products/${productFiles[0]}`,
-                    fullUrl: `http://localhost:${config.server?.port || 5000}/uploads/products/${productFiles[0]}`
-                } : null
+                    files: productFiles.slice(0, 20)
+                }
             });
-            
         } catch (error) {
             res.status(500).json({
                 success: false,
@@ -444,36 +419,14 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         }
     });
 
-    // 🆕 Test specific product image endpoint
-    app.get('/api/debug/product-image/:filename?', (req, res) => {
-        const filename = req.params.filename || 'screenshot-from-2026-01-11-20-54-58-1770967558948-9d92599d.png';
-        const imagePath = path.join(uploadsPath, 'products', filename);
-        const productsFolder = path.join(uploadsPath, 'products');
-        
-        const response = {
-            success: false,
-            searchedFile: filename,
-            searchedPath: imagePath,
-            uploadsPath: uploadsPath,
-            productsPath: productsFolder,
-            productsExists: fs.existsSync(productsFolder),
-            fileExists: fs.existsSync(imagePath)
-        };
-        
-        if (fs.existsSync(productsFolder)) {
-            response.productsFiles = fs.readdirSync(productsFolder).slice(0, 10);
-        }
-        
-        if (fs.existsSync(imagePath)) {
-            const stats = fs.statSync(imagePath);
-            response.success = true;
-            response.message = 'Product image found';
-            response.fileSize = stats.size;
-            response.url = `/uploads/products/${filename}`;
-            response.fullUrl = `http://localhost:${config.server?.port || 5000}/uploads/products/${filename}`;
-        }
-        
-        res.json(response);
+    // Test endpoint
+    app.get('/api/debug/test', (req, res) => {
+        res.json({
+            success: true,
+            message: '✅ Debug endpoint is working',
+            timestamp: new Date().toISOString(),
+            sessionID: req.sessionID
+        });
     });
 
     // Routes debug endpoint
@@ -537,24 +490,44 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                     fs.readdirSync(path.join(uploadsPath, 'products')).length : 0
             },
             session: {
-                maxAge: config.session?.cookie?.maxAge || 1200000,
-                secure: config.session?.cookie?.secure || false
+                maxAge: sessionConfig.cookie.maxAge,
+                secure: sessionConfig.cookie.secure,
+                sameSite: sessionConfig.cookie.sameSite,
+                domain: sessionConfig.cookie.domain,
+                resave: sessionConfig.resave,
+                saveUninitialized: sessionConfig.saveUninitialized,
+                proxy: sessionConfig.proxy
             }
         };
         res.json({ success: true, config: safeConfig });
     });
-
-    // Test endpoint
-    app.get('/api/test', (req, res) => {
-        res.json({
-            success: true,
-            message: '✅ API test endpoint is working',
-            timestamp: new Date().toISOString(),
-            environment: config.server?.env || process.env.NODE_ENV,
-            mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-        });
-    });
 }
+
+// ==================== API ROUTES (THESE COME AFTER DEBUG ENDPOINTS) ====================
+app.use('/api', indexRouter);
+
+// ==================== ROOT ENDPOINT ====================
+app.get('/', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: '🚀 KwetuShop API is running',
+        version: process.env.npm_package_version || '1.0.0',
+        environment: config.server?.env || process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString(),
+        documentation: '/api',
+        health: '/api/health',
+        auth: '/api/auth',
+        csrf: '/api/csrf-token',
+        uploads: '/uploads',
+        debug: '/api/debug/uploads',
+        endpoints: {
+            products: '/api/products',
+            categories: '/api/categories',
+            cart: '/api/cart',
+            admin: '/api/admin'
+        }
+    });
+});
 
 // ==================== 404 HANDLER ====================
 app.all('*', (req, res, next) => {

@@ -5,7 +5,7 @@ import ProductCard from "../components/ProductCard";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
 import { clientProductService } from "../services/client/products";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import CountUp from 'react-countup';

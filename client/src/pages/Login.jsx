@@ -1,7 +1,7 @@
-// src/pages/Login.jsx - UPDATED with centered card, full-page background, and no scrolling
+// src/pages/Login.jsx - COMPLETELY FIXED with proper redirect and single toast
 import React, { useContext, useState, useEffect } from "react";
 import { assets } from "../assets/assets";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
@@ -85,7 +85,20 @@ const TopBar = () => {
 const Login = () => {
   const [state, setState] = useState("Login");
   const navigate = useNavigate();
-  const { backendUrl, getUserData } = useContext(AppContext);
+  const location = useLocation();
+  
+  // Get context
+  const context = useContext(AppContext);
+  
+  // Provide fallback values
+  const backendUrl = context?.backendUrl || import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+  const getUserData = context?.getUserData || (async () => {});
+  const isLoggedIn = context?.isLoggedIn || false;
+
+  // ✅ Get the intended destination from location state
+  const from = location.state?.from || '/dashboard';
+  
+  console.log('📍 Will redirect to after login:', from);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -93,6 +106,20 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  
+  // Remember Me functionality
+  const [rememberMe, setRememberMe] = useState(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    return !!savedEmail;
+  });
+
+  // Load saved email if "Remember Me" was checked
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    if (savedEmail && state === "Login") {
+      setEmail(savedEmail);
+    }
+  }, [state]);
 
   // Inject styles
   useEffect(() => {
@@ -117,15 +144,26 @@ const Login = () => {
     fetchCsrfToken();
   }, [backendUrl]);
 
+  // Redirect if already logged in (but not during OAuth callback)
+  useEffect(() => {
+    if (isLoggedIn && !window.location.search) {
+      navigate(from, { replace: true });
+    }
+  }, [isLoggedIn, navigate, from]);
+
   // Google OAuth handler
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/auth/google`, {
-        withCredentials: true,
-      });
+      // Store the intended destination before redirect
+      sessionStorage.setItem('redirectAfterLogin', from);
+      
+      console.log('📍 Initiating Google login, will redirect back to:', from);
+      
+      const response = await axios.get(`${backendUrl}/api/auth/google`);
       
       if (response.data.success && response.data.authUrl) {
+        console.log('📍 Redirecting to Google auth URL');
         window.location.href = response.data.authUrl;
       } else {
         throw new Error("Invalid response from server");
@@ -136,48 +174,6 @@ const Login = () => {
       setIsGoogleLoading(false);
     }
   };
-
-  // OAuth callback handler
-  useEffect(() => {
-    const checkOAuthStatus = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const error = urlParams.get("error");
-      const loginStatus = urlParams.get("login");
-      const source = urlParams.get("source");
-
-      if (error) {
-        const errorMessages = {
-          oauth_failed: "Google login failed. Please try again.",
-          no_code: "Authentication incomplete. Please try again.",
-          user_cancelled: "Login cancelled.",
-          invalid_state: "Security validation failed. Please try again.",
-          token_expired: "Authentication session expired. Please try again.",
-          auth_failed: "Authentication failed. Please try again."
-        };
-        toast.error(errorMessages[error] || "Authentication failed");
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-
-      if (loginStatus === "success") {
-        toast.success(
-          source === "google"
-            ? "Logged in successfully with Google! 🎉"
-            : "Logged in successfully! 🎉"
-        );
-        
-        try {
-          await getUserData();
-          navigate("/");
-        } catch (err) {
-          console.error("Failed to get user data after OAuth:", err);
-        }
-        
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-
-    checkOAuthStatus();
-  }, [getUserData, navigate]);
 
   // Form validation
   const validateForm = () => {
@@ -210,7 +206,7 @@ const Login = () => {
     return true;
   };
 
-  // Submit handler
+  // ✅ FIXED: Submit handler with proper redirect and single toast
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
@@ -241,25 +237,46 @@ const Login = () => {
       });
 
       if (response.data.success) {
+        // Handle Remember Me
+        if (rememberMe) {
+          localStorage.setItem('rememberedEmail', email.toLowerCase().trim());
+        } else {
+          localStorage.removeItem('rememberedEmail');
+        }
+
+        // Store token
         if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
+          if (rememberMe) {
+            localStorage.setItem('token', response.data.token);
+          } else {
+            sessionStorage.setItem('token', response.data.token);
+          }
           axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         }
 
         if (response.data.user) {
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          const userData = response.data.user;
+          if (rememberMe) {
+            localStorage.setItem('user', JSON.stringify(userData));
+          } else {
+            sessionStorage.setItem('user', JSON.stringify(userData));
+          }
         }
 
-        toast.success(response.data.message || (
-          state === "Sign Up" 
-            ? "Account created successfully!" 
-            : "Logged in successfully!"
-        ));
-
+        // ✅ SINGLE TOAST - Only show one success message
         if (state === "Login") {
+          toast.success("Logged in successfully!");
+          
+          // Get user data
           await getUserData();
-          navigate("/");
+          
+          console.log('📍 Redirecting to:', from);
+          
+          // ✅ Use replace: true to prevent going back to login page
+          navigate(from, { replace: true });
         } else {
+          // After sign up
+          toast.success("Account created successfully!");
           setState("Login");
           setName("");
           setEmail("");
@@ -304,25 +321,21 @@ const Login = () => {
           alt="Background"
           className="object-cover w-full h-full"
         />
-        {/* Dark overlay for better text visibility */}
         <div className="absolute inset-0 bg-black/60"></div>
-        {/* Bottom gradient - indigo/blue/cyan */}
         <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
-        {/* Final black gradient at the very bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
       </div>
 
-      {/* Top Bar - with semi-transparent background */}
+      {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 z-20">
         <TopBar />
       </div>
 
-      {/* Centered Login Card - No scrolling */}
+      {/* Centered Login Card */}
       <div className="absolute inset-0 z-10 flex items-center justify-center">
         <div className="w-full max-w-md px-4">
-          {/* Auth Container */}
           <div className="relative p-8 text-center border border-gray-800 rounded-2xl bg-gray-900/95 backdrop-blur-sm card-3d">
-            {/* Styled Close Button - Top Right Corner */}
+            {/* Close Button */}
             <button
               onClick={() => navigate("/")}
               className="absolute p-2 transition-all duration-300 border border-gray-700 rounded-full shadow-lg -top-3 -right-3 bg-gray-900/95 backdrop-blur-sm hover:border-indigo-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)] group focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900"
@@ -418,11 +431,21 @@ const Login = () => {
               </div>
 
               {state === "Login" && (
-                <div className="-mt-2 text-right">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 bg-gray-800 border-gray-700 rounded focus:ring-indigo-500 focus:ring-offset-0"
+                    />
+                    <span className="ml-2 text-xs text-gray-400">Remember me</span>
+                  </label>
+                  
                   <button
                     type="button"
                     onClick={() => navigate("/reset-password")}
-                    className="text-sm text-indigo-500 hover:text-indigo-400 hover:underline"
+                    className="text-xs text-indigo-500 hover:text-indigo-400 hover:underline"
                     disabled={isLoading}
                   >
                     Forgot Password?
@@ -456,7 +479,7 @@ const Login = () => {
                     onClick={() => {
                       setState("Login");
                       setName("");
-                      setEmail("");
+                      setEmail(localStorage.getItem('rememberedEmail') || "");
                       setPassword("");
                     }}
                     className="text-indigo-500 hover:text-indigo-400 hover:underline"

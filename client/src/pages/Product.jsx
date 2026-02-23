@@ -1,4 +1,4 @@
-// src/pages/Product.jsx - WITH UNIFORM GRADIENT (no boundary)
+// src/pages/Product.jsx - WITH UNIFORM GRADIENT and header banner matching Shop page
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -37,6 +37,8 @@ import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 // Font styles matching homepage
 const fontStyles = `
@@ -260,10 +262,19 @@ const animationStyles = `
   .glow-text {
     text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
   }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 `;
 
-// Beautiful gradient combinations - UNIFORM gradient for entire page
-const pageGradient = "from-blue-600/20 via-purple-600/20 to-pink-600/20";
+// Gradient for header bottom transition - indigo/blue/cyan (matching Shop page)
+const headerGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -271,7 +282,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=800';
 
-// Product header image
+// Product header image (matching Shop page)
 const productHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
 // Top Bar Component (matching homepage)
@@ -337,6 +348,22 @@ const Product = () => {
   // Check if user is logged in
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Initialize AOS
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: false,
+      mirror: true,
+      offset: 100,
+      easing: 'ease-out-cubic',
+      anchorPlacement: 'top-bottom',
+    });
+    
+    setTimeout(() => {
+      AOS.refresh();
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     const style = document.createElement('style');
@@ -511,6 +538,9 @@ const Product = () => {
         const productData = response.product || response.data;
         setProduct(productData);
         setRelatedProducts(response.relatedProducts || []);
+        
+        // Refresh AOS after data loads
+        setTimeout(() => AOS.refresh(), 500);
       } else {
         toast.error('Product not found');
         navigate('/shop');
@@ -678,8 +708,6 @@ const Product = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        {/* UNIFORM gradient overlay */}
-        <div className={`fixed inset-0 pointer-events-none bg-gradient-to-r ${pageGradient} animate-gradient`}></div>
         <TopBar />
         <div className="container px-4 py-4 mx-auto max-w-7xl">
           <div className="animate-pulse">
@@ -719,12 +747,13 @@ const Product = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* UNIFORM gradient overlay for entire page - NO BOUNDARY between header and content */}
-      <div className={`fixed inset-0 pointer-events-none bg-gradient-to-r ${pageGradient} animate-gradient`}></div>
+      {/* Inject styles */}
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
       
       <TopBar />
 
-      {/* Product Header Image - with uniform gradient */}
+      {/* Product Header Image - matching Shop page with indigo/blue/cyan gradient */}
       <div 
         className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
         data-aos="fade-in"
@@ -738,10 +767,12 @@ const Product = () => {
             alt="Product Details"
             className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
           />
-          {/* Single uniform gradient overlay */}
-          <div className={`absolute inset-0 bg-gradient-to-r ${pageGradient} mix-blend-overlay`}></div>
+          {/* Dark overlay for text visibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent"></div>
+          {/* Bottom gradient - indigo/blue/cyan that transitions to black (matching Shop page) */}
+          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+          {/* Final black gradient at the very bottom to blend with background */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
         </div>
         
         {/* Header Content */}
@@ -754,7 +785,7 @@ const Product = () => {
               data-aos-delay="400"
               data-aos-once="false"
             >
-              <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl glow-text">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl">
                 PRODUCT DETAILS
               </h1>
               <p className="mt-1 text-sm text-gray-300 sm:text-base">
@@ -765,7 +796,7 @@ const Product = () => {
         </div>
       </div>
 
-      {/* Main content - continues with same gradient background */}
+      {/* Main content - continues with black background */}
       <div className="container relative px-4 py-6 mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 mb-4 text-xs">
@@ -1155,7 +1186,7 @@ const Product = () => {
       {lightboxOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/95 backdrop-blur-xl" onClick={() => setLightboxOpen(false)}>
           <div className="relative flex items-center justify-center w-full h-full" onClick={(e) => e.stopPropagation()}>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 blur-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-blue-600/20 to-cyan-600/20 blur-3xl"></div>
             <div className="relative w-full max-w-4xl">
               <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3">
                 <div className="px-3 py-1 border rounded-full bg-black/50 border-white/10">

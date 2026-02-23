@@ -1,3 +1,4 @@
+// backend/controllers/authController.js - COOKIE-BASED FIXED VERSION
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -65,9 +66,21 @@ const generateSecureToken = (userId) => {
 export const googleAuth = asyncHandler(async (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
-    if (req.session) {
-      req.session.oauthState = state;
-    }
+    
+    console.log('\n🔐 ========== GOOGLE AUTH INITIATED ==========');
+    console.log('🔐 Generated state:', state);
+    
+    // ✅ STORE STATE IN COOKIE INSTEAD OF SESSION
+    res.cookie('oauthState', state, {
+      httpOnly: true,
+      secure: false, // false for development (HTTP)
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      path: '/'
+    });
+    
+    console.log('🔐 State saved in cookie:', state);
+    console.log('🔐 Cookies being set:', res.getHeaders()['set-cookie']);
     
     const authUrl = googleClient.generateAuthUrl({
       access_type: 'offline',
@@ -76,9 +89,13 @@ export const googleAuth = asyncHandler(async (req, res) => {
       state: state
     });
     
+    console.log('🔐 Redirecting to Google with state:', state);
+    console.log('🔐 Auth URL:', authUrl);
+    console.log('🔐 ========== GOOGLE AUTH COMPLETE ==========\n');
+    
     res.json({ success: true, authUrl });
   } catch (error) {
-    console.error("Google auth error:", error);
+    console.error("❌ Google auth error:", error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to initiate Google authentication' 
@@ -86,21 +103,35 @@ export const googleAuth = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Google OAuth callback - COMPLETELY FIXED with account merging
- * @route   GET /api/auth/google/callback
- * @access  Public
- */
 export const googleCallback = asyncHandler(async (req, res) => {
   const { code, state, error } = req.query;
 
+  console.log('\n📍 ========== GOOGLE CALLBACK RECEIVED ==========');
+  console.log('📍 - receivedState:', state);
+  console.log('📍 - error:', error);
+  console.log('📍 - cookies:', req.headers.cookie);
+  console.log('📍 - cookies object:', req.cookies);
+  
+  // ✅ GET STATE FROM COOKIE
+  const savedState = req.cookies.oauthState;
+  
+  console.log('📍 State from cookie:', savedState);
+
   if (error) {
+    console.error('❌ OAuth error from Google:', error);
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=${error}`);
   }
 
-  if (!state || state !== req.session?.oauthState) {
+  if (!state || !savedState || state !== savedState) {
+    console.error('❌ State mismatch!');
+    console.error('📍 - received:', state);
+    console.error('📍 - saved from cookie:', savedState);
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=invalid_state`);
   }
+
+  // ✅ Clear the cookie
+  res.clearCookie('oauthState');
+  console.log('📍 Cookie cleared');
 
   if (!code) {
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=no_code`);
@@ -116,9 +147,9 @@ export const googleCallback = asyncHandler(async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, picture, sub: googleId, email_verified } = payload;
 
-    console.log(`🔐 Google OAuth callback for email: ${email}`);
+    console.log(`🔐 Google OAuth success for email: ${email}`);
 
-    // FIRST: Try to find user by email (MOST IMPORTANT!)
+    // FIRST: Try to find user by email
     let user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user) {
@@ -191,7 +222,10 @@ export const googleCallback = asyncHandler(async (req, res) => {
     res.cookie("token", token, getSecureCookieOptions());
 
     // Redirect with token
-    res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&login=success&source=google`);
+    const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&login=success&source=google`;
+    console.log('📍 Redirecting to:', redirectUrl);
+    console.log('📍 ========== GOOGLE CALLBACK COMPLETE ==========\n');
+    res.redirect(redirectUrl);
 
   } catch (error) {
     console.error("❌ Google callback error:", error);
@@ -401,13 +435,8 @@ export const logout = asyncHandler(async (req, res) => {
   });
 });
 
-// ==================== FIXED: EMAIL VERIFICATION FUNCTIONS ====================
+// ==================== EMAIL VERIFICATION FUNCTIONS ====================
 
-/**
- * @desc    Send email verification OTP - COMPLETELY FIXED
- * @route   POST /api/auth/send-verify-otp
- * @access  Private
- */
 export const sendVerifyOtp = asyncHandler(async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id || req.user?.userId;
@@ -506,11 +535,6 @@ export const sendVerifyOtp = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * @desc    Verify email with OTP - COMPLETELY FIXED
- * @route   POST /api/auth/verify-email
- * @access  Private
- */
 export const verifyEmail = asyncHandler(async (req, res) => {
   try {
     const { otp } = req.body;

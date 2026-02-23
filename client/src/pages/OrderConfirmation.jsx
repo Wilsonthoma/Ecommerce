@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { clientOrderService } from '../services/client/orders';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import {
   FiCheckCircle,
   FiPackage,

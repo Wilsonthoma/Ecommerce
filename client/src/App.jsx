@@ -1,22 +1,25 @@
-// src/App.jsx
+// src/App.jsx - UPDATED to use only react-toastify
 import React, { Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Toaster } from "react-hot-toast";
 
 // 🌐 Global Components
 import Navbar from "./components/Navbar"; 
 import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
+import useSessionTimeout from "./hooks/useSessionTimeout";
+import PagePlaceholder from "./components/PagePlaceholder";
 
 // 📦 Context Providers
 import { AppContextProvider } from "./context/AppContext.jsx"; 
 import { CartProvider } from "./context/CartContext.jsx";
-import { WishlistProvider } from "./context/WishlistContext.jsx"; // ✅ ADDED
+import { WishlistProvider } from "./context/WishlistContext.jsx";
 
-// 📄 Page Components (Lazy loaded for better performance)
+// 📄 Page Components (Lazy loaded)
 const Home = React.lazy(() => import("./pages/Home"));
 const Login = React.lazy(() => import("./pages/Login"));
+const OAuthCallback = React.lazy(() => import("./pages/OAuthCallback"));
 const EmailVerify = React.lazy(() => import("./pages/EmailVerify"));
 const Resetpassword = React.lazy(() => import("./pages/Resetpassword"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
@@ -25,229 +28,205 @@ const Shop = React.lazy(() => import("./pages/Shop"));
 const Product = React.lazy(() => import("./pages/Product"));
 const Checkout = React.lazy(() => import("./pages/Checkout"));
 const OrderConfirmation = React.lazy(() => import("./pages/OrderConfirmation"));
-const Wishlist = React.lazy(() => import("./pages/Wishlist")); // ✅ ADDED
+const Wishlist = React.lazy(() => import("./pages/Wishlist"));
+
+// Lazy load with error handling
+const lazyWithRetry = (importFn) => {
+  return React.lazy(() => {
+    return new Promise((resolve) => {
+      importFn()
+        .then(resolve)
+        .catch(() => {
+          console.warn('Page failed to load, using placeholder');
+          resolve({ default: PagePlaceholder });
+        });
+    });
+  });
+};
+
+// Pages that might not exist yet
+const Orders = lazyWithRetry(() => import("./pages/Orders"));
+const OrderDetails = lazyWithRetry(() => import("./pages/OrderDetails"));
+const Profile = lazyWithRetry(() => import("./pages/Profile"));
+const Settings = lazyWithRetry(() => import("./pages/Settings"));
+const AddressBook = lazyWithRetry(() => import("./pages/AddressBook"));
+const PaymentMethods = lazyWithRetry(() => import("./pages/PaymentMethods"));
+const TrackOrder = lazyWithRetry(() => import("./pages/TrackOrder"));
+const Deals = lazyWithRetry(() => import("./pages/Deals"));
+const HelpCenter = lazyWithRetry(() => import("./pages/HelpCenter"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
+const FAQ = lazyWithRetry(() => import("./pages/FAQ"));
+const Returns = lazyWithRetry(() => import("./pages/Returns"));
+const Shipping = lazyWithRetry(() => import("./pages/Shipping"));
+const Blog = lazyWithRetry(() => import("./pages/Blog"));
 
 // Loading component for Suspense
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
-      <p className="text-gray-600">Loading...</p>
+  <div className="flex items-center justify-center min-h-screen bg-black">
+    <div className="relative">
+      <div className="w-16 h-16 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
+      <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
     </div>
+    <p className="mt-4 text-sm text-gray-400">Loading...</p>
   </div>
 );
+
+// Wrapper component to use hooks that need router context
+const AppContent = () => {
+  useSessionTimeout(); // ✅ Session timeout check runs here
+  
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* ===== PUBLIC ROUTES ===== */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        {/* ✅ OAuth Callback Route */}
+        <Route path="/auth/callback" element={<OAuthCallback />} />
+        <Route path="/email-verify" element={<EmailVerify />} />
+        <Route path="/reset-password" element={<Resetpassword />} />
+        <Route path="/shop" element={<Shop />} />
+        <Route path="/product/:id" element={<Product />} />
+        <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+        
+        {/* Public Info Pages */}
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/returns" element={<Returns />} />
+        <Route path="/shipping" element={<Shipping />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/deals" element={<Deals />} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/track-order" element={<TrackOrder />} />
+        <Route path="/track-order/:orderId" element={<TrackOrder />} />
+        
+        {/* ===== PROTECTED ROUTES ===== */}
+        <Route path="/cart" element={
+          <ProtectedRoute>
+            <Cart />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/checkout" element={
+          <ProtectedRoute>
+            <Checkout />
+          </ProtectedRoute>
+        } />
+        <Route path="/checkout/:orderId?" element={
+          <ProtectedRoute>
+            <Checkout />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/wishlist" element={
+          <ProtectedRoute>
+            <Wishlist />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/orders" element={
+          <ProtectedRoute>
+            <Orders />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/orders/:id" element={
+          <ProtectedRoute>
+            <OrderDetails />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/address-book" element={
+          <ProtectedRoute>
+            <AddressBook />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/payment-methods" element={
+          <ProtectedRoute>
+            <PaymentMethods />
+          </ProtectedRoute>
+        } />
+        
+        {/* 404 - Not Found */}
+        <Route path="*" element={
+          <div className="min-h-[60vh] flex items-center justify-center bg-black">
+            <div className="text-center">
+              <h1 className="mb-4 text-6xl font-bold text-white">404</h1>
+              <h2 className="mb-4 text-2xl font-semibold text-gray-400">Page Not Found</h2>
+              <p className="mb-8 text-gray-500">
+                The page you are looking for doesn't exist or has been moved.
+              </p>
+              <a 
+                href="/" 
+                className="inline-block px-6 py-3 text-white transition-all bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full hover:from-indigo-700 hover:to-blue-700 hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
+              >
+                Go Back Home
+              </a>
+            </div>
+          </div>
+        } />
+      </Routes>
+    </Suspense>
+  );
+};
 
 const App = () => {
   return (
     <AppContextProvider>
       <CartProvider>
-        <WishlistProvider> {/* ✅ ADDED - Wishlist context */}
-          <div className="flex flex-col min-h-screen">
+        <WishlistProvider>
+          <div className="flex flex-col min-h-screen bg-black">
             
-            {/* The Navbar is rendered here, making it visible on ALL routes. */}
             <Navbar />
             
-            {/* Toast Containers for global notifications */}
+            {/* ✅ Only one ToastContainer for the entire app */}
             <ToastContainer 
               position="top-right"
               autoClose={3000}
               hideProgressBar={false}
-              newestOnTop={false}
+              newestOnTop
               closeOnClick
               rtl={false}
               pauseOnFocusLoss
               draggable
               pauseOnHover
-              theme="light"
-            />
-            
-            {/* React Hot Toast Container */}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
-                  duration: 3000,
-                  theme: {
-                    primary: 'green',
-                    secondary: 'black',
-                  },
-                },
-                error: {
-                  duration: 4000,
-                },
-              }}
+              theme="dark"
+              style={{ zIndex: 9999 }}
             />
             
             <main className="flex-grow">
-              <Suspense fallback={<LoadingSpinner />}>
-                <Routes>
-                  
-                  {/* Public Routes */}
-                  <Route path="/" element={<Home />} /> 
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/email-verify" element={<EmailVerify />} />
-                  <Route path="/reset-password" element={<Resetpassword />} />
-                  <Route path="/shop" element={<Shop />} />
-                  <Route path="/product/:id" element={<Product />} />
-                  <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
-                  
-                  {/* Dashboard route - temporarily public */}
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  
-                  <Route path="/cart" element={<Cart />} />
-                  
-                  {/* ✅ WISHLIST ROUTE - Now fully functional */}
-                  <Route path="/wishlist" element={<Wishlist />} />
-                  
-                  {/* Checkout route - temporarily public */}
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/checkout/:orderId?" element={<Checkout />} />
-                  
-                  {/* User routes - temporarily public */}
-                  <Route path="/orders" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">My Orders</h1>
-                      <p className="text-gray-600">Orders page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/profile" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">My Profile</h1>
-                      <p className="text-gray-600">Profile page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/settings" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Account Settings</h1>
-                      <p className="text-gray-600">Settings page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/track-order/:orderId" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Track Order</h1>
-                      <p className="text-gray-600">Order tracking page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/track-order" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Track Order</h1>
-                      <p className="text-gray-600">Enter your order number to track</p>
-                      <input 
-                        type="text" 
-                        placeholder="Order Number" 
-                        className="w-full max-w-md p-3 mt-4 border border-gray-300 rounded-lg"
-                      />
-                    </div>
-                  } />
-                  
-                  {/* Other public routes */}
-                  <Route path="/about" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">About Us</h1>
-                      <p className="text-gray-600">About page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/contact" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Contact Us</h1>
-                      <p className="text-gray-600">Contact page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/privacy" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Privacy Policy</h1>
-                      <p className="text-gray-600">Privacy policy page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/terms" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Terms of Service</h1>
-                      <p className="text-gray-600">Terms of service page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/faq" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Frequently Asked Questions</h1>
-                      <p className="text-gray-600">FAQ page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/returns" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Return & Refund Policy</h1>
-                      <p className="text-gray-600">Return policy page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/shipping" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Shipping Information</h1>
-                      <p className="text-gray-600">Shipping info page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/help" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Help Center</h1>
-                      <p className="text-gray-600">Help center page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/blog" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Blog</h1>
-                      <p className="text-gray-600">Blog page is under construction</p>
-                    </div>
-                  } />
-                  
-                  <Route path="/deals" element={
-                    <div className="container px-4 py-8 mx-auto">
-                      <h1 className="mb-6 text-3xl font-bold">Hot Deals</h1>
-                      <p className="text-gray-600">Deals page is under construction</p>
-                    </div>
-                  } />
-                  
-                  {/* Catch-all for 404/Not Found pages */}
-                  <Route path="*" element={
-                    <div className="min-h-[60vh] flex items-center justify-center">
-                      <div className="text-center">
-                        <h1 className="mb-4 text-6xl font-bold text-gray-800">404</h1>
-                        <h2 className="mb-4 text-2xl font-semibold text-gray-600">Page Not Found</h2>
-                        <p className="mb-8 text-gray-500">
-                          The page you are looking for doesn't exist or has been moved.
-                        </p>
-                        <a 
-                          href="/" 
-                          className="inline-block px-6 py-3 text-white transition-colors bg-blue-600 rounded-lg hover:bg-blue-700"
-                        >
-                          Go Back Home
-                        </a>
-                      </div>
-                    </div>
-                  } />
-                  
-                </Routes>
-              </Suspense>
+              <AppContent />
             </main>
             
-            {/* The Footer is rendered globally at the bottom */}
             <Footer />
             
           </div>
-        </WishlistProvider> {/* ✅ CLOSED WishlistProvider */}
+        </WishlistProvider>
       </CartProvider>
     </AppContextProvider>
   );

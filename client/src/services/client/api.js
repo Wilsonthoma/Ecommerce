@@ -1,4 +1,4 @@
-// client/src/services/client/api.js - FIXED
+// client/src/services/client/api.js - FIXED with single source of truth
 import axios from "axios";
 
 // ✅ FIXED: Add /api to base URL
@@ -25,17 +25,15 @@ clientApi.interceptors.request.use(
     
     if (csrfToken) {
       config.headers["X-CSRF-Token"] = csrfToken;
-      console.log('🔑 CSRF Token attached to request');
     }
 
     // Get auth token if available
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Auth Token attached to request');
     }
 
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
@@ -44,7 +42,7 @@ clientApi.interceptors.request.use(
   }
 );
 
-// Response interceptor
+// Response interceptor - REMOVED any toast notifications
 clientApi.interceptors.response.use(
   (response) => {
     console.log(`✅ ${response.status} ${response.config.url}`);
@@ -77,13 +75,17 @@ clientApi.interceptors.response.use(
       }
     }
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - NO TOAST HERE
     if (error.response?.status === 401) {
-      console.log("🔒 Unauthorized access - redirecting to login");
+      console.log("🔒 Unauthorized access");
+      // Don't redirect if already on login page
       if (!window.location.pathname.includes("/login")) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("csrfToken");
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        // Don't show toast here - let the component handle it
         window.location.href = "/login";
       }
     }
@@ -95,12 +97,17 @@ clientApi.interceptors.response.use(
 export default clientApi;
 
 // Helper functions
-export const setAuthToken = (token) => {
+export const setAuthToken = (token, remember = false) => {
   if (token) {
-    localStorage.setItem("token", token);
+    if (remember) {
+      localStorage.setItem("token", token);
+    } else {
+      sessionStorage.setItem("token", token);
+    }
     clientApi.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
     localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
     delete clientApi.defaults.headers.common["Authorization"];
   }
 };
@@ -119,6 +126,10 @@ export const clearAuthData = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("csrfToken");
   localStorage.removeItem("user");
+  localStorage.removeItem("rememberedEmail");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("redirectAfterLogin");
   delete clientApi.defaults.headers.common["Authorization"];
   delete clientApi.defaults.headers.common["X-CSRF-Token"];
 };

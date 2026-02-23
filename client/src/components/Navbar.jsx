@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - FIXED with static navbar, removed "Sell on Kwetu" from dropdown, and indigo theme
+// src/components/Navbar.jsx - FIXED with sticky positioning
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -504,8 +504,8 @@ const Navbar = memo(() => {
         </div>
       )}
 
-      {/* ========== STATIC MAIN NAVBAR (DOES NOT SCROLL) ========== */}
-      <nav className="relative z-50 border-b border-gray-800 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
+      {/* ========== STICKY MAIN NAVBAR (DOES NOT SCROLL) ========== */}
+      <nav className="sticky top-0 z-50 border-b border-gray-800 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-600/10 via-transparent to-transparent"></div>
         <div className="relative px-3 mx-auto max-w-7xl sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">

@@ -1,8 +1,8 @@
-// src/pages/Dashboard.jsx - WITH SHOP PAGE GRADIENT HEADER
+// src/pages/Dashboard.jsx - COMPLETE FIXED VERSION with clientApi
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import clientApi from '../services/client/api'; // ✅ Use clientApi instead of axios
 import { toast } from 'react-toastify';
 import {
   FiUser,
@@ -32,7 +32,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Dashboard header image - matching Shop page
 const dashboardHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Gradient for header bottom transition - indigo/blue/cyan (matching Shop page)
+// Gradient for header bottom transition - indigo/blue/cyan
 const headerGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
 
 // Get full image URL
@@ -71,7 +71,7 @@ const TopBar = () => {
 };
 
 const Dashboard = () => {
-  const { userData, logout, isLoggedIn, getUserData, backendUrl, getToken } = useContext(AppContext);
+  const { userData, logout, isLoggedIn, getUserData } = useContext(AppContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sendingOtp, setSendingOtp] = useState(false);
@@ -124,12 +124,39 @@ const Dashboard = () => {
       setLoading(true);
       try {
         await getUserData();
-        await Promise.all([
-          fetchUserStats(),
-          fetchRecentOrders(),
-          fetchWishlistCount(),
-          fetchReviewsCount()
-        ]);
+        
+        // Try to fetch stats (with error handling)
+        try {
+          const statsResponse = await clientApi.get('/user/stats');
+          if (statsResponse.data.success) setStats(statsResponse.data.stats);
+        } catch (error) {
+          console.log('Stats endpoint not implemented yet, using defaults');
+        }
+
+        // Try to fetch orders
+        try {
+          const ordersResponse = await clientApi.get('/user/orders?limit=5');
+          if (ordersResponse.data.success) setRecentOrders(ordersResponse.data.orders || []);
+        } catch (error) {
+          console.log('Orders endpoint not implemented yet');
+        }
+
+        // Wishlist from localStorage
+        try {
+          const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+          setWishlistCount(wishlist.length);
+        } catch (error) {
+          console.error('Error fetching wishlist count:', error);
+        }
+
+        // Try to fetch reviews count
+        try {
+          const reviewsResponse = await clientApi.get('/user/reviews/count');
+          if (reviewsResponse.data.success) setReviewsCount(reviewsResponse.data.count || 0);
+        } catch (error) {
+          console.log('Reviews endpoint not implemented yet');
+        }
+
       } catch (error) {
         console.error('Dashboard data fetch error:', error);
       } finally {
@@ -139,57 +166,6 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, [isLoggedIn, navigate, getUserData]);
-
-  const fetchUserStats = async () => {
-    try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const response = await axios.get(`${backendUrl}/api/user/stats`, { 
-        withCredentials: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      
-      if (response.data.success) setStats(response.data.stats);
-    } catch (error) {
-      console.error('Error fetching user stats:', error);
-    }
-  };
-
-  const fetchRecentOrders = async () => {
-    try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const response = await axios.get(`${backendUrl}/api/user/orders?limit=5`, { 
-        withCredentials: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      
-      if (response.data.success) setRecentOrders(response.data.orders || []);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-    }
-  };
-
-  const fetchWishlistCount = async () => {
-    try {
-      const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-      setWishlistCount(wishlist.length);
-    } catch (error) {
-      console.error('Error fetching wishlist count:', error);
-    }
-  };
-
-  const fetchReviewsCount = async () => {
-    try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const response = await axios.get(`${backendUrl}/api/user/reviews/count`, { 
-        withCredentials: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      
-      if (response.data.success) setReviewsCount(response.data.count || 0);
-    } catch (error) {
-      console.error('Error fetching reviews count:', error);
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -208,16 +184,8 @@ const Dashboard = () => {
 
     setSendingOtp(true);
     try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const response = await axios.post(
-        `${backendUrl}/api/auth/send-verify-otp`,
-        {},
-        { 
-          withCredentials: true,
-          headers: token ? { Authorization: `Bearer ${token}` } : {}
-        }
-      );
-
+      const response = await clientApi.post('/auth/send-verify-otp', {});
+      
       if (response.data.success) {
         toast.success('Verification OTP sent to your email!');
         navigate('/email-verify');
@@ -310,7 +278,7 @@ const Dashboard = () => {
         <TopBar />
       </div>
 
-      {/* DASHBOARD HEADER IMAGE - with indigo/blue/cyan gradient matching Shop page */}
+      {/* DASHBOARD HEADER IMAGE */}
       <div 
         className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
         data-aos="fade-in"
@@ -324,11 +292,8 @@ const Dashboard = () => {
             alt="Dashboard"
             className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
           />
-          {/* Dark overlay for text visibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          {/* Bottom gradient - indigo/blue/cyan that transitions to black (matching Shop page) */}
           <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          {/* Final black gradient at the very bottom to blend with background */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
         </div>
         
@@ -353,9 +318,9 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* MAIN CONTENT - continues with black background */}
+      {/* MAIN CONTENT */}
       <main className="container relative z-10 px-4 py-8 mx-auto max-w-7xl">
-        {/* Welcome Card - Removed duplicate welcome text since it's now in header */}
+        {/* Welcome Card */}
         <div 
           className="mb-8 overflow-hidden border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm"
           data-aos="fade-up"

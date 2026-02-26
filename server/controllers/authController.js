@@ -1,4 +1,4 @@
-// backend/controllers/authController.js - COOKIE-BASED FIXED VERSION
+// backend/controllers/authController.js - COMPLETE FIXED VERSION
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
@@ -50,7 +50,8 @@ const getSecureCookieOptions = () => ({
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: '/'
+  path: '/',
+  domain: process.env.NODE_ENV === "production" ? process.env.COOKIE_DOMAIN : 'localhost'
 });
 
 const generateSecureToken = (userId) => {
@@ -70,17 +71,17 @@ export const googleAuth = asyncHandler(async (req, res) => {
     console.log('\n🔐 ========== GOOGLE AUTH INITIATED ==========');
     console.log('🔐 Generated state:', state);
     
-    // ✅ STORE STATE IN COOKIE INSTEAD OF SESSION
+    // Set cookie with all necessary options
     res.cookie('oauthState', state, {
       httpOnly: true,
-      secure: false, // false for development (HTTP)
+      secure: false,
       sameSite: 'lax',
       maxAge: 10 * 60 * 1000, // 10 minutes
-      path: '/'
+      path: '/',
+      domain: 'localhost'
     });
     
     console.log('🔐 State saved in cookie:', state);
-    console.log('🔐 Cookies being set:', res.getHeaders()['set-cookie']);
     
     const authUrl = googleClient.generateAuthUrl({
       access_type: 'offline',
@@ -90,7 +91,6 @@ export const googleAuth = asyncHandler(async (req, res) => {
     });
     
     console.log('🔐 Redirecting to Google with state:', state);
-    console.log('🔐 Auth URL:', authUrl);
     console.log('🔐 ========== GOOGLE AUTH COMPLETE ==========\n');
     
     res.json({ success: true, authUrl });
@@ -112,7 +112,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
   console.log('📍 - cookies:', req.headers.cookie);
   console.log('📍 - cookies object:', req.cookies);
   
-  // ✅ GET STATE FROM COOKIE
+  // Get state from cookie
   const savedState = req.cookies.oauthState;
   
   console.log('📍 State from cookie:', savedState);
@@ -129,8 +129,8 @@ export const googleCallback = asyncHandler(async (req, res) => {
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=invalid_state`);
   }
 
-  // ✅ Clear the cookie
-  res.clearCookie('oauthState');
+  // Clear the cookie
+  res.clearCookie('oauthState', { path: '/', domain: 'localhost' });
   console.log('📍 Cookie cleared');
 
   if (!code) {
@@ -149,77 +149,61 @@ export const googleCallback = asyncHandler(async (req, res) => {
 
     console.log(`🔐 Google OAuth success for email: ${email}`);
 
-    // FIRST: Try to find user by email
+    // Find or create user
     let user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user) {
       console.log(`✅ User found by email: ${email}`);
       
-      // Check if this is a password-based account that needs OAuth linking
+      // Link Google OAuth if not already linked
       if (!user.oauth?.google) {
         console.log(`🔗 Linking Google OAuth to existing account: ${email}`);
         
-        // Store existing password (don't overwrite)
         const existingPassword = user.password;
         
-        // Link Google OAuth
-        user.oauth = { 
-          ...user.oauth,
-          google: googleId 
-        };
+        user.oauth = { ...user.oauth, google: googleId };
         user.avatar = picture || user.avatar;
         
-        // If Google says email is verified, verify the account
         if (email_verified && !user.isAccountVerified) {
           user.isAccountVerified = true;
         }
         
-        // Preserve password if it exists
         if (existingPassword) {
           user.password = existingPassword;
         }
         
         await user.save();
-        console.log(`✅ Successfully linked Google OAuth to existing account`);
-      } else {
-        console.log(`ℹ️ Account already has Google OAuth linked`);
+        console.log(`✅ Successfully linked Google OAuth`);
       }
-      
     } else {
-      // Try to find by Google ID (in case user already has OAuth)
-      user = await User.findOne({ 'oauth.google': googleId });
-      
-      if (user) {
-        console.log(`✅ User found by Google ID: ${googleId}`);
-        // Update existing OAuth user
-        user.avatar = picture || user.avatar;
-        user.lastLogin = new Date();
-        await user.save();
-        
-      } else {
-        // Create NEW user with Google OAuth
-        console.log(`🆕 Creating new Google OAuth user: ${email}`);
-        user = new User({
-          name: name?.substring(0, 50) || email.split('@')[0] || 'Google User',
-          email: email.toLowerCase().trim(),
-          password: null,
-          oauth: { google: googleId },
-          isAccountVerified: email_verified || true,
-          avatar: picture,
-          status: 'active',
-          lastLogin: new Date(),
-          loginCount: 1
-        });
-        await user.save();
-        console.log(`✅ New Google OAuth user created`);
-      }
+      // Create new user
+      console.log(`🆕 Creating new Google OAuth user: ${email}`);
+      user = new User({
+        name: name?.substring(0, 50) || email.split('@')[0] || 'Google User',
+        email: email.toLowerCase().trim(),
+        password: null,
+        oauth: { google: googleId },
+        isAccountVerified: email_verified || true,
+        avatar: picture,
+        status: 'active',
+        lastLogin: new Date(),
+        loginCount: 1
+      });
+      await user.save();
     }
 
     // Generate JWT token
     const token = generateSecureToken(user._id);
     
-    // Set cookie
-    res.cookie("token", token, getSecureCookieOptions());
+    // Set auth cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+      domain: 'localhost'
+    });
 
     // Redirect with token
     const redirectUrl = `${process.env.FRONTEND_URL}/auth/callback?token=${token}&login=success&source=google`;
@@ -261,10 +245,9 @@ export const register = asyncHandler(async (req, res) => {
       });
     }
 
-    // Check if user exists - including OAuth accounts
+    // Check if user exists
     const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
-      // If user exists but is an OAuth account without password
       if (existingUser.oauth?.google && !existingUser.password) {
         return res.status(400).json({
           success: false,
@@ -369,7 +352,6 @@ export const login = asyncHandler(async (req, res) => {
       });
     }
 
-    // Better OAuth account handling with clear message
     if (user.oauth?.google && !user.password) {
       return res.status(401).json({ 
         success: false, 
@@ -434,6 +416,9 @@ export const logout = asyncHandler(async (req, res) => {
     message: "Logged out successfully" 
   });
 });
+
+// Keep all your other functions (sendVerifyOtp, verifyEmail, sendResetOtp, etc.) exactly as they are
+// They are too long to include here but keep them unchanged
 
 // ==================== EMAIL VERIFICATION FUNCTIONS ====================
 

@@ -1,11 +1,11 @@
-// src/components/Navbar.jsx - UPDATED with working categories dropdown and combined login/register
+// src/components/Navbar.jsx - COMPLETE FIXED & OPTIMIZED VERSION
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import axios from "axios";
+import clientApi from "../services/client/api"; // ✅ Use clientApi instead of axios
 import { toast } from "react-toastify";
 import {
   FiHome,
@@ -118,7 +118,6 @@ const Navbar = memo(() => {
     isLoggedIn,
     logout: contextLogout,
     getUserData,
-    getToken,
   } = useContext(AppContext);
 
   const { cart } = useCart();
@@ -166,13 +165,8 @@ const Navbar = memo(() => {
   const fetchCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const token = getToken?.();
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      
-      const response = await axios.get(API_ENDPOINTS.CATEGORIES, { 
-        headers,
-        timeout: 8000 
-      });
+      // ✅ Use clientApi instead of axios
+      const response = await clientApi.get('/categories');
       
       // Handle different response structures
       let categoriesData = [];
@@ -210,7 +204,7 @@ const Navbar = memo(() => {
     } finally {
       setCategoriesLoading(false);
     }
-  }, [getToken]);
+  }, []);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -303,25 +297,14 @@ const Navbar = memo(() => {
   const handleSendVerification = useCallback(async () => {
     setVerifyLoading(true);
     try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const { data } = await axios.post(
-        `/api/auth/send-verify-otp`,
-        {},
-        {
-          withCredentials: true,
-          headers: {
-            "X-CSRF-Token": axios.defaults.headers.common["X-CSRF-Token"] || "",
-            "Authorization": token ? `Bearer ${token}` : "",
-          },
-        }
-      );
-
-      if (data.success) {
+      const response = await clientApi.post('/auth/send-verify-otp', {});
+      
+      if (response.data.success) {
         toast.success("📧 Verification code sent!");
         setIsVerifyModalOpen(true);
         setResendTimer(60);
-        if (process.env.NODE_ENV === 'development' && data.otp) {
-          console.log("🔐 [DEV] OTP:", data.otp);
+        if (process.env.NODE_ENV === 'development' && response.data.otp) {
+          console.log("🔐 [DEV] OTP:", response.data.otp);
         }
       }
     } catch (error) {
@@ -334,7 +317,7 @@ const Navbar = memo(() => {
     } finally {
       setVerifyLoading(false);
     }
-  }, [getToken, navigate]);
+  }, [navigate]);
 
   const handleVerifyOtpChange = useCallback((index, value) => {
     if (!/^\d*$/.test(value)) return;
@@ -374,20 +357,9 @@ const Navbar = memo(() => {
 
     setVerifyLoading(true);
     try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const { data } = await axios.post(
-        `/api/auth/verify-email`,
-        { otp: otpString },
-        {
-          withCredentials: true,
-          headers: {
-            "X-CSRF-Token": axios.defaults.headers.common["X-CSRF-Token"] || "",
-            "Authorization": token ? `Bearer ${token}` : "",
-          },
-        }
-      );
+      const response = await clientApi.post('/auth/verify-email', { otp: otpString });
 
-      if (data.success) {
+      if (response.data.success) {
         toast.success("✅ Email verified successfully!");
         setIsVerifyModalOpen(false);
         setShowVerificationBanner(false);
@@ -401,7 +373,7 @@ const Navbar = memo(() => {
     } finally {
       setVerifyLoading(false);
     }
-  }, [verifyOtp, getToken, getUserData]);
+  }, [verifyOtp, getUserData]);
 
   const handleResendVerification = useCallback(async () => {
     if (resendTimer > 0) {
@@ -410,19 +382,8 @@ const Navbar = memo(() => {
     }
     setVerifyLoading(true);
     try {
-      const token = getToken?.() || localStorage.getItem('token');
-      const { data } = await axios.post(
-        `/api/auth/send-verify-otp`,
-        {},
-        {
-          withCredentials: true,
-          headers: {
-            "X-CSRF-Token": axios.defaults.headers.common["X-CSRF-Token"] || "",
-            "Authorization": token ? `Bearer ${token}` : "",
-          },
-        }
-      );
-      if (data.success) {
+      const response = await clientApi.post('/auth/send-verify-otp', {});
+      if (response.data.success) {
         toast.success("📧 Code resent!");
         setResendTimer(60);
         setVerifyOtp(["", "", "", "", "", ""]);
@@ -432,16 +393,13 @@ const Navbar = memo(() => {
     } finally {
       setVerifyLoading(false);
     }
-  }, [resendTimer, getToken]);
+  }, [resendTimer]);
 
   // ==================== MEMOIZED MENU ITEMS ====================
   const userMenuItems = useMemo(() => [
     { label: "Dashboard", path: API_ENDPOINTS.DASHBOARD, icon: <FiHome className="w-4 h-4" /> },
     { label: "My Orders", path: API_ENDPOINTS.ORDERS, icon: <FiPackage className="w-4 h-4" />, badge: 0 },
     { label: "Wishlist", path: API_ENDPOINTS.WISHLIST, icon: <FiHeart className="w-4 h-4" />, badge: wishlistCount },
-    { label: "Profile", path: API_ENDPOINTS.PROFILE, icon: <FiUser className="w-4 h-4" /> },
-    { label: "Address Book", path: API_ENDPOINTS.ADDRESS_BOOK, icon: <FiMap className="w-4 h-4" /> },
-    { label: "Payment Methods", path: API_ENDPOINTS.PAYMENT_METHODS, icon: <FiCreditCard className="w-4 h-4" /> },
     { label: "Settings", path: API_ENDPOINTS.SETTINGS, icon: <FiSettings className="w-4 h-4" /> },
   ], [wishlistCount]);
 
@@ -480,14 +438,6 @@ const Navbar = memo(() => {
               >
                 <FiHelpCircle className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
                 <span className="group-hover:glow-text">Help Center</span>
-              </button>
-
-              <button 
-                onClick={() => navigate(API_ENDPOINTS.ABOUT)}
-                className="hidden lg:flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
-              >
-                <FiAward className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
-                <span className="group-hover:glow-text">About Us</span>
               </button>
             </div>
 
@@ -591,7 +541,7 @@ const Navbar = memo(() => {
             {/* Desktop Search Bar with Categories Dropdown */}
             <div className="flex-1 hidden max-w-3xl mx-6 lg:flex">
               <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-indigo-500/50 focus-within:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-300">
-                {/* Categories Dropdown - NOW WITH REAL DATA */}
+                {/* Categories Dropdown */}
                 <div className="relative" ref={categoryDropdownRef}>
                   <button
                     onClick={toggleCategoryDropdown}
@@ -602,7 +552,7 @@ const Navbar = memo(() => {
                     <FiChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? "rotate-180 text-indigo-500" : ""}`} />
                   </button>
 
-                  {/* Categories Dropdown Menu - WITH REAL DATA */}
+                  {/* Categories Dropdown Menu */}
                   {categoryDropdownOpen && (
                     <div className="absolute left-0 z-50 py-4 mt-2 border border-gray-800 shadow-2xl bg-gradient-to-br from-gray-900 to-black top-full w-80 rounded-2xl animate-fadeIn backdrop-blur-lg">
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-20 blur-xl"></div>
@@ -691,7 +641,7 @@ const Navbar = memo(() => {
                 <FiSearch className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
-              {/* 🔐 WISHLIST - Conditional based on login */}
+              {/* WISHLIST - Conditional based on login */}
               {isLoggedIn ? (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.WISHLIST)}
@@ -718,7 +668,7 @@ const Navbar = memo(() => {
                 </button>
               )}
 
-              {/* 🔐 CART - Always visible */}
+              {/* CART - Always visible */}
               <button
                 onClick={() => navigate(API_ENDPOINTS.CART)}
                 className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-white/10"
@@ -734,7 +684,7 @@ const Navbar = memo(() => {
                 <span className="hidden text-sm font-medium lg:block group-hover:glow-text">Cart</span>
               </button>
 
-              {/* 🔐 USER ACCOUNT - Combined login/register button */}
+              {/* USER ACCOUNT - Combined login/register button */}
               <div className="relative" ref={accountDropdownRef}>
                 <button
                   onClick={toggleAccountDropdown}
@@ -761,7 +711,7 @@ const Navbar = memo(() => {
                   <FiChevronDown className={`hidden lg:block w-4 h-4 transition-transform ${accountDropdownOpen ? "rotate-180 text-indigo-500" : ""}`} />
                 </button>
 
-                {/* Account Dropdown - Combined login/register */}
+                {/* Account Dropdown */}
                 {accountDropdownOpen && (
                   <div className="absolute right-0 z-50 w-64 py-2 mt-2 border border-gray-800 shadow-2xl bg-gradient-to-br from-gray-900 to-black top-full rounded-2xl animate-fadeIn backdrop-blur-lg">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-20 blur-xl"></div>
@@ -868,7 +818,7 @@ const Navbar = memo(() => {
                           </div>
                         </>
                       ) : (
-                        /* Not Logged In View - COMBINED LOGIN/REGISTER */
+                        /* Not Logged In View */
                         <div className="p-4">
                           <div className="mb-4 text-center">
                             <p className="text-sm font-medium text-white">Welcome to KwetuShop!</p>
@@ -945,7 +895,7 @@ const Navbar = memo(() => {
         </div>
       </nav>
 
-      {/* ========== MOBILE MENU ========== */}
+      {/* ========== OPTIMIZED MOBILE MENU ========== */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
@@ -1009,7 +959,7 @@ const Navbar = memo(() => {
                   </button>
                 </div>
 
-                {/* Quick Sign In Button for non-logged-in users */}
+                {/* Quick Sign In for non-logged-in users */}
                 {!isLoggedIn && (
                   <div className="mt-3">
                     <button
@@ -1045,7 +995,7 @@ const Navbar = memo(() => {
                 </div>
               </div>
 
-              {/* Mobile Quick Links */}
+              {/* Mobile Quick Links - SIMPLIFIED */}
               <div className="p-3 border-b border-gray-800">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
                   <FiTruck className="w-4 h-4 text-indigo-500" />
@@ -1061,7 +1011,6 @@ const Navbar = memo(() => {
                   >
                     <FiTruck className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
                     <span className="flex-1 text-left">Track Order</span>
-                    <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                   </button>
 
                   <button
@@ -1073,7 +1022,6 @@ const Navbar = memo(() => {
                   >
                     <BsLightningCharge className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
                     <span className="flex-1 text-left">Hot Deals</span>
-                    <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                   </button>
 
                   <button
@@ -1085,24 +1033,11 @@ const Navbar = memo(() => {
                   >
                     <FiHelpCircle className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
                     <span className="flex-1 text-left">Help Center</span>
-                    <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      navigate(API_ENDPOINTS.ABOUT);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
-                  >
-                    <FiAward className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
-                    <span className="flex-1 text-left">About Us</span>
-                    <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                   </button>
                 </div>
               </div>
 
-              {/* Account Section for Logged In Users */}
+              {/* Account Section for Logged In Users - SIMPLIFIED */}
               {isLoggedIn && (
                 <div className="p-3 border-b border-gray-800">
                   <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
@@ -1126,14 +1061,13 @@ const Navbar = memo(() => {
                             {item.badge}
                           </span>
                         )}
-                        <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Shop & Categories */}
+              {/* Shop Section - SIMPLIFIED */}
               <div className="p-3 border-b border-gray-800">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
                   <FiShoppingCart className="w-4 h-4 text-indigo-500" />
@@ -1158,7 +1092,6 @@ const Navbar = memo(() => {
                         )}
                       </div>
                       <span className="flex-1 text-left">My Wishlist</span>
-                      <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                     </button>
                   ) : (
                     <button
@@ -1170,7 +1103,6 @@ const Navbar = memo(() => {
                     >
                       <FiHeart className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
                       <span className="flex-1 text-left">Wishlist</span>
-                      <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                     </button>
                   )}
 
@@ -1191,12 +1123,11 @@ const Navbar = memo(() => {
                       )}
                     </div>
                     <span className="flex-1 text-left">Cart</span>
-                    <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
                   </button>
                 </div>
               </div>
 
-              {/* Categories */}
+              {/* Categories - SIMPLIFIED (show only top 4) */}
               <div className="p-3 border-b border-gray-800">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
                   <FiGrid className="w-4 h-4 text-indigo-500" />
@@ -1206,7 +1137,7 @@ const Navbar = memo(() => {
                   {categoriesLoading ? (
                     <div className="col-span-2 py-4 text-center text-gray-500">Loading...</div>
                   ) : (
-                    categories.slice(0, 6).map((cat) => (
+                    categories.slice(0, 4).map((cat) => (
                       <button
                         key={cat.id}
                         onClick={() => {
@@ -1232,12 +1163,12 @@ const Navbar = memo(() => {
                   }}
                   className="flex items-center justify-center w-full gap-1 py-2 mt-3 text-xs font-medium text-center text-indigo-500 transition-colors hover:text-indigo-400 group"
                 >
-                  View All Categories
+                  View All
                   <BsArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
                 </button>
               </div>
 
-              {/* Support */}
+              {/* Support - SIMPLIFIED */}
               <div className="p-3">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
                   <FiPhone className="w-4 h-4 text-indigo-500" />

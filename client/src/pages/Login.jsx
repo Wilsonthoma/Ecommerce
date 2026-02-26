@@ -1,8 +1,8 @@
-// src/pages/Login.jsx - COMPLETELY FIXED with proper redirect and single toast
+// src/pages/Login.jsx - COMPLETE FIXED VERSION
 import React, { useContext, useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import clientApi from "../services/client/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -56,7 +56,7 @@ const loginBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-ph
 // Gradient for bottom transition - indigo/blue/cyan
 const bottomGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
 
-// Top Bar Component (matching homepage)
+// Top Bar Component
 const TopBar = () => {
   const navigate = useNavigate();
   
@@ -87,15 +87,10 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get context
   const context = useContext(AppContext);
-  
-  // Provide fallback values
-  const backendUrl = context?.backendUrl || import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   const getUserData = context?.getUserData || (async () => {});
   const isLoggedIn = context?.isLoggedIn || false;
 
-  // ✅ Get the intended destination from location state
   const from = location.state?.from || '/dashboard';
   
   console.log('📍 Will redirect to after login:', from);
@@ -107,13 +102,11 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
-  // Remember Me functionality
   const [rememberMe, setRememberMe] = useState(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     return !!savedEmail;
   });
 
-  // Load saved email if "Remember Me" was checked
   useEffect(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     if (savedEmail && state === "Login") {
@@ -121,7 +114,6 @@ const Login = () => {
     }
   }, [state]);
 
-  // Inject styles
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = fontStyles + animationStyles;
@@ -129,22 +121,6 @@ const Login = () => {
     return () => document.head.removeChild(style);
   }, []);
 
-  // Set CSRF token on mount
-  useEffect(() => {
-    const fetchCsrfToken = async () => {
-      try {
-        const { data } = await axios.get(`${backendUrl}/api/csrf-token`, {
-          withCredentials: true,
-        });
-        axios.defaults.headers.common["X-CSRF-Token"] = data.csrfToken;
-      } catch (error) {
-        console.error("CSRF token fetch failed:", error);
-      }
-    };
-    fetchCsrfToken();
-  }, [backendUrl]);
-
-  // Redirect if already logged in (but not during OAuth callback)
   useEffect(() => {
     if (isLoggedIn && !window.location.search) {
       navigate(from, { replace: true });
@@ -155,12 +131,10 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     try {
-      // Store the intended destination before redirect
       sessionStorage.setItem('redirectAfterLogin', from);
+      console.log('📍 Initiating Google login, redirect to:', from);
       
-      console.log('📍 Initiating Google login, will redirect back to:', from);
-      
-      const response = await axios.get(`${backendUrl}/api/auth/google`);
+      const response = await clientApi.get('/auth/google');
       
       if (response.data.success && response.data.authUrl) {
         console.log('📍 Redirecting to Google auth URL');
@@ -175,7 +149,6 @@ const Login = () => {
     }
   };
 
-  // Form validation
   const validateForm = () => {
     if (!email || !password) {
       toast.error("Please fill in all required fields");
@@ -206,7 +179,7 @@ const Login = () => {
     return true;
   };
 
-  // ✅ FIXED: Submit handler with proper redirect and single toast
+  // Submit handler using clientApi
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
@@ -217,9 +190,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const url = state === "Sign Up" 
-        ? `${backendUrl}/api/auth/register`
-        : `${backendUrl}/api/auth/login`;
+      const url = state === "Sign Up" ? '/auth/register' : '/auth/login';
 
       const payload = state === "Sign Up"
         ? {
@@ -232,26 +203,22 @@ const Login = () => {
             password,
           };
 
-      const response = await axios.post(url, payload, {
-        withCredentials: true,
-      });
+      const response = await clientApi.post(url, payload);
 
       if (response.data.success) {
-        // Handle Remember Me
         if (rememberMe) {
           localStorage.setItem('rememberedEmail', email.toLowerCase().trim());
         } else {
           localStorage.removeItem('rememberedEmail');
         }
 
-        // Store token
         if (response.data.token) {
           if (rememberMe) {
             localStorage.setItem('token', response.data.token);
           } else {
             sessionStorage.setItem('token', response.data.token);
           }
-          axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+          clientApi.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         }
 
         if (response.data.user) {
@@ -263,19 +230,12 @@ const Login = () => {
           }
         }
 
-        // ✅ SINGLE TOAST - Only show one success message
         if (state === "Login") {
           toast.success("Logged in successfully!");
-          
-          // Get user data
           await getUserData();
-          
           console.log('📍 Redirecting to:', from);
-          
-          // ✅ Use replace: true to prevent going back to login page
           navigate(from, { replace: true });
         } else {
-          // After sign up
           toast.success("Account created successfully!");
           setState("Login");
           setName("");

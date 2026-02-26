@@ -1,14 +1,13 @@
-// src/pages/OAuthCallback.jsx - FIXED single toast
-import React, { useEffect, useContext } from 'react';
+// src/pages/OAuthCallback.jsx - COMPLETE FIXED VERSION
+import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AppContext } from '../context/AppContext';
-import axios from 'axios';
 import { toast } from 'react-toastify';
+import clientApi from '../services/client/api';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { getUserData } = useContext(AppContext);
+  const toastShown = useRef(false);
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -18,7 +17,7 @@ const OAuthCallback = () => {
       const source = params.get('source');
       const error = params.get('error');
 
-      console.log('📍 OAuth Callback Page:', { token: !!token, loginStatus, source, error });
+      console.log('📍 OAuth Callback:', { token: !!token, loginStatus, source, error });
 
       if (error) {
         toast.error('Authentication failed. Please try again.');
@@ -26,29 +25,31 @@ const OAuthCallback = () => {
         return;
       }
 
-      if (token && loginStatus === 'success') {
+      if (token && loginStatus === 'success' && !toastShown.current) {
+        toastShown.current = true;
+        
         try {
           localStorage.setItem('token', token);
-          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          clientApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          // ✅ SINGLE TOAST
           toast.success(
             source === 'google' 
               ? 'Logged in successfully with Google! 🎉' 
               : 'Logged in successfully! 🎉'
           );
 
-          await getUserData();
-          
           const redirectTo = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
           sessionStorage.removeItem('redirectAfterLogin');
           
           console.log('📍 Redirecting to:', redirectTo);
-          navigate(redirectTo, { replace: true });
+          
+          setTimeout(() => {
+            window.location.href = redirectTo;
+          }, 100);
         } catch (err) {
-          console.error('Failed to get user data:', err);
-          toast.error('Login successful but failed to load user data');
-          navigate('/dashboard', { replace: true });
+          console.error('Failed to process login:', err);
+          toast.error('Login successful but failed to redirect');
+          window.location.href = '/dashboard';
         }
       } else {
         navigate('/login');
@@ -56,14 +57,19 @@ const OAuthCallback = () => {
     };
 
     handleCallback();
-  }, [location, navigate, getUserData]);
+  }, [location, navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
       <div className="text-center">
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
-          <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-2xl font-bold text-transparent text-white bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text">
+              K
+            </span>
+          </div>
+          <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
+          <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
         </div>
         <p className="mt-4 text-gray-400">Completing authentication...</p>
       </div>

@@ -53,9 +53,10 @@ export const protect = asyncHandler(async (req, res, next) => {
       });
     }
 
-    // Check if admin is active (using status field)
-    if (admin.status !== 'active') {
-      console.log(`❌ Admin account not active: ${admin.email}, status: ${admin.status}`);
+    // ✅ FIXED: Robust active check - checks both status and isActive fields
+    const isActive = admin.isActive === true || admin.status === 'active';
+    if (!isActive) {
+      console.log(`❌ Admin account not active: ${admin.email}, isActive: ${admin.isActive}, status: ${admin.status}`);
       return res.status(403).json({
         success: false,
         error: 'Account is not active. Please contact support.',
@@ -137,10 +138,10 @@ export const protectUser = asyncHandler(async (req, res, next) => {
       });
     }
 
-    // ✅ FIXED: Check status field instead of non-existent isActive
-    // Your User model uses 'status' field with values: active, inactive, suspended, pending
-    if (user.status !== 'active') {
-      console.log(`❌ User account not active: ${user.email}, status: ${user.status}`);
+    // ✅ FIXED: Check user active status - checks both status and isActive fields
+    const isActive = user.isActive === true || user.status === 'active';
+    if (!isActive) {
+      console.log(`❌ User account not active: ${user.email}, isActive: ${user.isActive}, status: ${user.status}`);
       return res.status(403).json({
         success: false,
         error: 'Account is not active. Please contact support.',
@@ -274,7 +275,8 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
     const decoded = jwt.verify(token, config.jwt.secret);
     const user = await User.findById(decoded.id).select('-password');
     
-    if (user && user.status === 'active') {
+    // ✅ FIXED: Check both status and isActive for optional auth
+    if (user && (user.isActive === true || user.status === 'active')) {
       req.user = user;
     }
   } catch (error) {

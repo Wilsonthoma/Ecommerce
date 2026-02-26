@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { FiChevronDown, FiChevronUp, FiTag, FiTruck, FiCreditCard, FiInfo, FiShield } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
 import { clientOrderService } from '../services/client/orders';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 
 // Font styles matching homepage
 const fontStyles = `

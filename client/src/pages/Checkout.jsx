@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { clientOrderService } from '../services/client/orders';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-toastify';
 import {
   FiArrowLeft,
   FiCreditCard,

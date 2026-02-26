@@ -1,6 +1,6 @@
-// src/context/AppContext.jsx - Use clientApi instead of default axios
+// src/context/AppContext.jsx - FIXED (no built-in loader)
 import { createContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
-import clientApi, { setAuthToken, clearAuthData } from "../services/client/api"; // ✅ Use clientApi
+import clientApi, { setAuthToken, clearAuthData } from "../services/client/api";
 import { toast } from "react-toastify";
 
 export const AppContext = createContext();
@@ -8,7 +8,6 @@ export const AppContext = createContext();
 export const AppContextProvider = (props) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
-  // Global states
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,15 +15,12 @@ export const AppContextProvider = (props) => {
   const [backendAvailable, setBackendAvailable] = useState(false);
   const [csrfToken, setCsrfToken] = useState(null);
 
-  // Refs to prevent duplicate actions
   const logoutInProgress = useRef(false);
 
-  // Token management - now uses clientApi
   const getToken = useCallback(() => {
     return localStorage.getItem('token') || sessionStorage.getItem('token');
   }, []);
 
-  // Test backend connection using clientApi
   const testBackendConnection = useCallback(async () => {
     try {
       const response = await clientApi.get(`/health`, { 
@@ -45,7 +41,6 @@ export const AppContextProvider = (props) => {
     return false;
   }, []);
 
-  // Initialize CSRF token using clientApi
   const initializeCsrfToken = useCallback(async () => {
     if (!backendAvailable) return null;
 
@@ -56,7 +51,6 @@ export const AppContextProvider = (props) => {
       });
       
       if (response.data?.csrfToken) {
-        // Set in clientApi headers
         clientApi.defaults.headers.common["X-CSRF-Token"] = response.data.csrfToken;
         setCsrfToken(response.data.csrfToken);
         console.log("✅ CSRF token initialized");
@@ -68,7 +62,6 @@ export const AppContextProvider = (props) => {
     return null;
   }, [backendAvailable]);
 
-  // ✅ Fetch user data using clientApi
   const fetchUserData = useCallback(async () => {
     if (!backendAvailable) {
       const cachedUser = localStorage.getItem("user");
@@ -98,7 +91,6 @@ export const AppContextProvider = (props) => {
     }
 
     try {
-      // ✅ Using clientApi
       const response = await clientApi.get(`/auth/me`);
       
       if (response.data.success && response.data.user) {
@@ -134,7 +126,6 @@ export const AppContextProvider = (props) => {
     return { success: false, message: "Not authenticated" };
   }, [backendAvailable, getToken]);
 
-  // Initialize app
   useEffect(() => {
     const initializeApp = async () => {
       console.log("🚀 Initializing application...");
@@ -169,7 +160,6 @@ export const AppContextProvider = (props) => {
     initializeApp();
   }, [backendUrl, testBackendConnection, initializeCsrfToken, fetchUserData]);
 
-  // ✅ Logout using clientApi
   const logout = useCallback(async () => {
     if (logoutInProgress.current) {
       console.log("Logout already in progress, skipping...");
@@ -219,17 +209,8 @@ export const AppContextProvider = (props) => {
     isLoading, authChecked, fetchUserData, logout, getToken
   ]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
-          <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
-        </div>
-        <p className="mt-4 text-sm text-gray-400">Loading your experience...</p>
-      </div>
-    );
-  }
-
+  // ✅ REMOVED: The built-in loader - now just render children immediately
+  // The loading state is still available via context for components that need it
+  
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
 };

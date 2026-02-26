@@ -1,8 +1,9 @@
-// src/App.jsx - UPDATED to use only react-toastify
-import React, { Suspense } from "react";
+// src/App.jsx - ENHANCED with improved loading spinners
+import React, { Suspense, useState, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import LoadingSpinner, { AppPreloader, PageLoader, ContentLoader } from "./components/LoadingSpinner";
 
 // 🌐 Global Components
 import Navbar from "./components/Navbar"; 
@@ -63,28 +64,36 @@ const Returns = lazyWithRetry(() => import("./pages/Returns"));
 const Shipping = lazyWithRetry(() => import("./pages/Shipping"));
 const Blog = lazyWithRetry(() => import("./pages/Blog"));
 
-// Loading component for Suspense
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen bg-black">
-    <div className="relative">
-      <div className="w-16 h-16 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
-      <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
-    </div>
-    <p className="mt-4 text-sm text-gray-400">Loading...</p>
-  </div>
-);
+// App initialization state
+const AppInitializer = ({ children }) => {
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    // Simulate initial app loading (remove this in production if not needed)
+    const timer = setTimeout(() => {
+      setIsInitialized(true);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isInitialized) {
+    return <AppPreloader />;
+  }
+
+  return children;
+};
 
 // Wrapper component to use hooks that need router context
 const AppContent = () => {
-  useSessionTimeout(); // ✅ Session timeout check runs here
+  useSessionTimeout();
   
   return (
-    <Suspense fallback={<LoadingSpinner />}>
+    <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* ===== PUBLIC ROUTES ===== */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        {/* ✅ OAuth Callback Route */}
         <Route path="/auth/callback" element={<OAuthCallback />} />
         <Route path="/email-verify" element={<EmailVerify />} />
         <Route path="/reset-password" element={<Resetpassword />} />
@@ -200,32 +209,33 @@ const App = () => {
     <AppContextProvider>
       <CartProvider>
         <WishlistProvider>
-          <div className="flex flex-col min-h-screen bg-black">
-            
-            <Navbar />
-            
-            {/* ✅ Only one ToastContainer for the entire app */}
-            <ToastContainer 
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="dark"
-              style={{ zIndex: 9999 }}
-            />
-            
-            <main className="flex-grow">
-              <AppContent />
-            </main>
-            
-            <Footer />
-            
-          </div>
+          <AppInitializer>
+            <div className="flex flex-col min-h-screen bg-black">
+              
+              <Navbar />
+              
+              <ToastContainer 
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+                style={{ zIndex: 9999 }}
+              />
+              
+              <main className="flex-grow">
+                <AppContent />
+              </main>
+              
+              <Footer />
+              
+            </div>
+          </AppInitializer>
         </WishlistProvider>
       </CartProvider>
     </AppContextProvider>

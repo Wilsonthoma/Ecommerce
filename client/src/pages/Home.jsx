@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - COMPLETELY FIXED with proper product data mapping
+// src/pages/Home.jsx - COMPLETELY IMPROVED VERSION
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -39,8 +39,11 @@ import {
 } from "react-icons/bs";
 import { IoFlashOutline } from "react-icons/io5";
 import { FaStar, FaRegStar } from "react-icons/fa";
+import Typewriter from 'typewriter-effect';
 
-// Category header images - DISTINCT images for each section
+// Install: npm install typewriter-effect
+
+// Category header images
 const categoryHeaderImages = {
   trust: "https://images.pexels.com/photos/325185/pexels-photo-325185.jpeg?auto=compress&cs=tinysrgb&w=1600",
   featured: "https://images.pexels.com/photos/5709675/pexels-photo-5709675.jpeg?auto=compress&cs=tinysrgb&w=1600",
@@ -51,7 +54,7 @@ const categoryHeaderImages = {
   justArrived: "https://images.pexels.com/photos/4210863/pexels-photo-4210863.jpeg?auto=compress&cs=tinysrgb&w=1600"
 };
 
-// Category images for EACH SPECIFIC category - UNIQUE images for each
+// Category images
 const categoryImages = {
   electronics: "https://images.pexels.com/photos/5083408/pexels-photo-5083408.jpeg?auto=compress&cs=tinysrgb&w=600",
   smartphones: "https://images.pexels.com/photos/47261/pexels-photo-47261.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -82,7 +85,6 @@ const categoryImages = {
   fabric: "https://images.pexels.com/photos/994517/pexels-photo-994517.jpeg?auto=compress&cs=tinysrgb&w=600",
   food: "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&w=600",
   powerbanks: "https://images.pexels.com/photos/8216516/pexels-photo-8216516.jpeg?auto=compress&cs=tinysrgb&w=600",
-  "hair-clippers": "https://images.pexels.com/photos/3998410/pexels-photo-3998410.jpeg?auto=compress&cs=tinysrgb&w=600",
   keyboards: "https://images.pexels.com/photos/2115256/pexels-photo-2115256.jpeg?auto=compress&cs=tinysrgb&w=600",
   mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
 };
@@ -170,6 +172,13 @@ const fontStyles = `
   .glow-text {
     text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
   }
+  
+  /* Bold text for typewriter */
+  .typewriter-bold {
+    font-weight: 800;
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    letter-spacing: -0.02em;
+  }
 `;
 
 // Beautiful gradient combinations for each section
@@ -197,30 +206,6 @@ const animationStyles = `
     100% { opacity: 0.1; }
   }
   
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
-  }
-  
   .animate-gradient {
     animation: gradient 8s ease-in-out infinite;
   }
@@ -232,20 +217,6 @@ const animationStyles = `
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
-  }
-  
-  .bg-fixed {
-    background-attachment: fixed;
-  }
-  
-  /* 3D Card Effects */
-  .card-3d {
-    transform-style: preserve-3d;
-    perspective: 1000px;
-  }
-  
-  .card-3d-content {
-    transform: translateZ(20px);
   }
 `;
 
@@ -275,23 +246,35 @@ const TopBar = () => {
   );
 };
 
-// Counter Component with scroll trigger
-const Counter = ({ end, label, duration = 2, suffix = "+" }) => {
+// ✅ FIXED: Counter Component with slower animation and triggers on every scroll
+const Counter = ({ end, label, duration = 4, suffix = "+" }) => {
   const [ref, inView] = useInView({
-    triggerOnce: true,
+    triggerOnce: false, // Changed to false to trigger every time
     threshold: 0.3,
+    delay: 100
   });
+
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  useEffect(() => {
+    if (inView) {
+      setHasAnimated(true);
+    } else {
+      setHasAnimated(false); // Reset when out of view
+    }
+  }, [inView]);
 
   return (
     <div ref={ref} className="text-center">
       <div className="stat-number">
-        {inView ? (
+        {hasAnimated ? (
           <CountUp 
             end={end} 
             duration={duration} 
-            delay={0.2}
+            delay={0.3}
             separator=","
             suffix={suffix}
+            redraw={true} // Force redraw when inView changes
           />
         ) : (
           `0${suffix}`
@@ -302,7 +285,7 @@ const Counter = ({ end, label, duration = 2, suffix = "+" }) => {
   );
 };
 
-// Helper function to normalize product data for ProductCard
+// Helper function to normalize product data
 const normalizeProductData = (product) => {
   if (!product) return null;
   
@@ -310,7 +293,6 @@ const normalizeProductData = (product) => {
     ...product,
     _id: product._id || product.id,
     id: product.id || product._id,
-    // CRITICAL FIX: Always use quantity field (from your database)
     quantity: product.quantity !== undefined ? product.quantity : 0,
     stock: product.stock !== undefined ? product.stock : (product.quantity || 0),
     price: product.price || 0,
@@ -356,13 +338,23 @@ const Home = () => {
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
 
-  // Initialize AOS
+  // Typing effect phrases - more premium feel
+  const typingPhrases = [
+    'Premium Audio Experience',
+    'Wireless Freedom',
+    'Crystal Clear Sound',
+    'Adaptive Noise Cancellation',
+    '40H Battery Life',
+    'Studio Quality'
+  ];
+
+  // Initialize AOS with improved animations
   useEffect(() => {
     AOS.init({
       duration: 1000,
-      once: false,
+      once: false, // Changed to false to trigger every time
       mirror: true,
-      offset: 100,
+      offset: 50,
       easing: 'ease-out-cubic',
       anchorPlacement: 'top-bottom',
     });
@@ -370,6 +362,16 @@ const Home = () => {
     setTimeout(() => {
       AOS.refresh();
     }, 1000);
+  }, []);
+
+  // Refresh AOS when sections come into view
+  useEffect(() => {
+    const handleScroll = () => {
+      AOS.refresh();
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Fetch featured products
@@ -411,19 +413,42 @@ const Home = () => {
     }
   };
 
-  // Fetch flash sale products
+  // ✅ FIXED: Flash sale products with fallback
   const fetchFlashSaleProducts = async () => {
     try {
       setLoadingFlashSale(true);
       const response = await clientProductService.getFlashSaleProducts(10);
       
-      if (response.success) {
+      if (response.success && response.products && response.products.length > 0) {
         console.log('✅ Flash sale products fetched:', response.products);
         const normalizedProducts = (response.products || []).map(normalizeProductData);
         setFlashSaleProducts(normalizedProducts);
+      } else {
+        // Fallback to products with discount
+        console.log('⚠️ No flash sale products, fetching discounted products...');
+        const fallbackResponse = await clientProductService.getProducts({ 
+          limit: 10,
+          sort: '-discountPercentage'
+        });
+        
+        if (fallbackResponse.success) {
+          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductData);
+          setFlashSaleProducts(normalizedProducts);
+        } else {
+          // Use latest products as last resort
+          const latestResponse = await clientProductService.getProducts({ 
+            limit: 10,
+            sort: '-createdAt'
+          });
+          if (latestResponse.success) {
+            const normalizedProducts = (latestResponse.products || []).map(normalizeProductData);
+            setFlashSaleProducts(normalizedProducts);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to fetch flash sale products:", error);
+      setFlashSaleProducts([]);
     } finally {
       setLoadingFlashSale(false);
     }
@@ -690,11 +715,11 @@ const Home = () => {
     link: `/shop?category=${cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-')}`
   }));
 
-  // Trust stats
+  // Trust stats - increased duration for slower counting
   const trustStats = [
-    { number: 300, label: "HAPPY CLIENTS", duration: 2.5, suffix: "+" },
-    { number: 25, label: "COUNTIES SERVED", duration: 2, suffix: "+" },
-    { number: 365, label: "DAYS WARRANTY", duration: 2, suffix: "" },
+    { number: 300, label: "HAPPY CLIENTS", duration: 5, suffix: "+" },
+    { number: 25, label: "COUNTIES SERVED", duration: 4.5, suffix: "+" },
+    { number: 365, label: "DAYS WARRANTY", duration: 5, suffix: "" },
   ];
 
   // Testimonials
@@ -731,7 +756,7 @@ const Home = () => {
       {/* Top Bar */}
       <TopBar />
 
-      {/* HERO SECTION */}
+      {/* HERO SECTION - with typing effect */}
       <div 
         className="relative h-screen min-h-[800px] overflow-hidden"
         data-aos="fade-in"
@@ -784,11 +809,24 @@ const Home = () => {
                 <span className="block text-5xl text-gray-300 md:text-6xl lg:text-7xl">Pro</span>
               </h1>
               
-              <p className="mt-4 text-xl font-medium text-gray-300 md:text-2xl">
-                50dB Adaptive Hybrid ANC
-              </p>
+              {/* ✅ IMPROVED: Slower typing effect with bold font */}
+              <div className="h-20 mt-4 text-2xl font-bold text-indigo-400 md:text-3xl lg:text-4xl typewriter-bold">
+                <Typewriter
+                  options={{
+                    strings: typingPhrases,
+                    autoStart: true,
+                    loop: true,
+                    delay: 120, // Slower typing (was 80)
+                    deleteSpeed: 70, // Slower deleting (was 50)
+                    pauseFor: 2000, // Pause between phrases
+                    cursor: '|',
+                    wrapperClassName: 'font-extrabold text-indigo-400',
+                    cursorClassName: 'text-indigo-400 text-4xl'
+                  }}
+                />
+              </div>
               
-              <p className="mt-2 text-lg text-gray-400">
+              <p className="mt-4 text-lg text-gray-400 md:text-xl">
                 TWS Earphones with Immersive Sound
               </p>
               
@@ -801,13 +839,13 @@ const Home = () => {
               >
                 <button 
                   onClick={() => navigate('/product/spacebuds-pro')}
-                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+                  className="px-8 py-3 text-sm font-medium text-white transition-all border rounded-full border-white/20 hover:bg-white/10 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
                 >
                   EXPLORE NOW
                 </button>
                 <button 
                   onClick={() => navigate('/shop')}
-                  className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+                  className="px-8 py-3 text-sm font-medium text-white transition-all border rounded-full border-white/20 hover:bg-white/10 hover:border-indigo-500/50"
                 >
                   SHOP ALL
                 </button>
@@ -823,7 +861,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* TRUST STATS SECTION */}
+      {/* TRUST STATS SECTION - with improved counters */}
       <section className="py-16 bg-black border-b border-gray-800">
         <div className="px-6 mx-auto max-w-7xl">
           <div 
@@ -856,9 +894,9 @@ const Home = () => {
               <div 
                 key={index} 
                 className="text-center"
-                data-aos="flip-left"
-                data-aos-duration="1200"
-                data-aos-delay={400 + (index * 150)}
+                data-aos="fade-up"
+                data-aos-duration="1000"
+                data-aos-delay={400 + (index * 200)}
                 data-aos-once="false"
               >
                 <Counter 
@@ -915,17 +953,14 @@ const Home = () => {
               {featuredProducts.slice(0, 4).map((product, index) => (
                 <div 
                   key={product._id || product.id} 
-                  className="cursor-pointer group card-3d"
+                  className="cursor-pointer group"
                   onClick={() => handleProductClick(product._id || product.id)}
-                  data-aos="flip-up"
+                  data-aos="fade-up"
                   data-aos-duration="1000"
-                  data-aos-delay={400 + (index * 150)}
-                  data-aos-easing="ease-out-cubic"
+                  data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
-                  <div className="card-3d-content">
-                    <ProductCard product={product} />
-                  </div>
+                  <ProductCard product={product} />
                 </div>
               ))}
             </div>
@@ -967,7 +1002,7 @@ const Home = () => {
 
           <div 
             className="flex flex-col items-center justify-between gap-8 mb-12 md:flex-row"
-            data-aos="fade-left"
+            data-aos="fade-right"
             data-aos-duration="1000"
             data-aos-delay="400"
             data-aos-once="false"
@@ -975,7 +1010,7 @@ const Home = () => {
             <p className="text-2xl font-semibold text-gray-300">Limited time offers ending soon!</p>
             <button 
               onClick={() => navigate('/shop?onSale=true')}
-              className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10"
+              className="px-8 py-3 text-sm font-medium text-white transition-colors border rounded-full border-white/20 hover:bg-white/10 hover:border-indigo-500/50"
             >
               SHOP NOW
             </button>
@@ -997,9 +1032,9 @@ const Home = () => {
                     key={product._id || product.id} 
                     className="flex-shrink-0 w-48 cursor-pointer group"
                     onClick={() => handleProductClick(product._id || product.id)}
-                    data-aos="zoom-in-up"
+                    data-aos="fade-left"
                     data-aos-duration="1000"
-                    data-aos-delay={500 + (index * 100)}
+                    data-aos-delay={300 + (index * 100)}
                     data-aos-once="false"
                   >
                     <ProductCard product={product} />
@@ -1071,11 +1106,11 @@ const Home = () => {
               {trendingProducts.slice(0, 4).map((product, index) => (
                 <div 
                   key={product._id || product.id} 
-                  className="cursor-pointer group card-3d"
+                  className="cursor-pointer group"
                   onClick={() => handleProductClick(product._id || product.id)}
-                  data-aos="slide-left"
+                  data-aos="fade-right"
                   data-aos-duration="1000"
-                  data-aos-delay={400 + (index * 150)}
+                  data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
                   <ProductCard product={product} />
@@ -1129,11 +1164,11 @@ const Home = () => {
               {justArrivedProducts.slice(0, 4).map((product, index) => (
                 <div 
                   key={product._id || product.id} 
-                  className="cursor-pointer group card-3d"
+                  className="cursor-pointer group"
                   onClick={() => handleProductClick(product._id || product.id)}
-                  data-aos="fade-up"
+                  data-aos="fade-left"
                   data-aos-duration="1000"
-                  data-aos-delay={400 + (index * 150)}
+                  data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
                   <ProductCard product={product} />
@@ -1192,13 +1227,13 @@ const Home = () => {
                 {displayCategories.map((category, index) => (
                   <div 
                     key={category.id || index} 
-                    className="flex-shrink-0 cursor-pointer w-72 group card-3d"
+                    className="flex-shrink-0 cursor-pointer w-72 group"
                     onClick={() => navigate(category.link)}
                     onMouseEnter={() => setHoveredCategory(index)}
                     onMouseLeave={() => setHoveredCategory(null)}
-                    data-aos="rotate-in-down-right"
-                    data-aos-duration="1200"
-                    data-aos-delay={400 + (index * 100)}
+                    data-aos="fade-up"
+                    data-aos-duration="1000"
+                    data-aos-delay={200 + (index * 100)}
                     data-aos-once="false"
                   >
                     <div className="relative mb-3 overflow-hidden bg-gray-900 rounded-lg aspect-square">
@@ -1252,12 +1287,12 @@ const Home = () => {
               className="mt-8 text-center"
               data-aos="fade-up"
               data-aos-duration="1000"
-              data-aos-delay="800"
+              data-aos-delay="600"
               data-aos-once="false"
             >
               <button 
                 onClick={() => navigate('/shop')}
-                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white transition-colors border border-gray-700 rounded-full hover:bg-white/10"
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white transition-all border border-gray-700 rounded-full hover:bg-white/10 hover:border-indigo-500/50"
               >
                 VIEW ALL CATEGORIES
                 <FiArrowRight className="w-4 h-4" />
@@ -1299,11 +1334,10 @@ const Home = () => {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="p-6 transition-transform duration-300 rounded-lg bg-gray-900/50 hover:scale-105"
+                className="p-6 transition-all duration-500 rounded-lg bg-gray-900/50 hover:scale-105 hover:bg-gray-800/50"
                 data-aos="fade-up"
                 data-aos-duration="1000"
-                data-aos-delay={400 + (index * 150)}
-                data-aos-easing="ease-out-back"
+                data-aos-delay={300 + (index * 150)}
                 data-aos-once="false"
               >
                 <div className="flex items-center gap-4 mb-4">

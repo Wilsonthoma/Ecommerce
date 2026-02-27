@@ -1,4 +1,4 @@
-// src/pages/Shop.jsx - UPDATED with black theme and indigo/blue/cyan gradient
+// src/pages/Shop.jsx - UPDATED with Yellow-Orange Theme and Compact Sizing
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { clientProductService } from '../services/client/products';
@@ -18,7 +18,8 @@ import {
   FiList,
   FiArrowRight,
   FiMapPin,
-  FiChevronDown
+  FiChevronDown,
+  FiShoppingCart // ✅ ADDED missing import
 } from 'react-icons/fi';
 import { 
   BsGridFill, 
@@ -30,7 +31,7 @@ import { useCart } from '../context/CartContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles matching homepage EXACTLY
+// Font styles - UPDATED with yellow-orange theme
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -45,7 +46,7 @@ const fontStyles = `
   
   .section-title {
     font-weight: 800;
-    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-size: clamp(1.5rem, 4vw, 2.2rem);
     line-height: 1.2;
     text-transform: uppercase;
     color: white;
@@ -54,7 +55,7 @@ const fontStyles = `
   
   .section-header {
     font-weight: 700;
-    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
     letter-spacing: -0.02em;
     background: linear-gradient(to right, #fff, #e5e5e5);
     -webkit-background-clip: text;
@@ -63,11 +64,11 @@ const fontStyles = `
   }
   
   .glow-text {
-    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
   }
   
   .glow-text:hover {
-    text-shadow: 0 0 50px rgba(59, 130, 246, 0.8);
+    text-shadow: 0 0 50px rgba(245, 158, 11, 0.8);
   }
   
   .badge-flash {
@@ -81,42 +82,42 @@ const fontStyles = `
   }
   
   .badge-trending {
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 5px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
   }
   
   .badge-new {
-    background: linear-gradient(135deg, #10B981, #3B82F6);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
   }
   
   /* Tiny Buttons */
   .btn-primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
     color: white;
     font-weight: 500;
     padding: 0.2rem 0.6rem;
     border-radius: 9999px;
     transition: all 0.3s ease;
     border: none;
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
     font-size: 0.65rem;
     letter-spacing: 0.02em;
   }
   
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
   }
   
   .btn-secondary {
@@ -131,26 +132,73 @@ const fontStyles = `
   }
   
   .btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: #F59E0B;
+    background: rgba(245, 158, 11, 0.1);
+  }
+  
+  /* COMPACT TEXT SIZES */
+  .text-xs {
+    font-size: 0.65rem;
+  }
+  
+  .text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .text-base {
+    font-size: 0.9rem;
+  }
+  
+  .text-lg {
+    font-size: 1rem;
+  }
+  
+  .text-xl {
+    font-size: 1.1rem;
+  }
+  
+  .text-2xl {
+    font-size: 1.2rem;
   }
 `;
 
-// Animation styles matching homepage
+// Animation styles - REMOVED flip effects
 const animationStyles = `
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
+    from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
   }
   
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(10px);
     }
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
     }
   }
   
@@ -168,6 +216,14 @@ const animationStyles = `
     animation: slideUp 0.3s ease-out;
   }
   
+  .animate-slideInLeft {
+    animation: slideInLeft 0.3s ease-out;
+  }
+  
+  .animate-slideInRight {
+    animation: slideInRight 0.3s ease-out;
+  }
+  
   .animate-gradient {
     animation: gradient 8s ease-in-out infinite;
   }
@@ -180,36 +236,26 @@ const animationStyles = `
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
-  /* 3D Card Effects */
-  .card-3d {
-    transform-style: preserve-3d;
-    perspective: 1000px;
-  }
-  
-  .card-3d-content {
-    transform: translateZ(20px);
-  }
 `;
 
-// Top Bar Component (matching homepage)
+// Top Bar Component - UPDATED colors
 const TopBar = () => {
   const navigate = useNavigate();
   
   return (
-    <div className="py-3 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+    <div className="py-2 bg-black border-b border-gray-800">
+      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
         <button 
           onClick={() => navigate('/stores')}
-          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
-          <FiMapPin className="w-4 h-4" />
+          <FiMapPin className="w-3 h-3" />
           FIND STORE
         </button>
         <span className="text-gray-700">|</span>
         <button 
           onClick={() => navigate('/shop')}
-          className="text-sm text-gray-400 transition-colors hover:text-white"
+          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
           SHOP ONLINE
         </button>
@@ -221,8 +267,8 @@ const TopBar = () => {
 // Shop header image
 const shopHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Gradient for header bottom transition - indigo/blue/cyan
-const headerGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+// Gradient for header - UPDATED to yellow-orange
+const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 const Shop = () => {
   const [searchParams] = useSearchParams();
@@ -255,12 +301,11 @@ const Shop = () => {
   // Initialize AOS
   useEffect(() => {
     AOS.init({
-      duration: 1000,
+      duration: 800,
       once: false,
       mirror: true,
-      offset: 100,
+      offset: 30,
       easing: 'ease-out-cubic',
-      anchorPlacement: 'top-bottom',
     });
     
     setTimeout(() => {
@@ -277,12 +322,12 @@ const Shop = () => {
 
   // Sort options
   const sortOptions = [
-    { value: '-createdAt', label: 'Newest', icon: <FiClock /> },
-    { value: 'price', label: 'Price: Low to High', icon: <FiDollarSign /> },
-    { value: '-price', label: 'Price: High to Low', icon: <FiDollarSign /> },
-    { value: '-rating', label: 'Highest Rated', icon: <FiStar /> },
-    { value: '-salesCount', label: 'Best Selling', icon: <FiTrendingUp /> },
-    { value: '-discountPercentage', label: 'Biggest Discount', icon: <BsLightningFill /> }
+    { value: '-createdAt', label: 'Newest', icon: <FiClock className="w-3 h-3" /> },
+    { value: 'price', label: 'Price: Low to High', icon: <FiDollarSign className="w-3 h-3" /> },
+    { value: '-price', label: 'Price: High to Low', icon: <FiDollarSign className="w-3 h-3" /> },
+    { value: '-rating', label: 'Highest Rated', icon: <FiStar className="w-3 h-3" /> },
+    { value: '-salesCount', label: 'Best Selling', icon: <FiTrendingUp className="w-3 h-3" /> },
+    { value: '-discountPercentage', label: 'Biggest Discount', icon: <BsLightningFill className="w-3 h-3" /> }
   ];
 
   // Normalize product data function
@@ -454,10 +499,10 @@ const Shop = () => {
         <style>{animationStyles}</style>
         <TopBar />
         <div className="relative">
-          <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
-          <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
+          <div className="w-16 h-16 border-4 border-t-4 border-gray-700 rounded-full border-t-yellow-600 animate-spin"></div>
+          <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl opacity-20 animate-pulse"></div>
         </div>
-        <p className="mt-6 text-gray-400">Loading products...</p>
+        <p className="mt-4 text-sm text-gray-400">Loading products...</p>
       </div>
     );
   }
@@ -471,13 +516,11 @@ const Shop = () => {
       {/* Top Bar */}
       <TopBar />
 
-      {/* Shop Header Image - with indigo/blue/cyan gradient at bottom */}
+      {/* Shop Header Image - COMPACT */}
       <div 
-        className="relative w-full h-56 overflow-hidden sm:h-64 md:h-80 lg:h-96"
+        className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
         data-aos="fade-in"
         data-aos-duration="1500"
-        data-aos-delay="200"
-        data-aos-once="false"
       >
         <div className="absolute inset-0">
           <img 
@@ -485,28 +528,22 @@ const Shop = () => {
             alt="Shop Collection"
             className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
           />
-          {/* Dark overlay for text visibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          {/* Bottom gradient - indigo/blue/cyan that transitions to black */}
           <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          {/* Final black gradient at the very bottom to blend with background */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
         </div>
         
-        {/* Header Content */}
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full px-6 mx-auto max-w-7xl">
+          <div className="w-full px-4 mx-auto max-w-7xl">
             <div 
               className="max-w-2xl"
               data-aos="fade-right"
               data-aos-duration="1200"
-              data-aos-delay="400"
-              data-aos-once="false"
             >
-              <h1 className="text-3xl font-bold text-white sm:text-4xl md:text-5xl lg:text-6xl">
+              <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl">
                 OUR COLLECTION
               </h1>
-              <p className="mt-2 text-sm text-gray-300 sm:text-base md:text-lg">
+              <p className="mt-1 text-xs text-gray-300 sm:text-sm">
                 {pagination.totalProducts} products available
               </p>
             </div>
@@ -514,47 +551,45 @@ const Shop = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="container px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
-          {/* Filters Sidebar */}
+      {/* Main Content - COMPACT */}
+      <div className="container px-3 py-4 mx-auto max-w-7xl sm:px-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-5">
+          {/* Filters Sidebar - COMPACT */}
           <div 
-            className={`lg:w-72 flex-shrink-0 ${showFilters ? 'block' : 'hidden lg:block'}`}
+            className={`lg:w-64 flex-shrink-0 ${showFilters ? 'block' : 'hidden lg:block'}`}
             data-aos="fade-right"
-            data-aos-duration="1000"
-            data-aos-delay="200"
-            data-aos-once="false"
+            data-aos-duration="800"
           >
-            <div className="sticky p-4 bg-gray-900 border border-gray-800 rounded-xl top-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold text-white">Filters</h2>
+            <div className="sticky p-3 bg-gray-900 border border-gray-800 rounded-xl top-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-white">Filters</h2>
                 <button
                   onClick={clearFilters}
-                  className="text-xs text-indigo-500 transition-colors hover:text-indigo-400"
+                  className="text-[10px] text-yellow-500 transition-colors hover:text-yellow-400"
                 >
                   Clear All
                 </button>
               </div>
 
               {/* Search */}
-              <div className="mb-4">
-                <label className="block mb-1 text-xs font-medium text-gray-300">Search</label>
+              <div className="mb-3">
+                <label className="block mb-0.5 text-[10px] font-medium text-gray-300">Search</label>
                 <div className="relative">
-                  <FiSearch className="absolute w-3.5 h-3.5 text-gray-500 transform -translate-y-1/2 left-3 top-1/2" />
+                  <FiSearch className="absolute w-3 h-3 text-gray-500 transform -translate-y-1/2 left-2 top-1/2" />
                   <input
                     type="text"
-                    placeholder="Search products..."
+                    placeholder="Search..."
                     value={filters.search}
                     onChange={(e) => updateFilter('search', e.target.value)}
-                    className="w-full py-2 pr-3 text-sm text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg pl-9 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                    className="w-full py-1.5 pr-2 text-xs text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg pl-7 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
                   />
                 </div>
               </div>
 
               {/* Categories */}
-              <div className="mb-4">
-                <h3 className="mb-2 text-sm font-semibold text-white">Categories</h3>
-                <div className="space-y-1.5 overflow-y-auto max-h-48">
+              <div className="mb-3">
+                <h3 className="mb-1.5 text-xs font-semibold text-white">Categories</h3>
+                <div className="space-y-1 overflow-y-auto max-h-36">
                   {categories.length > 0 ? (
                     categories.map((category) => (
                       <label key={category.value} className="flex items-center cursor-pointer group">
@@ -562,28 +597,28 @@ const Shop = () => {
                           type="checkbox"
                           checked={filters.category.includes(category.value)}
                           onChange={() => toggleCategory(category.value)}
-                          className="w-4 h-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-offset-0"
+                          className="w-3.5 h-3.5 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500 focus:ring-offset-0"
                         />
-                        <span className="ml-2 text-xs text-gray-300 transition-colors group-hover:text-white">{category.label}</span>
-                        <span className="ml-auto text-xs text-gray-500">({category.count})</span>
+                        <span className="ml-1.5 text-[10px] text-gray-300 transition-colors group-hover:text-white">{category.label}</span>
+                        <span className="ml-auto text-[10px] text-gray-500">({category.count})</span>
                       </label>
                     ))
                   ) : (
-                    <p className="text-xs text-gray-500">No categories available</p>
+                    <p className="text-[10px] text-gray-500">No categories</p>
                   )}
                 </div>
               </div>
 
               {/* Price Range */}
-              <div className="mb-2">
-                <h3 className="mb-2 text-sm font-semibold text-white">Price Range</h3>
-                <div className="flex gap-2">
+              <div>
+                <h3 className="mb-1.5 text-xs font-semibold text-white">Price Range</h3>
+                <div className="flex gap-1.5">
                   <input
                     type="number"
                     placeholder="Min"
                     value={filters.minPrice}
                     onChange={(e) => updateFilter('minPrice', e.target.value ? parseFloat(e.target.value) : '')}
-                    className="w-full px-3 py-2 text-sm text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500/50"
+                    className="w-full px-2 py-1.5 text-xs text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg focus:ring-1 focus:ring-yellow-500/50"
                     min="0"
                   />
                   <input
@@ -591,7 +626,7 @@ const Shop = () => {
                     placeholder="Max"
                     value={filters.maxPrice}
                     onChange={(e) => updateFilter('maxPrice', e.target.value ? parseFloat(e.target.value) : '')}
-                    className="w-full px-3 py-2 text-sm text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-indigo-500/50"
+                    className="w-full px-2 py-1.5 text-xs text-white placeholder-gray-500 bg-gray-800 border border-gray-700 rounded-lg focus:ring-1 focus:ring-yellow-500/50"
                     min="0"
                   />
                 </div>
@@ -601,59 +636,57 @@ const Shop = () => {
 
           {/* Products Section */}
           <div className="flex-1">
-            {/* Controls Bar */}
+            {/* Controls Bar - COMPACT */}
             <div 
-              className="p-3 mb-5 bg-gray-900 border border-gray-800 rounded-xl"
+              className="p-2 mb-4 bg-gray-900 border border-gray-800 rounded-xl"
               data-aos="fade-up"
-              data-aos-duration="1000"
-              data-aos-delay="300"
-              data-aos-once="false"
+              data-aos-duration="800"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-sm text-gray-400">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[10px] text-gray-400">
                   Showing <span className="font-semibold text-white">{products.length}</span> of{' '}
-                  <span className="font-semibold text-white">{pagination.totalProducts}</span> products
+                  <span className="font-semibold text-white">{pagination.totalProducts}</span>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
                   {/* View Mode Toggle */}
                   <div className="flex overflow-hidden bg-gray-800 border border-gray-700 rounded-lg">
                     <button
                       onClick={() => setViewMode('grid')}
-                      className={`relative p-2 transition-all ${
+                      className={`relative p-1.5 transition-all ${
                         viewMode === 'grid' ? 'text-white' : 'text-gray-400 hover:text-white'
                       }`}
                       title="Grid view"
                     >
                       {viewMode === 'grid' && (
-                        <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
                       )}
                       <span className="relative">
-                        <BsGridFill className="w-4 h-4" />
+                        <BsGridFill className="w-3.5 h-3.5" />
                       </span>
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
-                      className={`relative p-2 transition-all ${
+                      className={`relative p-1.5 transition-all ${
                         viewMode === 'list' ? 'text-white' : 'text-gray-400 hover:text-white'
                       }`}
                       title="List view"
                     >
                       {viewMode === 'list' && (
-                        <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
                       )}
                       <span className="relative">
-                        <BsListUl className="w-4 h-4" />
+                        <BsListUl className="w-3.5 h-3.5" />
                       </span>
                     </button>
                   </div>
                   
-                  {/* Sort */}
+                  {/* Sort - COMPACT */}
                   <div className="relative">
                     <select
                       value={filters.sort}
                       onChange={(e) => updateFilter('sort', e.target.value)}
-                      className="px-3 py-2 pr-8 text-sm text-white bg-gray-800 border border-gray-700 rounded-lg appearance-none cursor-pointer focus:ring-2 focus:ring-indigo-500/50"
+                      className="px-2 py-1.5 pr-6 text-xs text-white bg-gray-800 border border-gray-700 rounded-lg appearance-none cursor-pointer focus:ring-1 focus:ring-yellow-500/50"
                     >
                       {sortOptions.map(option => (
                         <option key={option.value} value={option.value} className="bg-gray-800">
@@ -661,85 +694,79 @@ const Shop = () => {
                         </option>
                       ))}
                     </select>
-                    <FiChevronDown className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 pointer-events-none right-2 top-1/2" />
+                    <FiChevronDown className="absolute w-3 h-3 text-gray-400 transform -translate-y-1/2 pointer-events-none right-1.5 top-1/2" />
                   </div>
                   
                   {/* Mobile Filter Toggle */}
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="relative px-3 py-2 overflow-hidden text-sm font-medium text-white transition-all rounded-full lg:hidden group"
+                    className="relative px-2 py-1.5 overflow-hidden text-xs font-medium text-white transition-all rounded-lg lg:hidden group"
                   >
                     <span className="absolute inset-0 bg-gray-800"></span>
-                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-50"></span>
-                    <span className="relative flex items-center gap-1">
-                      {showFilters ? <FiX className="w-4 h-4" /> : <FiFilter className="w-4 h-4" />}
-                      <span>{showFilters ? 'Hide' : 'Filters'}</span>
+                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-50"></span>
+                    <span className="relative flex items-center gap-0.5">
+                      {showFilters ? <FiX className="w-3 h-3" /> : <FiFilter className="w-3 h-3" />}
+                      <span className="text-[10px]">{showFilters ? 'Hide' : 'Filter'}</span>
                     </span>
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Products Grid - INCREASED GAP from gap-2 to gap-4 sm:gap-5 */}
+            {/* Products Grid - REMOVED flip-up animation, added slide-up */}
             {products.length === 0 ? (
               <div 
-                className="py-12 text-center bg-gray-900 border border-gray-800 rounded-xl"
+                className="py-8 text-center bg-gray-900 border border-gray-800 rounded-xl"
                 data-aos="fade-up"
-                data-aos-duration="1000"
-                data-aos-delay="400"
-                data-aos-once="false"
+                data-aos-duration="800"
               >
-                <FiPackage className="w-16 h-16 mx-auto mb-3 text-gray-600" />
-                <h3 className="mb-2 text-lg font-semibold text-white">No products found</h3>
-                <p className="mb-4 text-sm text-gray-400">Try adjusting your filters or search term</p>
+                <FiPackage className="w-12 h-12 mx-auto mb-2 text-gray-600" />
+                <h3 className="mb-1 text-sm font-semibold text-white">No products found</h3>
+                <p className="mb-3 text-xs text-gray-400">Try adjusting your filters</p>
                 <button
                   onClick={clearFilters}
-                  className="relative px-6 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
+                  className="relative px-4 py-2 overflow-hidden text-xs font-medium text-white transition-all rounded-full group"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
-                  <span className="relative flex items-center gap-2">
-                    Clear All Filters
-                    <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="relative flex items-center gap-1">
+                    Clear All
+                    <BsArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                   </span>
                 </button>
               </div>
             ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
                 {products.map((product, index) => (
                   <div 
                     key={product._id || product.id} 
-                    className="relative group card-3d"
-                    data-aos="flip-up"
-                    data-aos-duration="1000"
-                    data-aos-delay={200 + (index * 50)}
-                    data-aos-easing="ease-out-cubic"
-                    data-aos-once="false"
+                    className="relative group"
+                    data-aos="fade-up"
+                    data-aos-duration="600"
+                    data-aos-delay={index * 30}
                   >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
-                    <div className="relative card-3d-content">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"></div>
+                    <div className="relative">
                       <ProductCard product={product} />
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {products.map((product, index) => (
                   <div 
                     key={product._id || product.id} 
                     className="relative group"
-                    data-aos="fade-left"
-                    data-aos-duration="1000"
-                    data-aos-delay={200 + (index * 50)}
-                    data-aos-easing="ease-out-cubic"
-                    data-aos-once="false"
+                    data-aos="fade-up"
+                    data-aos-duration="600"
+                    data-aos-delay={index * 30}
                   >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"></div>
                     <div className="relative overflow-hidden bg-gray-900 border border-gray-800 rounded-xl">
                       <div className="flex flex-col md:flex-row">
                         {/* Product Image */}
-                        <div className="h-40 overflow-hidden bg-gray-800 md:w-40 md:h-auto">
+                        <div className="overflow-hidden bg-gray-800 h-28 md:w-28 md:h-auto">
                           <img
                             src={product.primaryImage || (product.images && product.images[0]?.url) || product.image || 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400'}
                             alt={product.name}
@@ -751,33 +778,33 @@ const Shop = () => {
                         </div>
                         
                         {/* Product Details */}
-                        <div className="flex-1 p-3 md:p-4">
-                          <div className="flex flex-col items-start justify-between gap-2 md:flex-row">
+                        <div className="flex-1 p-2">
+                          <div className="flex flex-col items-start justify-between gap-1 md:flex-row">
                             <div className="flex-1">
-                              <h3 className="mb-1 text-sm font-semibold text-white md:text-base">
-                                <Link to={`/product/${product._id || product.id}`} className="transition-colors hover:text-indigo-500">
+                              <h3 className="mb-0.5 text-xs font-semibold text-white">
+                                <Link to={`/product/${product._id || product.id}`} className="transition-colors hover:text-yellow-500">
                                   {product.name}
                                 </Link>
                               </h3>
-                              <p className="mb-2 text-xs text-gray-400 line-clamp-2">
-                                {product.description || product.shortDescription || 'No description available.'}
+                              <p className="mb-1 text-[10px] text-gray-400 line-clamp-1">
+                                {product.description || product.shortDescription || 'No description'}
                               </p>
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-1.5 mb-1">
                                 <div className="flex items-center gap-0.5">
-                                  <FiStar className="w-3 h-3 text-yellow-400 fill-current" />
-                                  <span className="text-xs text-white">{product.rating || 0}</span>
+                                  <FiStar className="w-2.5 h-2.5 text-yellow-400 fill-current" />
+                                  <span className="text-[10px] text-white">{product.rating || 0}</span>
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-[10px] text-gray-500">
                                   {product.category || 'Uncategorized'}
                                 </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-base font-bold text-white md:text-lg">
+                              <div className="text-sm font-bold text-white">
                                 {formatKES(product.discountedPrice || product.price)}
                               </div>
                               {product.discountPercentage > 0 && (
-                                <div className="text-xs text-gray-500 line-through">
+                                <div className="text-[10px] text-gray-500 line-through">
                                   {formatKES(product.price)}
                                 </div>
                               )}
@@ -785,17 +812,17 @@ const Shop = () => {
                           </div>
                           
                           {/* Action Buttons */}
-                          <div className="flex gap-2 mt-2">
+                          <div className="flex gap-1 mt-1">
                             <button
                               onClick={() => handleAddToCart(product)}
-                              className="flex items-center gap-1 btn-primary"
+                              className="flex items-center gap-0.5 btn-primary text-[10px] px-2 py-1"
                             >
-                              <FiShoppingCart className="w-3 h-3" />
+                              <FiShoppingCart className="w-2.5 h-2.5" />
                               <span>Add</span>
                             </button>
                             <Link
                               to={`/product/${product._id || product.id}`}
-                              className="btn-secondary"
+                              className="btn-secondary text-[10px] px-2 py-1"
                             >
                               View
                             </Link>
@@ -808,22 +835,20 @@ const Shop = () => {
               </div>
             )}
 
-            {/* Pagination */}
+            {/* Pagination - COMPACT */}
             {pagination.totalPages > 1 && (
               <div 
-                className="flex justify-center mt-8"
+                className="flex justify-center mt-5"
                 data-aos="fade-up"
-                data-aos-duration="1000"
-                data-aos-delay="600"
-                data-aos-once="false"
+                data-aos-duration="800"
               >
-                <div className="flex items-center gap-2 p-1 bg-gray-900 border border-gray-800 rounded-lg">
+                <div className="flex items-center gap-1 p-1 bg-gray-900 border border-gray-800 rounded-lg">
                   <button
                     onClick={() => updateFilter('page', Math.max(1, filters.page - 1))}
                     disabled={filters.page === 1}
-                    className="p-2 text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 disabled:opacity-50"
+                    className="p-1.5 text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 disabled:opacity-50"
                   >
-                    <FiChevronLeft className="w-4 h-4" />
+                    <FiChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   
                   {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
@@ -842,7 +867,7 @@ const Shop = () => {
                       <button
                         key={pageNum}
                         onClick={() => updateFilter('page', pageNum)}
-                        className={`relative w-8 h-8 text-xs font-medium rounded-lg transition-all md:w-9 md:h-9 ${
+                        className={`relative w-7 h-7 text-[10px] font-medium rounded-lg transition-all md:w-8 md:h-8 ${
                           filters.page === pageNum
                             ? 'text-white'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -850,8 +875,8 @@ const Shop = () => {
                       >
                         {filters.page === pageNum && (
                           <>
-                            <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                            <span className="absolute inset-0 rounded-lg opacity-50 bg-gradient-to-r from-indigo-600 to-blue-600 blur"></span>
+                            <span className="absolute inset-0 rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                            <span className="absolute inset-0 rounded-lg opacity-50 bg-gradient-to-r from-yellow-600 to-orange-600 blur"></span>
                           </>
                         )}
                         <span className="relative">{pageNum}</span>
@@ -862,9 +887,9 @@ const Shop = () => {
                   <button
                     onClick={() => updateFilter('page', Math.min(pagination.totalPages, filters.page + 1))}
                     disabled={filters.page === pagination.totalPages}
-                    className="p-2 text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 disabled:opacity-50"
+                    className="p-1.5 text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 disabled:opacity-50"
                   >
-                    <FiChevronRight className="w-4 h-4" />
+                    <FiChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>

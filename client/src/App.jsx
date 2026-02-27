@@ -1,8 +1,6 @@
 // src/App.jsx - ENHANCED with improved loading spinners
 import React, { Suspense, useState, useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import LoadingSpinner, { AppPreloader, PageLoader, ContentLoader } from "./components/LoadingSpinner";
 
 // 🌐 Global Components
@@ -214,19 +212,7 @@ const App = () => {
               
               <Navbar />
               
-              <ToastContainer 
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="dark"
-                style={{ zIndex: 9999 }}
-              />
+              {/* ✅ ToastContainer has been removed from here */}
               
               <main className="flex-grow">
                 <AppContent />

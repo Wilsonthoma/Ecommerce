@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - COMPLETE FIXED & OPTIMIZED VERSION
+// src/components/Navbar.jsx - UPDATED with yellow-orange theme and fixed mobile menu
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -44,7 +44,7 @@ import { IoFlashOutline } from "react-icons/io5";
 
 // ==================== CONSTANTS ====================
 const API_ENDPOINTS = {
-  CATEGORIES: '/api/categories',
+  CATEGORIES: '/categories', // ✅ Correct endpoint (backend is at /api/categories)
   SEARCH: '/shop?search=',
   CART: '/cart',
   WISHLIST: '/wishlist',
@@ -66,7 +66,7 @@ const API_ENDPOINTS = {
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Animation styles as constants
+// Animation styles as constants - UPDATED with yellow-orange theme
 const animationStyles = `
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
@@ -93,7 +93,7 @@ const animationStyles = `
   }
   
   .glow-text {
-    text-shadow: 0 0 20px currentColor;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
   }
 `;
 
@@ -165,31 +165,44 @@ const Navbar = memo(() => {
   const fetchCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      // ✅ Use clientApi instead of axios
-      const response = await clientApi.get('/categories');
+      // ✅ Correct endpoint - clientApi adds /api prefix
+      console.log('📤 Fetching categories from:', API_ENDPOINTS.CATEGORIES);
+      const response = await clientApi.get(API_ENDPOINTS.CATEGORIES);
       
-      // Handle different response structures
+      console.log('📥 Categories response:', response.data);
+      
+      // Handle response structure based on your backend
       let categoriesData = [];
+      
+      // Your backend returns: { success: true, categories: [...] }
       if (response.data && response.data.success && response.data.categories) {
         categoriesData = response.data.categories;
+        console.log('✅ Found categories in response.data.categories');
       } else if (response.data && Array.isArray(response.data)) {
         categoriesData = response.data;
+        console.log('✅ Found categories as array');
       } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
         categoriesData = response.data.data;
+        console.log('✅ Found categories in response.data.data');
       }
+      
+      console.log('📊 Processed categories count:', categoriesData.length);
       
       // Format categories for display
       const formattedCategories = categoriesData.map(cat => ({
-        id: cat._id || cat.id,
+        id: cat._id || cat.id || cat.name,
         slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
-        name: cat.name,
+        name: cat.name || 'Unnamed Category',
         count: cat.count || cat.productCount || 0,
         icon: getCategoryIcon(cat.name)
       }));
       
+      console.log('✅ Formatted categories:', formattedCategories.length);
       setCategories(formattedCategories);
     } catch (error) {
-      console.error("Failed to fetch categories:", error.message);
+      console.error("❌ Failed to fetch categories:", error.message);
+      console.error("Error details:", error);
+      
       // Fallback categories if API fails
       setCategories([
         { id: "1", slug: "smartphones", name: "Smartphones", count: 245, icon: "📱" },
@@ -410,7 +423,7 @@ const Navbar = memo(() => {
       
       {/* ========== STATIC TOP BAR WITH ALL QUICK LINKS ========== */}
       <div className="relative border-b border-gray-800 bg-gradient-to-r from-gray-900 via-black to-gray-900">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-600/10 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-red-600/10"></div>
         <div className="relative px-3 mx-auto max-w-7xl sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-9 sm:h-10 text-[11px] sm:text-xs">
             {/* LEFT SIDE - Quick Links */}
@@ -419,7 +432,7 @@ const Navbar = memo(() => {
                 onClick={() => navigate(API_ENDPOINTS.TRACK_ORDER)}
                 className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
               >
-                <FiTruck className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
+                <FiTruck className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
                 <span className="hidden xs:inline group-hover:glow-text">Track Order</span>
                 <span className="xs:hidden">Track</span>
               </button>
@@ -428,7 +441,7 @@ const Navbar = memo(() => {
                 onClick={() => navigate(API_ENDPOINTS.DEALS)}
                 className="hidden sm:flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
               >
-                <BsLightningCharge className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
+                <BsLightningCharge className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
                 <span className="group-hover:glow-text">Hot Deals</span>
               </button>
 
@@ -436,7 +449,7 @@ const Navbar = memo(() => {
                 onClick={() => navigate(API_ENDPOINTS.HELP)}
                 className="hidden md:flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
               >
-                <FiHelpCircle className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
+                <FiHelpCircle className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
                 <span className="group-hover:glow-text">Help Center</span>
               </button>
             </div>
@@ -447,35 +460,35 @@ const Navbar = memo(() => {
                 href="tel:0700KWEƬU" 
                 className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
               >
-                <FiPhone className="w-3.5 h-3.5 group-hover:text-indigo-500 transition-colors" />
+                <FiPhone className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
                 <span className="hidden sm:inline group-hover:glow-text">0700 KWEƬU</span>
                 <span className="sm:hidden">Support</span>
               </a>
               
-              {/* Social Links */}
+              {/* Social Links - Updated colors */}
               <div className="items-center hidden gap-3 lg:flex">
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-white/10"><FaFacebookF className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-white/10"><FaTwitter className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-white/10"><FaInstagram className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-white/10"><FaYoutube className="w-3.5 h-3.5" /></a>
+                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaFacebookF className="w-3.5 h-3.5" /></a>
+                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaTwitter className="w-3.5 h-3.5" /></a>
+                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaInstagram className="w-3.5 h-3.5" /></a>
+                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaYoutube className="w-3.5 h-3.5" /></a>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ========== EMAIL VERIFICATION BANNER ========== */}
+      {/* ========== EMAIL VERIFICATION BANNER - Updated colors ========== */}
       {isLoggedIn && user && !user.isAccountVerified && showVerificationBanner && (
-        <div className="relative border-b border-indigo-500/20 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-600/10 via-transparent to-transparent"></div>
+        <div className="relative border-b border-yellow-500/20 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-transparent"></div>
           <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3">
             <div className="flex flex-col items-start justify-between gap-2 xs:flex-row xs:items-center xs:gap-3">
               <div className="flex items-start w-full gap-2 xs:items-center sm:gap-3 xs:w-auto">
-                <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 border rounded-full sm:w-7 sm:h-7 bg-indigo-600/20 border-indigo-500/30">
-                  <IoFlashOutline className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-500" />
+                <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 border rounded-full sm:w-7 sm:h-7 bg-yellow-600/20 border-yellow-500/30">
+                  <IoFlashOutline className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
                 </div>
                 <div className="flex-1 text-xs xs:flex-none sm:text-sm">
-                  <span className="font-medium text-indigo-500 glow-text">Verify your email</span>
+                  <span className="font-medium text-yellow-500 glow-text">Verify your email</span>
                   <span className="hidden sm:inline text-gray-400 ml-1.5">
                     to unlock all features
                   </span>
@@ -487,8 +500,8 @@ const Navbar = memo(() => {
                   disabled={verifyLoading}
                   className="group relative flex-1 xs:flex-none px-3 sm:px-4 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-50 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-50 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center justify-center gap-1.5">
                     {verifyLoading ? (
                       <>
@@ -517,7 +530,7 @@ const Navbar = memo(() => {
 
       {/* ========== STICKY MAIN NAVBAR ========== */}
       <nav className="sticky top-0 z-50 border-b border-gray-800 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-600/10 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-transparent"></div>
         <div className="relative px-3 mx-auto max-w-7xl sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
             {/* Logo */}
@@ -529,7 +542,7 @@ const Navbar = memo(() => {
               onKeyDown={(e) => e.key === 'Enter' && navigate("/")}
             >
               <div className="relative">
-                <div className="absolute transition-opacity duration-500 rounded-full opacity-0 -inset-2 bg-gradient-to-r from-indigo-600 to-blue-600 group-hover:opacity-30 blur-xl"></div>
+                <div className="absolute transition-opacity duration-500 rounded-full opacity-0 -inset-2 bg-gradient-to-r from-yellow-600 to-orange-600 group-hover:opacity-30 blur-xl"></div>
                 <img 
                   src={assets.logo} 
                   alt="KwetuShop" 
@@ -538,77 +551,10 @@ const Navbar = memo(() => {
               </div>
             </div>
 
-            {/* Desktop Search Bar with Categories Dropdown */}
+            {/* Desktop Search Bar - WITHOUT Categories Dropdown */}
             <div className="flex-1 hidden max-w-3xl mx-6 lg:flex">
-              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-indigo-500/50 focus-within:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all duration-300">
-                {/* Categories Dropdown */}
-                <div className="relative" ref={categoryDropdownRef}>
-                  <button
-                    onClick={toggleCategoryDropdown}
-                    className="flex items-center gap-1.5 h-full px-4 py-2.5 text-sm font-medium text-gray-300 bg-gray-800/50 hover:bg-gray-700/50 border-r border-gray-700 transition-all whitespace-nowrap"
-                  >
-                    <FiGrid className="w-4 h-4 text-indigo-500" />
-                    <span className="hidden xl:inline">Categories</span>
-                    <FiChevronDown className={`w-4 h-4 transition-transform ${categoryDropdownOpen ? "rotate-180 text-indigo-500" : ""}`} />
-                  </button>
-
-                  {/* Categories Dropdown Menu */}
-                  {categoryDropdownOpen && (
-                    <div className="absolute left-0 z-50 py-4 mt-2 border border-gray-800 shadow-2xl bg-gradient-to-br from-gray-900 to-black top-full w-80 rounded-2xl animate-fadeIn backdrop-blur-lg">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-20 blur-xl"></div>
-                      <div className="relative px-4 py-2 border-b border-gray-800">
-                        <h3 className="font-semibold text-white">Shop by Category</h3>
-                      </div>
-                      <div className="relative grid grid-cols-2 gap-2 p-3 overflow-y-auto max-h-96 custom-scrollbar">
-                        {categoriesLoading ? (
-                          <div className="col-span-2 py-8 text-center text-gray-500">
-                            <div className="inline-block w-6 h-6 border-2 border-t-2 border-gray-600 rounded-full border-t-indigo-500 animate-spin"></div>
-                            <p className="mt-2 text-xs">Loading categories...</p>
-                          </div>
-                        ) : categories.length > 0 ? (
-                          categories.map((cat) => (
-                            <button
-                              key={cat.id}
-                              onClick={() => {
-                                navigate(`/shop?category=${cat.slug || cat.id}`);
-                                setCategoryDropdownOpen(false);
-                              }}
-                              className="flex items-center gap-3 p-2 transition-all rounded-lg hover:bg-white/5 group"
-                            >
-                              <span className="text-xl text-gray-400 transition-colors group-hover:text-indigo-500">
-                                {cat.icon}
-                              </span>
-                              <div className="flex-1 text-left">
-                                <span className="text-sm font-medium text-gray-300 transition-colors group-hover:text-white">
-                                  {cat.name}
-                                </span>
-                                {cat.count > 0 && (
-                                  <span className="block text-xs text-gray-500">
-                                    {cat.count.toLocaleString()}+ items
-                                  </span>
-                                )}
-                              </div>
-                            </button>
-                          ))
-                        ) : (
-                          <div className="col-span-2 py-8 text-center text-gray-500">
-                            <p className="text-sm">No categories found</p>
-                          </div>
-                        )}
-                      </div>
-                      <div className="relative px-3 pt-2 border-t border-gray-800">
-                        <button
-                          onClick={() => { navigate("/shop"); setCategoryDropdownOpen(false); }}
-                          className="flex items-center justify-center w-full gap-1 py-2 text-sm font-medium text-center text-indigo-500 transition-colors hover:text-indigo-400 group"
-                        >
-                          View All Categories
-                          <BsArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
+              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-yellow-500/50 focus-within:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all duration-300">
+                {/* Search Input - Removed categories dropdown */}
                 <input
                   type="text"
                   placeholder="Search products, brands & categories..."
@@ -621,8 +567,8 @@ const Navbar = memo(() => {
                   onClick={handleSearch}
                   className="group relative px-6 py-2.5 text-white font-medium transition-all overflow-hidden"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center gap-2">
                     <FiSearch className="w-5 h-5" />
                     <span className="hidden xl:inline">Search</span>
@@ -631,12 +577,12 @@ const Navbar = memo(() => {
               </div>
             </div>
 
-            {/* Right Side Actions */}
+            {/* Right Side Actions - Updated colors */}
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
               {/* Mobile Search Button */}
               <button
                 onClick={toggleMobileSearch}
-                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-white/10"
+                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-yellow-500/10"
               >
                 <FiSearch className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
@@ -645,12 +591,12 @@ const Navbar = memo(() => {
               {isLoggedIn ? (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.WISHLIST)}
-                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-white/10 group"
+                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-yellow-500/10 group"
                 >
                   <div className="relative">
                     <FiHeart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
                     {wishlistCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1rem] h-4 px-1 text-[8px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1rem] h-4 px-1 text-[8px] font-bold text-white bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]">
                         {wishlistCount > 9 ? '9+' : wishlistCount}
                       </span>
                     )}
@@ -660,7 +606,7 @@ const Navbar = memo(() => {
               ) : (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.LOGIN)}
-                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-white/10 group"
+                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-yellow-500/10 group"
                   title="Login to use wishlist"
                 >
                   <FiHeart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
@@ -671,12 +617,12 @@ const Navbar = memo(() => {
               {/* CART - Always visible */}
               <button
                 onClick={() => navigate(API_ENDPOINTS.CART)}
-                className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-white/10"
+                className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-yellow-500/10"
               >
                 <div className="relative">
                   <FiShoppingCart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
                   {cartCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+                    <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1.25rem] h-5 px-1 text-xs font-bold text-white bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]">
                       {cartCount > 99 ? '99+' : cartCount}
                     </span>
                   )}
@@ -688,7 +634,7 @@ const Navbar = memo(() => {
               <div className="relative" ref={accountDropdownRef}>
                 <button
                   onClick={toggleAccountDropdown}
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-gray-400 rounded-full hover:text-white hover:bg-white/10 transition-all group"
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-gray-400 rounded-full hover:text-white hover:bg-yellow-500/10 transition-all group"
                 >
                   <div className="relative">
                     {isLoggedIn && user?.avatar && !avatarError ? (
@@ -702,19 +648,19 @@ const Navbar = memo(() => {
                       <FiUser className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                     )}
                     {isLoggedIn && user && !user.isAccountVerified && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-indigo-500 border-2 border-gray-900 rounded-full animate-pulse"></span>
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-500 border-2 border-gray-900 rounded-full animate-pulse"></span>
                     )}
                   </div>
                   <span className="hidden text-sm font-medium lg:inline group-hover:glow-text">
                     {isLoggedIn ? (user?.name?.split(" ")[0] || "Account") : "Account"}
                   </span>
-                  <FiChevronDown className={`hidden lg:block w-4 h-4 transition-transform ${accountDropdownOpen ? "rotate-180 text-indigo-500" : ""}`} />
+                  <FiChevronDown className={`hidden lg:block w-4 h-4 transition-transform ${accountDropdownOpen ? "rotate-180 text-yellow-500" : ""}`} />
                 </button>
 
-                {/* Account Dropdown */}
+                {/* Account Dropdown - Updated colors */}
                 {accountDropdownOpen && (
                   <div className="absolute right-0 z-50 w-64 py-2 mt-2 border border-gray-800 shadow-2xl bg-gradient-to-br from-gray-900 to-black top-full rounded-2xl animate-fadeIn backdrop-blur-lg">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-20 blur-xl"></div>
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl opacity-20 blur-xl"></div>
                     
                     <div className="relative">
                       {isLoggedIn ? (
@@ -731,7 +677,7 @@ const Navbar = memo(() => {
                                     onError={() => setAvatarError(true)}
                                   />
                                 ) : (
-                                  <div className="flex items-center justify-center w-10 h-10 font-semibold text-white rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                                  <div className="flex items-center justify-center w-10 h-10 font-semibold text-white rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
                                     {user?.name?.charAt(0) || <FiUser className="w-5 h-5" />}
                                   </div>
                                 )}
@@ -745,7 +691,7 @@ const Navbar = memo(() => {
                                     Verified
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 text-xs text-indigo-500 mt-0.5">
+                                  <span className="inline-flex items-center gap-1 text-xs text-yellow-500 mt-0.5">
                                     <MdWarning className="w-3 h-3" />
                                     Not Verified
                                   </span>
@@ -756,11 +702,11 @@ const Navbar = memo(() => {
 
                           {/* Verification Prompt */}
                           {!user.isAccountVerified && (
-                            <div className="p-3 mx-3 my-2 border rounded-xl bg-indigo-600/10 border-indigo-600/20">
+                            <div className="p-3 mx-3 my-2 border rounded-xl bg-yellow-600/10 border-yellow-600/20">
                               <div className="flex items-start gap-2">
-                                <FiShield className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
+                                <FiShield className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
-                                  <p className="text-xs font-medium text-indigo-500">Verify your email</p>
+                                  <p className="text-xs font-medium text-yellow-500">Verify your email</p>
                                   <p className="text-xs text-gray-400 mt-0.5 mb-2">
                                     Unlock all features
                                   </p>
@@ -772,8 +718,8 @@ const Navbar = memo(() => {
                                     disabled={verifyLoading}
                                     className="group relative w-full px-3 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
                                   >
-                                    <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                                    <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                                     <span className="relative">
                                       {verifyLoading ? "Sending..." : "Verify Now"}
                                     </span>
@@ -794,14 +740,14 @@ const Navbar = memo(() => {
                                 }}
                                 className="flex items-center w-full gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all group"
                               >
-                                <span className="text-gray-500 transition-colors group-hover:text-indigo-500">{item.icon}</span>
+                                <span className="text-gray-500 transition-colors group-hover:text-yellow-500">{item.icon}</span>
                                 <span className="flex-1 text-left">{item.label}</span>
                                 {item.badge > 0 && (
-                                  <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-red-500 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+                                  <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]">
                                     {item.badge}
                                   </span>
                                 )}
-                                <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-indigo-500" />
+                                <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-yellow-500" />
                               </button>
                             ))}
                           </div>
@@ -833,8 +779,8 @@ const Navbar = memo(() => {
                             }}
                             className="relative w-full px-4 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
                           >
-                            <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                            <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                            <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                            <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                             <span className="relative flex items-center justify-center gap-2">
                               <FiLogIn className="w-4 h-4" />
                               Sign In / Register
@@ -855,7 +801,7 @@ const Navbar = memo(() => {
               <button
                 data-menu-toggle
                 onClick={toggleMobileMenu}
-                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-white/10"
+                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-yellow-500/10"
               >
                 {mobileMenuOpen ? (
                   <FiX className="w-6 h-6" />
@@ -869,7 +815,7 @@ const Navbar = memo(() => {
           {/* Mobile Search Bar */}
           {mobileSearchVisible && (
             <div className="pb-3 lg:hidden animate-fadeIn">
-              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-indigo-500/50 focus-within:shadow-[0_0_30px_rgba(79,70,229,0.3)] transition-all">
+              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-yellow-500/50 focus-within:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all">
                 <input
                   type="text"
                   placeholder="Search products..."
@@ -883,8 +829,8 @@ const Navbar = memo(() => {
                   onClick={handleSearch}
                   className="group relative px-4 py-2.5 text-white transition-all overflow-hidden"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative">
                     <FiSearch className="w-5 h-5" />
                   </span>
@@ -895,7 +841,7 @@ const Navbar = memo(() => {
         </div>
       </nav>
 
-      {/* ========== OPTIMIZED MOBILE MENU ========== */}
+      {/* ========== SIMPLIFIED MOBILE MENU - FIXED HEIGHT ========== */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
@@ -904,82 +850,64 @@ const Navbar = memo(() => {
             onClick={toggleMobileMenu} 
           />
           
-          {/* Mobile drawer */}
+          {/* Mobile drawer - Fixed height with flex column layout - max 3/4 of screen height */}
           <div
             ref={mobileMenuRef}
             className="absolute top-0 right-0 bg-gradient-to-b from-gray-900 to-black shadow-2xl rounded-l-2xl border-l border-gray-800
-                       w-64 max-w-[80vw] h-full overflow-y-auto"
+                       w-64 max-w-[80vw] max-h-[75vh] flex flex-col"
+            style={{ top: '12.5vh' }} /* Center vertically at 1/8 from top */
           >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-l-2xl opacity-20 blur-xl"></div>
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-l-2xl opacity-20 blur-xl"></div>
             
-            <div className="relative">
-              {/* Header */}
-              <div className="sticky top-0 p-4 border-b border-gray-800 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-tl-2xl">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      {isLoggedIn && user?.avatar && !avatarError ? (
-                        <img
-                          src={getFullImageUrl(user.avatar)}
-                          alt={user.name}
-                          className="object-cover w-10 h-10 rounded-full"
-                          onError={() => setAvatarError(true)}
-                        />
-                      ) : (
-                        <div className="flex items-center justify-center w-10 h-10 text-sm rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
-                          {isLoggedIn ? (
-                            <span className="font-bold text-white">
-                              {user?.name?.charAt(0) || <FiUser className="w-5 h-5" />}
-                            </span>
-                          ) : (
-                            <FiUser className="w-5 h-5 text-white" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      {isLoggedIn ? (
-                        <>
-                          <p className="font-semibold text-white">{user?.name?.split(" ")[0] || "User"}</p>
-                          <p className="text-xs text-gray-400 truncate max-w-[120px]">{user?.email}</p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="font-semibold text-white">Welcome!</p>
-                          <p className="text-xs text-gray-400">Sign in for faster checkout</p>
-                        </>
-                      )}
-                    </div>
+            {/* Header - Fixed at top */}
+            <div className="relative flex-shrink-0 p-4 border-b border-gray-800 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-tl-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    {isLoggedIn && user?.avatar && !avatarError ? (
+                      <img
+                        src={getFullImageUrl(user.avatar)}
+                        alt={user.name}
+                        className="object-cover w-10 h-10 rounded-full"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center w-10 h-10 text-sm rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
+                        {isLoggedIn ? (
+                          <span className="font-bold text-white">
+                            {user?.name?.charAt(0) || <FiUser className="w-5 h-5" />}
+                          </span>
+                        ) : (
+                          <FiUser className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={toggleMobileMenu}
-                    className="p-2 text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/10"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
+                  <div>
+                    {isLoggedIn ? (
+                      <>
+                        <p className="font-semibold text-white">{user?.name?.split(" ")[0] || "User"}</p>
+                        <p className="text-xs text-gray-400 truncate max-w-[120px]">{user?.email}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold text-white">Welcome!</p>
+                        <p className="text-xs text-gray-400">Sign in for faster checkout</p>
+                      </>
+                    )}
+                  </div>
                 </div>
-
-                {/* Quick Sign In for non-logged-in users */}
-                {!isLoggedIn && (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => {
-                        navigate(API_ENDPOINTS.LOGIN);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="relative w-full px-3 py-2 overflow-hidden text-xs font-medium text-white transition-all rounded-full group"
-                    >
-                      <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                      <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
-                      <span className="relative flex items-center justify-center gap-2">
-                        <FiLogIn className="w-4 h-4" />
-                        Sign In / Register
-                      </span>
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={toggleMobileMenu}
+                  className="p-2 text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/10"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
               </div>
+            </div>
 
+            {/* Scrollable Content Area - Takes remaining space */}
+            <div className="relative flex-1 overflow-y-auto">
               {/* Mobile Search */}
               <div className="p-3 border-b border-gray-800">
                 <div className="relative">
@@ -989,16 +917,51 @@ const Navbar = memo(() => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    className="w-full py-2 pr-3 text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800/50 pl-9 focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                    className="w-full py-2 pr-3 text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800/50 pl-9 focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50"
                   />
                   <FiSearch className="absolute w-4 h-4 text-gray-500 -translate-y-1/2 left-3 top-1/2" />
                 </div>
               </div>
 
-              {/* Mobile Quick Links - SIMPLIFIED */}
+              {/* Account Section - Only Dashboard and Orders */}
+              {isLoggedIn && (
+                <div className="p-3 border-b border-gray-800">
+                  <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
+                    <FiUser className="w-4 h-4 text-yellow-500" />
+                    My Account
+                  </h3>
+                  <div className="space-y-1">
+                    {/* Dashboard */}
+                    <button
+                      onClick={() => {
+                        navigate(API_ENDPOINTS.DASHBOARD);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                    >
+                      <FiHome className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
+                      <span className="flex-1 text-left">Dashboard</span>
+                    </button>
+
+                    {/* My Orders */}
+                    <button
+                      onClick={() => {
+                        navigate(API_ENDPOINTS.ORDERS);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                    >
+                      <FiPackage className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
+                      <span className="flex-1 text-left">My Orders</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Links */}
               <div className="p-3 border-b border-gray-800">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiTruck className="w-4 h-4 text-indigo-500" />
+                  <FiTruck className="w-4 h-4 text-yellow-500" />
                   Quick Links
                 </h3>
                 <div className="space-y-1">
@@ -1009,7 +972,7 @@ const Navbar = memo(() => {
                     }}
                     className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
                   >
-                    <FiTruck className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
+                    <FiTruck className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Track Order</span>
                   </button>
 
@@ -1020,7 +983,7 @@ const Navbar = memo(() => {
                     }}
                     className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
                   >
-                    <BsLightningCharge className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
+                    <BsLightningCharge className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Hot Deals</span>
                   </button>
 
@@ -1031,147 +994,16 @@ const Navbar = memo(() => {
                     }}
                     className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
                   >
-                    <FiHelpCircle className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
+                    <FiHelpCircle className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Help Center</span>
                   </button>
                 </div>
               </div>
 
-              {/* Account Section for Logged In Users - SIMPLIFIED */}
-              {isLoggedIn && (
-                <div className="p-3 border-b border-gray-800">
-                  <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                    <FiUser className="w-4 h-4 text-indigo-500" />
-                    My Account
-                  </h3>
-                  <div className="space-y-1">
-                    {userMenuItems.map((item) => (
-                      <button
-                        key={item.label}
-                        onClick={() => {
-                          navigate(item.path);
-                          setMobileMenuOpen(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
-                      >
-                        <span className="text-gray-500 transition-colors group-hover:text-indigo-500">{item.icon}</span>
-                        <span className="flex-1 text-left">{item.label}</span>
-                        {item.badge > 0 && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-medium text-white bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                            {item.badge}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Shop Section - SIMPLIFIED */}
-              <div className="p-3 border-b border-gray-800">
-                <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiShoppingCart className="w-4 h-4 text-indigo-500" />
-                  Shop
-                </h3>
-                <div className="space-y-1">
-                  {/* Wishlist */}
-                  {isLoggedIn ? (
-                    <button
-                      onClick={() => {
-                        navigate(API_ENDPOINTS.WISHLIST);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
-                    >
-                      <div className="relative">
-                        <FiHeart className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
-                        {wishlistCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1rem] h-4 px-1 text-[8px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                            {wishlistCount > 9 ? '9+' : wishlistCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className="flex-1 text-left">My Wishlist</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        navigate(API_ENDPOINTS.LOGIN);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
-                    >
-                      <FiHeart className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
-                      <span className="flex-1 text-left">Wishlist</span>
-                    </button>
-                  )}
-
-                  {/* Cart */}
-                  <button
-                    onClick={() => {
-                      navigate(API_ENDPOINTS.CART);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
-                  >
-                    <div className="relative">
-                      <FiShoppingCart className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
-                      {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[1rem] h-4 px-1 text-[8px] font-bold text-white bg-red-500 rounded-full shadow-[0_0_10px_rgba(239,68,68,0.5)]">
-                          {cartCount > 9 ? '9+' : cartCount}
-                        </span>
-                      )}
-                    </div>
-                    <span className="flex-1 text-left">Cart</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Categories - SIMPLIFIED (show only top 4) */}
-              <div className="p-3 border-b border-gray-800">
-                <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiGrid className="w-4 h-4 text-indigo-500" />
-                  Categories
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {categoriesLoading ? (
-                    <div className="col-span-2 py-4 text-center text-gray-500">Loading...</div>
-                  ) : (
-                    categories.slice(0, 4).map((cat) => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          navigate(`/shop?category=${cat.slug || cat.id}`);
-                          setMobileMenuOpen(false);
-                        }}
-                        className="flex flex-col items-center p-2 transition-all rounded-lg bg-gray-800/50 hover:bg-white/5 group"
-                      >
-                        <span className="mb-1 text-xl text-gray-400 transition-colors group-hover:text-indigo-500">
-                          {cat.icon}
-                        </span>
-                        <span className="w-full text-xs font-medium text-center text-gray-400 truncate group-hover:text-white">
-                          {cat.name}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-                <button
-                  onClick={() => { 
-                    navigate("/shop"); 
-                    setMobileMenuOpen(false); 
-                  }}
-                  className="flex items-center justify-center w-full gap-1 py-2 mt-3 text-xs font-medium text-center text-indigo-500 transition-colors hover:text-indigo-400 group"
-                >
-                  View All
-                  <BsArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                </button>
-              </div>
-
-              {/* Support - SIMPLIFIED */}
+              {/* Support */}
               <div className="p-3">
                 <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiPhone className="w-4 h-4 text-indigo-500" />
+                  <FiPhone className="w-4 h-4 text-yellow-500" />
                   Support
                 </h3>
                 <div className="space-y-2">
@@ -1180,7 +1012,7 @@ const Navbar = memo(() => {
                     className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5 group"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <FiPhone className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
+                    <FiPhone className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="font-medium">0700 KWEƬU</span>
                   </a>
                   <a 
@@ -1188,54 +1020,53 @@ const Navbar = memo(() => {
                     className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5 group"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <FiMail className="w-4 h-4 transition-colors group-hover:text-indigo-500" />
+                    <FiMail className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="truncate">support@kwetushop.com</span>
                   </a>
                 </div>
               </div>
+            </div>
 
-              {/* Logout Button for Logged In Users */}
-              {isLoggedIn && (
-                <div className="sticky bottom-0 p-3 bg-gray-900 border-t border-gray-800">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-red-500 transition-all rounded-lg hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    <FiLogOut className="w-4 h-4" />
-                    <span className="flex-1 text-left">Logout</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Footer */}
-              <div className="sticky bottom-0 p-3 text-xs text-center text-gray-500 bg-gray-900 border-t border-gray-800">
-                © {currentYear} KwetuShop
+            {/* Footer - Fixed at bottom */}
+            {isLoggedIn && (
+              <div className="relative flex-shrink-0 p-3 bg-gray-900 border-t border-gray-800">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full gap-3 px-3 py-2 text-sm text-red-500 transition-all rounded-lg hover:text-red-400 hover:bg-red-500/10"
+                >
+                  <FiLogOut className="w-4 h-4" />
+                  <span className="flex-1 text-left">Logout</span>
+                </button>
               </div>
+            )}
+            
+            <div className="relative flex-shrink-0 p-3 text-xs text-center text-gray-500 bg-gray-900 border-t border-gray-800">
+              © {currentYear} KwetuShop
             </div>
           </div>
         </div>
       )}
 
-      {/* ========== EMAIL VERIFICATION MODAL ========== */}
+      {/* ========== EMAIL VERIFICATION MODAL - Updated colors ========== */}
       {isVerifyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 backdrop-blur-md animate-fadeIn">
           <div className="relative w-full max-w-md animate-slideUp">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-30 blur-xl"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl opacity-30 blur-xl"></div>
             <div className="relative border border-gray-800 shadow-2xl bg-gradient-to-b from-gray-900 to-black rounded-2xl">
               <div className="p-6">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
                         <FiMail className="w-6 h-6 text-white" />
                       </div>
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full opacity-50 blur"></div>
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full opacity-50 blur"></div>
                     </div>
                     <div>
                       <h3 className="text-lg font-bold text-white">Verify Your Email</h3>
                       <p className="text-xs text-gray-400 mt-0.5">Enter the 6-digit code sent to</p>
-                      <p className="text-sm font-semibold text-indigo-500">{user?.email}</p>
+                      <p className="text-sm font-semibold text-yellow-500">{user?.email}</p>
                     </div>
                   </div>
                   <button
@@ -1264,7 +1095,7 @@ const Navbar = memo(() => {
                         value={digit}
                         onChange={(e) => handleVerifyOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleVerifyOtpKeyDown(index, e)}
-                        className="w-12 h-12 text-xl font-bold text-center text-white transition-all bg-gray-800 border-2 border-gray-700 outline-none sm:w-14 sm:h-14 sm:text-2xl rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-12 h-12 text-xl font-bold text-center text-white transition-all bg-gray-800 border-2 border-gray-700 outline-none sm:w-14 sm:h-14 sm:text-2xl rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         disabled={verifyLoading}
                         autoFocus={index === 0}
                       />
@@ -1274,7 +1105,7 @@ const Navbar = memo(() => {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400">
                       <FiClock className="w-4 h-4" />
-                      <span>Code expires in <span className="font-semibold text-indigo-500">10 minutes</span></span>
+                      <span>Code expires in <span className="font-semibold text-yellow-500">10 minutes</span></span>
                     </div>
                     {resendTimer > 0 ? (
                       <span className="text-xs text-gray-500 sm:text-sm">
@@ -1285,7 +1116,7 @@ const Navbar = memo(() => {
                         type="button"
                         onClick={handleResendVerification}
                         disabled={verifyLoading}
-                        className="text-xs font-medium text-indigo-500 sm:text-sm hover:text-indigo-400 hover:underline disabled:opacity-50"
+                        className="text-xs font-medium text-yellow-500 sm:text-sm hover:text-yellow-400 hover:underline disabled:opacity-50"
                       >
                         Resend Code
                       </button>
@@ -1298,8 +1129,8 @@ const Navbar = memo(() => {
                       disabled={verifyLoading || verifyOtp.join("").length !== 6}
                       className="relative flex-1 px-6 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
                     >
-                      <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                      <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                      <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                       <span className="relative flex items-center justify-center gap-2">
                         {verifyLoading ? (
                           <>
@@ -1324,9 +1155,9 @@ const Navbar = memo(() => {
                   </div>
                 </form>
 
-                <div className="flex items-start gap-2 p-3 mt-4 border rounded-xl bg-indigo-600/10 border-indigo-600/20">
-                  <FiShield className="w-4 h-4 text-indigo-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-indigo-400">
+                <div className="flex items-start gap-2 p-3 mt-4 border rounded-xl bg-yellow-600/10 border-yellow-600/20">
+                  <FiShield className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-400">
                     Never share your verification code. Our team will never ask for this code.
                   </p>
                 </div>
@@ -1336,7 +1167,7 @@ const Navbar = memo(() => {
         </div>
       )}
 
-      {/* Custom Scrollbar Styles */}
+      {/* Custom Scrollbar Styles - Updated colors */}
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 6px;
@@ -1346,11 +1177,11 @@ const Navbar = memo(() => {
           border-radius: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(79, 70, 229, 0.5);
+          background: rgba(245, 158, 11, 0.5);
           border-radius: 8px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(79, 70, 229, 0.8);
+          background: rgba(245, 158, 11, 0.8);
         }
       `}</style>
     </>

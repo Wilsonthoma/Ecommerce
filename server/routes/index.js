@@ -14,9 +14,10 @@ const router = Router();
 // -------------------------------------------------------------------------
 import publicProductRoutes from './public/products.js';
 import publicCategoryRoutes from './public/categories.js';
-// ❌ REMOVED: import userAuthRoutes from './public/auth.js'; (file deleted)
 import cartRoutes from './public/cart.js';
-import reviewRoutes from './public/reviews.js'; // ✅ ADDED: Review routes
+import reviewRoutes from './public/reviews.js';
+import clientOrderRoutes from './client/orders.js';        // ✅ NEW: Client orders
+import clientCheckoutRoutes from './client/checkout.js';    // ✅ NEW: Client checkout
 // -------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------
@@ -24,7 +25,7 @@ import reviewRoutes from './public/reviews.js'; // ✅ ADDED: Review routes
 // -------------------------------------------------------------------------
 import adminAuthRoutes from './admin/authRoutes.js';
 import adminProductRoutes from './admin/productRoutes.js';
-import adminOrderRoutes from './admin/orderRoutes.js';
+import adminOrderRoutes from './admin/orderRoutes.js';      // ✅ Already exists
 import adminAnalyticsRoutes from './admin/analyticsRoutes.js';
 import adminCustomerRoutes from './admin/customerRoutes.js';
 import adminUserRoutes from './admin/userRoutes.js';
@@ -38,29 +39,30 @@ import adminNotificationRoutes from './admin/notificationRoutes.js';
 // -------------------------------------------------------------------------
 // 3. IMPORT THE COMPREHENSIVE AUTH ROUTES
 // -------------------------------------------------------------------------
-import authRouter from './authRoutes.js'; // ✅ Comprehensive auth with Google OAuth
+import authRouter from './authRoutes.js';
 // -------------------------------------------------------------------------
 
 // ------------------
 // Mount public routes
 // ------------------
-// These routes should be accessible at /api/products, /api/categories, etc.
 router.use('/products', publicProductRoutes);
 router.use('/categories', publicCategoryRoutes);
 router.use('/cart', cartRoutes);
-router.use('/reviews', reviewRoutes); // ✅ ADDED: Mount review routes
+router.use('/reviews', reviewRoutes);
+router.use('/client/orders', clientOrderRoutes);        // ✅ NEW: /api/client/orders
+router.use('/client/checkout', clientCheckoutRoutes);    // ✅ NEW: /api/client/checkout
 
 // ------------------
 // Mount COMPREHENSIVE auth routes (Google OAuth + traditional auth)
 // ------------------
-router.use('/auth', authRouter); // ✅ Now includes Google OAuth + everything
+router.use('/auth', authRouter);
 
 // ------------------
 // Mount admin routes
 // ------------------
 router.use('/admin/auth', adminAuthRoutes);
 router.use('/admin/products', adminProductRoutes);
-router.use('/admin/orders', adminOrderRoutes);
+router.use('/admin/orders', adminOrderRoutes);           // ✅ Admin order management
 router.use('/admin/analytics', adminAnalyticsRoutes);
 router.use('/admin/customers', adminCustomerRoutes);
 router.use('/admin/users', adminUserRoutes);
@@ -82,7 +84,11 @@ router.get('/test-products', (req, res) => {
       'GET /api/products/featured',
       'GET /api/products/:id',
       'GET /api/categories',
-      'GET /api/reviews/products/:productId/reviews' // ✅ ADDED
+      'GET /api/reviews/products/:productId/reviews',
+      'GET /api/client/orders',              // ✅ NEW
+      'GET /api/client/orders/:id',           // ✅ NEW
+      'POST /api/client/checkout/place-order', // ✅ NEW
+      'POST /api/client/checkout/validate'    // ✅ NEW
     ],
     note: 'Make sure public routes are properly imported'
   });
@@ -225,10 +231,13 @@ router.get('/health', (req, res) => {
       products: '/api/products',
       categories: '/api/categories',
       cart: '/api/cart',
-      reviews: '/api/reviews', // ✅ ADDED
+      reviews: '/api/reviews',
+      client_orders: '/api/client/orders',        // ✅ NEW
+      client_checkout: '/api/client/checkout',     // ✅ NEW
       admin_users: '/api/admin/users',
       admin_customers: '/api/admin/customers',
       admin_products: '/api/admin/products',
+      admin_orders: '/api/admin/orders',           // ✅ NEW
       admin_notifications: '/api/admin/notifications'
     }
   });
@@ -255,16 +264,39 @@ router.get('/', (req, res) => {
         products: {
           list: 'GET /api/products',
           featured: 'GET /api/products/featured',
+          trending: 'GET /api/products/trending',
+          flashSale: 'GET /api/products/flash-sale',
+          justArrived: 'GET /api/products/just-arrived',
+          topSelling: 'GET /api/products/top-selling',
           single: 'GET /api/products/:id',
+          bySlug: 'GET /api/products/slug/:slug',
           search: 'GET /api/products?search=:query'
         },
         categories: 'GET /api/categories',
-        reviews: { // ✅ ADDED
+        reviews: {
           list: 'GET /api/reviews/products/:productId/reviews',
           summary: 'GET /api/reviews/products/:productId/summary',
           add: 'POST /api/reviews/products/:productId/reviews',
           update: 'PUT /api/reviews/reviews/:reviewId',
           delete: 'DELETE /api/reviews/reviews/:reviewId'
+        },
+        clientOrders: {                             // ✅ NEW
+          list: 'GET /api/client/orders',
+          single: 'GET /api/client/orders/:id',
+          cancel: 'PUT /api/client/orders/:id/cancel',
+          track: 'GET /api/client/orders/:id/track',
+          return: 'POST /api/client/orders/:id/return',
+          reorder: 'POST /api/client/orders/:id/reorder',
+          rate: 'POST /api/client/orders/:id/rate',
+          stats: 'GET /api/client/orders/stats/summary'
+        },
+        clientCheckout: {                           // ✅ NEW
+          validate: 'POST /api/client/checkout/validate',
+          calculate: 'POST /api/client/checkout/calculate',
+          placeOrder: 'POST /api/client/checkout/place-order',
+          validatePromo: 'POST /api/client/checkout/validate-promo',
+          shippingMethods: 'GET /api/client/checkout/shipping-methods',
+          estimateDelivery: 'POST /api/client/checkout/estimate-delivery'
         },
         auth: {
           google_login: 'GET /api/auth/google',
@@ -289,6 +321,7 @@ router.get('/', (req, res) => {
           view: 'GET /api/cart',
           add: 'POST /api/cart',
           update: 'PUT /api/cart/:itemId',
+          remove: 'DELETE /api/cart/:itemId',
           clear: 'DELETE /api/cart'
         }
       },
@@ -314,10 +347,22 @@ router.get('/', (req, res) => {
         products: {
           list: 'GET /api/admin/products',
           create: 'POST /api/admin/products',
+          update: 'PUT /api/admin/products/:id',
+          delete: 'DELETE /api/admin/products/:id',
           bulk_update: 'PUT /api/admin/products/bulk',
           stats: 'GET /api/admin/products/stats'
         },
-        orders: 'GET /api/admin/orders',
+        orders: {                                   // ✅ NEW
+          list: 'GET /api/admin/orders',
+          single: 'GET /api/admin/orders/:id',
+          updateStatus: 'PUT /api/admin/orders/:id/status',
+          updatePayment: 'PUT /api/admin/orders/:id/payment',
+          addNote: 'POST /api/admin/orders/:id/notes',
+          updateTracking: 'POST /api/admin/orders/:id/tracking',
+          dashboard: 'GET /api/admin/orders/stats/dashboard',
+          recent: 'GET /api/admin/orders/recent/limit/:limit',
+          delete: 'DELETE /api/admin/orders/:id'
+        },
         analytics: 'GET /api/admin/analytics',
         upload: 'POST /api/admin/upload',
         settings: 'GET /api/admin/settings',
@@ -358,10 +403,12 @@ router.use('*', (req, res) => {
     '/api/admin/user': '/api/admin/users',
     '/api/customer': '/api/admin/customers',
     '/api/product': '/api/products or /api/admin/products',
-    '/api/order': '/api/admin/orders',
+    '/api/order': '/api/client/orders or /api/admin/orders',           // ✅ UPDATED
+    '/api/orders': '/api/client/orders or /api/admin/orders',          // ✅ UPDATED
+    '/api/checkout': '/api/client/checkout',                           // ✅ NEW
     '/api/notification': '/api/admin/notifications',
     '/api/admin/notification': '/api/admin/notifications',
-    '/api/review': '/api/reviews', // ✅ ADDED
+    '/api/review': '/api/reviews',
     '/api/reviews/product': '/api/reviews/products/:productId/reviews',
     '/api/auth-new/i/send-reset-otp': '/api/auth/send-reset-otp',
     '/api/auth-new/i/verify-reset-otp': '/api/auth/verify-reset-otp',
@@ -404,10 +451,13 @@ router.use('*', (req, res) => {
     products: '/api/products',
     categories: '/api/categories',
     cart: '/api/cart',
-    reviews: '/api/reviews', // ✅ ADDED
+    reviews: '/api/reviews',
+    client_orders: '/api/client/orders',          // ✅ NEW
+    client_checkout: '/api/client/checkout',       // ✅ NEW
     admin_users: '/api/admin/users',
     admin_customers: '/api/admin/customers',
     admin_products: '/api/admin/products',
+    admin_orders: '/api/admin/orders',             // ✅ NEW
     admin_notifications: '/api/admin/notifications',
     health_check: '/api/health',
     api_docs: '/api/'

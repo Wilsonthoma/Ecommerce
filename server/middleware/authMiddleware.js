@@ -178,6 +178,34 @@ export const protectUser = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * @desc    Middleware to restrict access to admin only
+ * @access  Private (Admin only)
+ */
+export const admin = (req, res, next) => {
+  // Check if user is authenticated as admin
+  if (!req.admin && !req.user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Not authenticated',
+      code: 'AUTH_REQUIRED'
+    });
+  }
+
+  // Check if user is admin (either through req.admin or req.user with admin role)
+  const isAdmin = req.admin || (req.user && req.user.role === 'admin');
+  
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied. Admin only.',
+      code: 'ADMIN_REQUIRED'
+    });
+  }
+
+  next();
+};
+
+/**
  * @desc    Authenticate admin for notification routes
  */
 export const authenticateAdmin = protect;
@@ -287,11 +315,83 @@ export const optionalAuth = asyncHandler(async (req, res, next) => {
   next();
 });
 
+/**
+ * @desc    Check if user owns the resource or is admin
+ */
+export const checkOwnership = (getResourceOwnerId) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user && !req.admin) {
+        return res.status(401).json({
+          success: false,
+          error: 'Not authenticated',
+          code: 'AUTH_REQUIRED'
+        });
+      }
+
+      // Admin can access any resource
+      if (req.admin && req.admin.role === 'super-admin') {
+        return next();
+      }
+
+      const ownerId = await getResourceOwnerId(req);
+      
+      // Check if user owns the resource
+      if (req.user && ownerId && ownerId.toString() === req.user.id.toString()) {
+        return next();
+      }
+
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to access this resource',
+        code: 'ACCESS_DENIED'
+      });
+    } catch (error) {
+      console.error('Ownership check error:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Error checking permissions',
+        code: 'PERMISSION_CHECK_ERROR'
+      });
+    }
+  };
+};
+
+/**
+ * @desc    Generate JWT token
+ */
+export const generateToken = (id) => {
+  return jwt.sign({ id }, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn
+  });
+};
+
+/**
+ * @desc    Generate refresh token
+ */
+export const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, config.jwt.refreshSecret || config.jwt.secret, {
+    expiresIn: config.jwt.refreshExpiresIn || '7d'
+  });
+};
+
+/**
+ * @desc    Verify refresh token
+ */
+export const verifyRefreshToken = (token) => {
+  return jwt.verify(token, config.jwt.refreshSecret || config.jwt.secret);
+};
+
 export default {
   protect,
   protectUser,
+  admin,                // ✅ ADDED: admin middleware
   authorize,
   hasPermission,
   authenticateAdmin,
-  optionalAuth
+  optionalAuth,
+  checkOwnership,
+  generateToken,
+  generateRefreshToken,
+  verifyRefreshToken
 };

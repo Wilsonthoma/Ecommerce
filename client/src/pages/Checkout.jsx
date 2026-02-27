@@ -1,30 +1,35 @@
-// src/pages/Checkout.jsx - UPDATED with full-page background and indigo/blue/cyan theme
+// src/pages/Checkout.jsx - COMPACT with Yellow-Orange Theme
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { clientOrderService } from '../services/client/orders';
 import { toast } from 'react-toastify';
 import {
-  FiArrowLeft,
-  FiCreditCard,
-  FiTruck,
-  FiCheck,
-  FiLock,
-  FiUser,
-  FiMail,
-  FiPhone,
   FiMapPin,
-  FiPackage,
+  FiUser,
+  FiPhone,
+  FiMail,
+  FiHome,
+  FiChevronRight,
+  FiChevronLeft,
+  FiCreditCard,
+  FiSmartphone,
+  FiDollarSign,
+  FiTruck,
   FiShield,
   FiClock,
-  FiGlobe,
-  FiDollarSign,
-  FiScale,
-  FiRuler,
-  FiMapPin as FiMapPinIcon
+  FiPackage,
+  FiCheckCircle,
+  FiX,
+  FiEdit2,
+  FiPlus,
 } from 'react-icons/fi';
+import { BsArrowRight, BsCash, BsLightningCharge } from 'react-icons/bs';
+import { IoFlashOutline } from 'react-icons/io5';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
-// Font styles matching homepage
+// Font styles - UPDATED with yellow-orange theme
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -37,79 +42,780 @@ const fontStyles = `
     letter-spacing: -0.02em;
   }
   
+  .page-title {
+    font-weight: 800;
+    font-size: clamp(1.2rem, 3.5vw, 1.8rem);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    background: linear-gradient(to right, #fff, #e5e5e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .section-title {
+    font-weight: 700;
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    letter-spacing: -0.02em;
+    color: white;
+  }
+  
+  /* COMPACT INPUT FIELDS */
+  .input-field {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5) 0%, rgba(17, 24, 39, 0.5) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.6rem;
+    color: white;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+  }
+  
+  .input-field:focus {
+    border-color: #F59E0B;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+  }
+  
+  .input-field::placeholder {
+    color: #6B7280;
+    font-size: 0.75rem;
+  }
+  
+  /* COMPACT PAYMENT METHOD CARDS */
+  .payment-method-card {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5) 0%, rgba(17, 24, 39, 0.5) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 0.6rem;
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .payment-method-card:hover {
+    border-color: #F59E0B;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px -5px rgba(245, 158, 11, 0.3);
+  }
+  
+  .payment-method-card.selected {
+    border-color: #F59E0B;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(239, 68, 68, 0.15) 100%);
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+  }
+  
+  /* COMPACT ORDER SUMMARY CARD */
+  .order-summary-card {
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.5) 0%, rgba(17, 24, 39, 0.5) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    border-radius: 0.6rem;
+    padding: 0.8rem;
+  }
+  
   .glow-text {
-    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+  }
+
+  /* YELLOW-ORANGE GRADIENT BUTTONS */
+  .btn-gradient {
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-gradient:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.5);
+  }
+
+  .btn-gradient:active {
+    transform: translateY(0);
+  }
+
+  .btn-gradient::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+  }
+
+  .btn-gradient:hover::after {
+    left: 100%;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    transition: all 0.3s ease;
+  }
+
+  .btn-outline:hover {
+    border-color: #F59E0B;
+    background: rgba(245, 158, 11, 0.1);
+  }
+
+  /* COMPACT LABELS */
+  label {
+    font-size: 0.7rem;
+    margin-bottom: 0.15rem;
+    display: block;
+  }
+
+  /* COMPACT TEXT SIZES */
+  .text-2xl {
+    font-size: 1.2rem;
+  }
+  
+  .text-lg {
+    font-size: 0.95rem;
+  }
+  
+  .text-sm {
+    font-size: 0.75rem;
+  }
+  
+  .text-xs {
+    font-size: 0.65rem;
   }
 `;
 
 // Animation styles
 const animationStyles = `
-  @keyframes gradient {
-    0% { opacity: 0.1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 0.1; }
-  }
-  
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.6; }
-  }
-  
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
   }
   
-  .animate-gradient {
-    animation: gradient 8s ease-in-out infinite;
-  }
-  
-  .animate-pulse {
-    animation: pulse 3s ease-in-out infinite;
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   
   .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.2s ease-out;
   }
   
-  .delay-1000 {
-    animation-delay: 1s;
-  }
-  
-  .card-3d {
-    transform-style: preserve-3d;
-    perspective: 1000px;
-  }
-  
-  .card-3d-content {
-    transform: translateZ(20px);
+  .animate-slideUp {
+    animation: slideUp 0.3s ease-out;
   }
 `;
 
-// Background image
-const checkoutBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+// Gradient for header - UPDATED to yellow-orange
+const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
-// Gradient for bottom transition - indigo/blue/cyan
-const bottomGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+// Header image
+const checkoutHeaderImage = "https://images.pexels.com/photos/4481256/pexels-photo-4481256.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Top Bar Component (matching homepage)
+// Backend URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Fallback image
+const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=400';
+
+// ========== KENYAN LOCATIONS WITH SHIPPING FEES ==========
+const KENYAN_LOCATIONS = {
+  // Nairobi County
+  'Nairobi': {
+    towns: [
+      { name: 'CBD', fee: 150 },
+      { name: 'Westlands', fee: 120 },
+      { name: 'Kilimani', fee: 130 },
+      { name: 'Karen', fee: 180 },
+      { name: 'Langata', fee: 160 },
+      { name: 'South B', fee: 130 },
+      { name: 'South C', fee: 130 },
+      { name: 'Buruburu', fee: 140 },
+      { name: 'Donholm', fee: 140 },
+      { name: 'Umoja', fee: 140 },
+      { name: 'Kayole', fee: 150 },
+      { name: 'Kasarani', fee: 150 },
+      { name: 'Roysambu', fee: 150 },
+      { name: 'Githurai', fee: 160 },
+      { name: 'Kahawa', fee: 160 },
+      { name: 'Ruiru', fee: 170 },
+      { name: 'Juja', fee: 180 },
+      { name: 'Thika Road', fee: 170 },
+      { name: 'Mombasa Road', fee: 160 },
+      { name: 'Ngong Road', fee: 140 },
+      { name: 'Waiyaki Way', fee: 140 },
+      { name: 'Lavington', fee: 130 },
+      { name: 'Kileleshwa', fee: 130 },
+      { name: 'Hurlingham', fee: 140 },
+      { name: 'Upper Hill', fee: 140 },
+      { name: 'Parklands', fee: 130 },
+      { name: 'Spring Valley', fee: 150 },
+      { name: 'Riverside', fee: 140 },
+      { name: 'Jericho', fee: 130 },
+      { name: 'Makadara', fee: 130 },
+      { name: 'Viwandani', fee: 150 },
+      { name: 'Industrial Area', fee: 160 }
+    ]
+  },
+  
+  // Mombasa County
+  'Mombasa': {
+    towns: [
+      { name: 'Mombasa Island', fee: 200 },
+      { name: 'Nyali', fee: 180 },
+      { name: 'Bamburi', fee: 190 },
+      { name: 'Shanzu', fee: 200 },
+      { name: 'Kisauni', fee: 190 },
+      { name: 'Likoni', fee: 210 },
+      { name: 'Changamwe', fee: 200 },
+      { name: 'Port Reitz', fee: 210 },
+      { name: 'Miritini', fee: 200 },
+      { name: 'Mikindani', fee: 200 },
+      { name: 'Tudor', fee: 190 },
+      { name: 'Mtwapa', fee: 220 },
+      { name: 'Kilifi', fee: 250 },
+      { name: 'Diani', fee: 280 },
+      { name: 'Ukunda', fee: 270 },
+      { name: 'Bombolulu', fee: 190 },
+      { name: 'Magongo', fee: 200 },
+      { name: 'Mariakani', fee: 230 }
+    ]
+  },
+  
+  // Kisumu County
+  'Kisumu': {
+    towns: [
+      { name: 'Kisumu Central', fee: 180 },
+      { name: 'Milimani', fee: 170 },
+      { name: 'Kondele', fee: 160 },
+      { name: 'Manyatta', fee: 150 },
+      { name: 'Obunga', fee: 150 },
+      { name: 'Nyalenda', fee: 150 },
+      { name: 'Kibos', fee: 170 },
+      { name: 'Mamboleo', fee: 160 },
+      { name: 'Kisumu West', fee: 180 },
+      { name: 'Ahero', fee: 200 },
+      { name: 'Maseno', fee: 220 },
+      { name: 'Kombewa', fee: 230 }
+    ]
+  },
+  
+  // Kiambu County
+  'Kiambu': {
+    towns: [
+      { name: 'Kiambu Town', fee: 180 },
+      { name: 'Thika', fee: 200 },
+      { name: 'Limuru', fee: 190 },
+      { name: 'Ruiru', fee: 170 },
+      { name: 'Juja', fee: 180 },
+      { name: 'Githunguri', fee: 190 },
+      { name: 'Kikuyu', fee: 160 },
+      { name: 'Wangige', fee: 150 },
+      { name: 'Kabete', fee: 150 },
+      { name: 'Ndumberi', fee: 170 },
+      { name: 'Tigoni', fee: 200 }
+    ]
+  },
+  
+  // Nakuru County
+  'Nakuru': {
+    towns: [
+      { name: 'Nakuru Town', fee: 150 },
+      { name: 'Njoro', fee: 140 },
+      { name: 'Naivasha', fee: 180 },
+      { name: 'Gilgil', fee: 170 },
+      { name: 'Molo', fee: 160 },
+      { name: 'Subukia', fee: 170 },
+      { name: 'Bahati', fee: 150 },
+      { name: 'Rongai', fee: 160 },
+      { name: 'Salgaa', fee: 160 },
+      { name: 'Mai Mahiu', fee: 190 }
+    ]
+  },
+  
+  // Uasin Gishu County
+  'Uasin Gishu': {
+    towns: [
+      { name: 'Eldoret Town', fee: 220 },
+      { name: 'Langas', fee: 200 },
+      { name: 'Kapseret', fee: 210 },
+      { name: 'Huruma', fee: 200 },
+      { name: 'Kimumu', fee: 210 },
+      { name: 'Racecourse', fee: 200 },
+      { name: 'Moiben', fee: 230 },
+      { name: 'Soy', fee: 240 },
+      { name: 'Turbo', fee: 250 }
+    ]
+  },
+  
+  // Kakamega County
+  'Kakamega': {
+    towns: [
+      { name: 'Kakamega Town', fee: 200 },
+      { name: 'Mumias', fee: 210 },
+      { name: 'Butere', fee: 220 },
+      { name: 'Khayega', fee: 210 },
+      { name: 'Malava', fee: 220 },
+      { name: 'Lugari', fee: 230 },
+      { name: 'Matungu', fee: 210 },
+      { name: 'Navakholo', fee: 220 }
+    ]
+  },
+  
+  // Meru County
+  'Meru': {
+    towns: [
+      { name: 'Meru Town', fee: 230 },
+      { name: 'Maua', fee: 240 },
+      { name: 'Timau', fee: 250 },
+      { name: 'Nkubu', fee: 220 },
+      { name: 'Chuka', fee: 230 },
+      { name: 'Mutindwa', fee: 220 },
+      { name: 'Mikinduri', fee: 230 }
+    ]
+  },
+  
+  // Kilifi County
+  'Kilifi': {
+    towns: [
+      { name: 'Kilifi Town', fee: 250 },
+      { name: 'Malindi', fee: 270 },
+      { name: 'Watamu', fee: 280 },
+      { name: 'Mariakani', fee: 230 },
+      { name: 'Kaloleni', fee: 240 },
+      { name: 'Rabai', fee: 240 },
+      { name: 'Ganze', fee: 260 }
+    ]
+  },
+  
+  // Machakos County
+  'Machakos': {
+    towns: [
+      { name: 'Machakos Town', fee: 190 },
+      { name: 'Athi River', fee: 170 },
+      { name: 'Mavoko', fee: 170 },
+      { name: 'Kangundo', fee: 200 },
+      { name: 'Tala', fee: 200 },
+      { name: 'Matuu', fee: 210 },
+      { name: 'Masii', fee: 210 },
+      { name: 'Mbiuni', fee: 200 }
+    ]
+  },
+  
+  // Kajiado County
+  'Kajiado': {
+    towns: [
+      { name: 'Kajiado Town', fee: 200 },
+      { name: 'Ngong', fee: 150 },
+      { name: 'Ongata Rongai', fee: 140 },
+      { name: 'Kitengela', fee: 160 },
+      { name: 'Isinya', fee: 190 },
+      { name: 'Loitokitok', fee: 280 },
+      { name: 'Namanga', fee: 300 }
+    ]
+  },
+  
+  // Kericho County
+  'Kericho': {
+    towns: [
+      { name: 'Kericho Town', fee: 210 },
+      { name: 'Litein', fee: 220 },
+      { name: 'Londiani', fee: 210 },
+      { name: 'Kipkelion', fee: 220 },
+      { name: 'Sotik', fee: 230 },
+      { name: 'Bomet', fee: 230 }
+    ]
+  },
+  
+  // Nyeri County
+  'Nyeri': {
+    towns: [
+      { name: 'Nyeri Town', fee: 210 },
+      { name: 'Karatina', fee: 200 },
+      { name: 'Othaya', fee: 220 },
+      { name: 'Mukurweini', fee: 210 },
+      { name: 'Tetu', fee: 220 },
+      { name: 'Mathira', fee: 210 }
+    ]
+  },
+  
+  // Muranga County
+  'Muranga': {
+    towns: [
+      { name: 'Muranga Town', fee: 190 },
+      { name: 'Kangema', fee: 200 },
+      { name: 'Kigumo', fee: 200 },
+      { name: 'Makuyu', fee: 190 },
+      { name: 'Maragua', fee: 190 },
+      { name: 'Kenol', fee: 180 }
+    ]
+  },
+  
+  // Kirinyaga County
+  'Kirinyaga': {
+    towns: [
+      { name: 'Kerugoya', fee: 210 },
+      { name: 'Kutus', fee: 200 },
+      { name: 'Sagana', fee: 190 },
+      { name: 'Mwea', fee: 210 },
+      { name: 'Wanguru', fee: 210 }
+    ]
+  },
+  
+  // Embu County
+  'Embu': {
+    towns: [
+      { name: 'Embu Town', fee: 220 },
+      { name: 'Runyenjes', fee: 220 },
+      { name: 'Siakago', fee: 230 },
+      { name: 'Manyatta', fee: 220 }
+    ]
+  },
+  
+  // Kitui County
+  'Kitui': {
+    towns: [
+      { name: 'Kitui Town', fee: 230 },
+      { name: 'Mwingi', fee: 240 },
+      { name: 'Mutomo', fee: 250 },
+      { name: 'Kyuso', fee: 250 },
+      { name: 'Kanyangi', fee: 240 },
+      { name: 'Zombe', fee: 250 },
+      { name: 'Endau', fee: 250 }
+    ]
+  },
+  
+  // Makueni County
+  'Makueni': {
+    towns: [
+      { name: 'Wote', fee: 220 },
+      { name: 'Makindu', fee: 230 },
+      { name: 'Kibwezi', fee: 240 },
+      { name: 'Mtito Andei', fee: 260 }
+    ]
+  },
+  
+  // Nyandarua County
+  'Nyandarua': {
+    towns: [
+      { name: 'Ol Kalou', fee: 210 },
+      { name: 'Njabini', fee: 210 },
+      { name: 'Engineer', fee: 210 },
+      { name: 'Kinamba', fee: 220 },
+      { name: 'Mairo Inya', fee: 220 }
+    ]
+  },
+  
+  // Laikipia County
+  'Laikipia': {
+    towns: [
+      { name: 'Nanyuki', fee: 230 },
+      { name: 'Rumuruti', fee: 240 },
+      { name: 'Doldol', fee: 260 },
+      { name: 'Nyahururu', fee: 220 }
+    ]
+  },
+  
+  // Narok County
+  'Narok': {
+    towns: [
+      { name: 'Narok Town', fee: 240 },
+      { name: 'Kilgoris', fee: 250 },
+      { name: 'Mai Mahiu', fee: 200 },
+      { name: 'Suswa', fee: 220 }
+    ]
+  },
+  
+  // Trans Nzoia County
+  'Trans Nzoia': {
+    towns: [
+      { name: 'Kitale', fee: 240 },
+      { name: 'Kiminini', fee: 230 },
+      { name: 'Saboti', fee: 240 },
+      { name: 'Endebess', fee: 250 }
+    ]
+  },
+  
+  // Bungoma County
+  'Bungoma': {
+    towns: [
+      { name: 'Bungoma Town', fee: 230 },
+      { name: 'Kimilili', fee: 240 },
+      { name: 'Webuye', fee: 230 },
+      { name: 'Chwele', fee: 240 },
+      { name: 'Malakisi', fee: 250 }
+    ]
+  },
+  
+  // Busia County
+  'Busia': {
+    towns: [
+      { name: 'Busia Town', fee: 240 },
+      { name: 'Malaba', fee: 250 },
+      { name: 'Nambale', fee: 240 },
+      { name: 'Port Victoria', fee: 250 }
+    ]
+  },
+  
+  // Vihiga County
+  'Vihiga': {
+    towns: [
+      { name: 'Mbale', fee: 220 },
+      { name: 'Luanda', fee: 220 },
+      { name: 'Chavakali', fee: 230 }
+    ]
+  },
+  
+  // Kisii County
+  'Kisii': {
+    towns: [
+      { name: 'Kisii Town', fee: 220 },
+      { name: 'Ogembo', fee: 230 },
+      { name: 'Keroka', fee: 230 },
+      { name: 'Tabaka', fee: 240 }
+    ]
+  },
+  
+  // Nyamira County
+  'Nyamira': {
+    towns: [
+      { name: 'Nyamira Town', fee: 220 },
+      { name: 'Keroka', fee: 230 },
+      { name: 'Nyansiongo', fee: 230 }
+    ]
+  },
+  
+  // Migori County
+  'Migori': {
+    towns: [
+      { name: 'Migori Town', fee: 240 },
+      { name: 'Kehancha', fee: 250 },
+      { name: 'Rongo', fee: 240 },
+      { name: 'Awendo', fee: 240 }
+    ]
+  },
+  
+  // Homa Bay County
+  'Homa Bay': {
+    towns: [
+      { name: 'Homa Bay Town', fee: 240 },
+      { name: 'Mbita', fee: 260 },
+      { name: 'Oyugis', fee: 250 },
+      { name: 'Kendu Bay', fee: 250 }
+    ]
+  },
+  
+  // Siaya County
+  'Siaya': {
+    towns: [
+      { name: 'Siaya Town', fee: 220 },
+      { name: 'Bondo', fee: 230 },
+      { name: 'Ugunja', fee: 220 },
+      { name: 'Ukwala', fee: 230 },
+      { name: 'Yala', fee: 220 }
+    ]
+  },
+  
+  // Garissa County
+  'Garissa': {
+    towns: [
+      { name: 'Garissa Town', fee: 350 },
+      { name: 'Dadaab', fee: 380 },
+      { name: 'Masalani', fee: 360 }
+    ]
+  },
+  
+  // Wajir County
+  'Wajir': {
+    towns: [
+      { name: 'Wajir Town', fee: 380 },
+      { name: 'Habaswein', fee: 400 },
+      { name: 'Buna', fee: 420 }
+    ]
+  },
+  
+  // Mandera County
+  'Mandera': {
+    towns: [
+      { name: 'Mandera Town', fee: 400 },
+      { name: 'El Wak', fee: 420 },
+      { name: 'Rhamu', fee: 410 }
+    ]
+  },
+  
+  // Marsabit County
+  'Marsabit': {
+    towns: [
+      { name: 'Marsabit Town', fee: 380 },
+      { name: 'Moyale', fee: 420 },
+      { name: 'Loiyangalani', fee: 440 },
+      { name: 'North Horr', fee: 450 }
+    ]
+  },
+  
+  // Isiolo County
+  'Isiolo': {
+    towns: [
+      { name: 'Isiolo Town', fee: 280 },
+      { name: 'Merti', fee: 300 },
+      { name: 'Garbatulla', fee: 300 },
+      { name: 'Kinna', fee: 290 }
+    ]
+  },
+  
+  // Samburu County
+  'Samburu': {
+    towns: [
+      { name: 'Maralal', fee: 300 },
+      { name: 'Baragoi', fee: 350 },
+      { name: 'Archers Post', fee: 320 },
+      { name: 'South Horr', fee: 360 }
+    ]
+  },
+  
+  // Turkana County
+  'Turkana': {
+    towns: [
+      { name: 'Lodwar', fee: 380 },
+      { name: 'Lokitaung', fee: 420 },
+      { name: 'Kakuma', fee: 400 },
+      { name: 'Lokichar', fee: 410 }
+    ]
+  },
+  
+  // West Pokot County
+  'West Pokot': {
+    towns: [
+      { name: 'Kapenguria', fee: 280 },
+      { name: 'Makutano', fee: 270 },
+      { name: 'Ortum', fee: 280 },
+      { name: 'Kacheliba', fee: 320 }
+    ]
+  },
+  
+  // Baringo County
+  'Baringo': {
+    towns: [
+      { name: 'Kabarnet', fee: 250 },
+      { name: 'Eldama Ravine', fee: 240 },
+      { name: 'Mogotio', fee: 240 },
+      { name: 'Marigat', fee: 260 }
+    ]
+  },
+  
+  // Elgeyo Marakwet County
+  'Elgeyo Marakwet': {
+    towns: [
+      { name: 'Iten', fee: 250 },
+      { name: 'Kapsowar', fee: 260 },
+      { name: 'Tambach', fee: 250 },
+      { name: 'Chebiemit', fee: 260 }
+    ]
+  },
+  
+  // Nandi County
+  'Nandi': {
+    towns: [
+      { name: 'Kapsabet', fee: 220 },
+      { name: 'Nandi Hills', fee: 230 },
+      { name: 'Mosoriot', fee: 220 },
+      { name: 'Tinderet', fee: 240 }
+    ]
+  },
+  
+  // Lamu County
+  'Lamu': {
+    towns: [
+      { name: 'Lamu Town', fee: 350 },
+      { name: 'Mpeketoni', fee: 340 },
+      { name: 'Witu', fee: 330 },
+      { name: 'Faza', fee: 380 }
+    ]
+  },
+  
+  // Tana River County
+  'Tana River': {
+    towns: [
+      { name: 'Hola', fee: 300 },
+      { name: 'Garsen', fee: 310 },
+      { name: 'Madogo', fee: 300 }
+    ]
+  },
+  
+  // Taita Taveta County
+  'Taita Taveta': {
+    towns: [
+      { name: 'Voi', fee: 260 },
+      { name: 'Wundanyi', fee: 270 },
+      { name: 'Taveta', fee: 300 },
+      { name: 'Mwatate', fee: 270 }
+    ]
+  },
+  
+  // Kwale County
+  'Kwale': {
+    towns: [
+      { name: 'Kwale Town', fee: 250 },
+      { name: 'Msambweni', fee: 270 },
+      { name: 'Lungalunga', fee: 280 },
+      { name: 'Kinango', fee: 260 }
+    ]
+  },
+  
+  // Tharaka Nithi County
+  'Tharaka Nithi': {
+    towns: [
+      { name: 'Chuka', fee: 230 },
+      { name: 'Marimanti', fee: 240 },
+      { name: 'Kathwana', fee: 230 },
+      { name: 'Tunyai', fee: 240 }
+    ]
+  }
+};
+
+// Get list of counties for dropdown
+const KENYAN_COUNTIES = Object.keys(KENYAN_LOCATIONS).sort();
+
+// Format currency
+const formatKES = (amount) => {
+  if (!amount && amount !== 0) return "KSh 0";
+  return `KSh ${Math.round(amount).toLocaleString()}`;
+};
+
+// Get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return FALLBACK_IMAGE;
+  if (imagePath.startsWith('http')) return imagePath;
+  if (imagePath.startsWith('/uploads/')) return `${API_URL}${imagePath}`;
+  return `${API_URL}/uploads/products/${imagePath}`;
+};
+
+// Top Bar Component - UPDATED colors
 const TopBar = () => {
   const navigate = useNavigate();
   
   return (
-    <div className="py-3 border-b border-gray-800 bg-black/90 backdrop-blur-sm">
-      <div className="flex items-center justify-end px-6 mx-auto space-x-6 max-w-7xl">
+    <div className="py-1.5 bg-black border-b border-gray-800">
+      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
         <button 
           onClick={() => navigate('/stores')}
-          className="flex items-center gap-2 text-sm text-gray-400 transition-colors hover:text-white"
+          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
-          <FiMapPinIcon className="w-4 h-4" />
+          <FiMapPin className="w-3 h-3" />
           FIND STORE
         </button>
         <span className="text-gray-700">|</span>
         <button 
           onClick={() => navigate('/shop')}
-          className="text-sm text-gray-400 transition-colors hover:text-white"
+          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
           SHOP ONLINE
         </button>
@@ -118,31 +824,300 @@ const TopBar = () => {
   );
 };
 
+// Address Form Component with Location Selection - COMPACT
+const AddressForm = ({ address, setAddress, errors, setShippingFee }) => {
+  const [availableTowns, setAvailableTowns] = useState([]);
+
+  // Handle county change
+  const handleCountyChange = (county) => {
+    setAddress({ ...address, county, town: '' });
+    setShippingFee(0);
+    
+    if (county) {
+      setAvailableTowns(KENYAN_LOCATIONS[county]?.towns || []);
+    } else {
+      setAvailableTowns([]);
+    }
+  };
+
+  // Handle town change
+  const handleTownChange = (townName) => {
+    setAddress({ ...address, town: townName });
+    
+    // Find the shipping fee for the selected town
+    const selectedTown = availableTowns.find(t => t.name === townName);
+    if (selectedTown) {
+      setShippingFee(selectedTown.fee);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Full Name */}
+      <div>
+        <label className="block text-gray-400">
+          Full Name <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <FiUser className="absolute w-3 h-3 text-gray-500 -translate-y-1/2 left-2 top-1/2" />
+          <input
+            type="text"
+            value={address.fullName}
+            onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
+            placeholder="John Doe"
+            className={`input-field w-full pl-7 ${errors.fullName ? 'border-red-500' : ''}`}
+          />
+        </div>
+        {errors.fullName && <p className="mt-0.5 text-xs text-red-500">{errors.fullName}</p>}
+      </div>
+
+      {/* Phone Number */}
+      <div>
+        <label className="block text-gray-400">
+          Phone Number <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <FiPhone className="absolute w-3 h-3 text-gray-500 -translate-y-1/2 left-2 top-1/2" />
+          <input
+            type="tel"
+            value={address.phone}
+            onChange={(e) => setAddress({ ...address, phone: e.target.value })}
+            placeholder="07XX XXX XXX"
+            className={`input-field w-full pl-7 ${errors.phone ? 'border-red-500' : ''}`}
+          />
+        </div>
+        {errors.phone && <p className="mt-0.5 text-xs text-red-500">{errors.phone}</p>}
+      </div>
+
+      {/* Email (Optional) */}
+      <div>
+        <label className="block text-gray-400">
+          Email Address <span className="text-gray-600">(optional)</span>
+        </label>
+        <div className="relative">
+          <FiMail className="absolute w-3 h-3 text-gray-500 -translate-y-1/2 left-2 top-1/2" />
+          <input
+            type="email"
+            value={address.email}
+            onChange={(e) => setAddress({ ...address, email: e.target.value })}
+            placeholder="john@example.com"
+            className="input-field w-full pl-7"
+          />
+        </div>
+      </div>
+
+      {/* Address Line */}
+      <div>
+        <label className="block text-gray-400">
+          Address Line <span className="text-red-500">*</span>
+        </label>
+        <div className="relative">
+          <FiHome className="absolute w-3 h-3 text-gray-500 -translate-y-1/2 left-2 top-1/2" />
+          <input
+            type="text"
+            value={address.addressLine}
+            onChange={(e) => setAddress({ ...address, addressLine: e.target.value })}
+            placeholder="Street address, building, estate"
+            className={`input-field w-full pl-7 ${errors.addressLine ? 'border-red-500' : ''}`}
+          />
+        </div>
+        {errors.addressLine && <p className="mt-0.5 text-xs text-red-500">{errors.addressLine}</p>}
+      </div>
+
+      {/* City/Town */}
+      <div>
+        <label className="block text-gray-400">
+          City/Town <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={address.city}
+          onChange={(e) => setAddress({ ...address, city: e.target.value })}
+          placeholder="Nairobi"
+          className={`input-field w-full ${errors.city ? 'border-red-500' : ''}`}
+        />
+        {errors.city && <p className="mt-0.5 text-xs text-red-500">{errors.city}</p>}
+      </div>
+
+      {/* County Dropdown */}
+      <div>
+        <label className="block text-gray-400">
+          County <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={address.county}
+          onChange={(e) => handleCountyChange(e.target.value)}
+          className={`input-field w-full ${errors.county ? 'border-red-500' : ''}`}
+        >
+          <option value="" className="bg-gray-900">Select County</option>
+          {KENYAN_COUNTIES.map(county => (
+            <option key={county} value={county} className="bg-gray-900">
+              {county}
+            </option>
+          ))}
+        </select>
+        {errors.county && <p className="mt-0.5 text-xs text-red-500">{errors.county}</p>}
+      </div>
+
+      {/* Town/Area Dropdown */}
+      {address.county && (
+        <div>
+          <label className="block text-gray-400">
+            Town/Area <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={address.town || ''}
+            onChange={(e) => handleTownChange(e.target.value)}
+            className={`input-field w-full ${errors.town ? 'border-red-500' : ''}`}
+          >
+            <option value="" className="bg-gray-900">Select Town/Area</option>
+            {availableTowns.map(town => (
+              <option key={town.name} value={town.name} className="bg-gray-900">
+                {town.name} - {formatKES(town.fee)}
+              </option>
+            ))}
+          </select>
+          {errors.town && <p className="mt-0.5 text-xs text-red-500">{errors.town}</p>}
+        </div>
+      )}
+
+      {/* Postal Code (Optional) */}
+      <div>
+        <label className="block text-gray-400">
+          Postal Code <span className="text-gray-600">(optional)</span>
+        </label>
+        <input
+          type="text"
+          value={address.postalCode}
+          onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
+          placeholder="00100"
+          className="input-field w-full"
+        />
+      </div>
+    </div>
+  );
+};
+
+// Payment Method Component - UPDATED colors
+const PaymentMethodCard = ({ method, selected, onSelect, icon: Icon, title, description }) => {
+  return (
+    <div
+      onClick={() => onSelect(method)}
+      className={`payment-method-card ${selected ? 'selected' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        <div className={`p-1.5 rounded-full ${selected ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'}`}>
+          <Icon className={`w-4 h-4 ${selected ? 'text-white' : 'text-gray-400'}`} />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium text-white">{title}</h3>
+          <p className="text-xs text-gray-400">{description}</p>
+        </div>
+        {selected && (
+          <FiCheckCircle className="w-4 h-4 text-yellow-500" />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Order Summary Item - COMPACT
+const OrderItem = ({ item }) => {
+  const price = item.discountPrice || item.price || 0;
+  const image = item.images?.[0]?.url || item.image || FALLBACK_IMAGE;
+  
+  return (
+    <div className="flex gap-1.5 py-1.5 border-b border-gray-800 last:border-0">
+      <div className="relative flex-shrink-0 w-10 h-10 overflow-hidden rounded-lg bg-gray-800">
+        <img
+          src={getFullImageUrl(image)}
+          alt={item.name}
+          className="object-cover w-full h-full"
+          onError={(e) => e.target.src = FALLBACK_IMAGE}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-xs font-medium text-white truncate">{item.name}</h4>
+        <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
+        <p className="text-xs font-semibold text-yellow-500">{formatKES(price * item.quantity)}</p>
+      </div>
+    </div>
+  );
+};
+
 const Checkout = () => {
-  const { orderId } = useParams();
   const navigate = useNavigate();
-  const { cart, clearCart } = useCart();
-  
-  const [loading, setLoading] = useState(false);
-  const [order, setOrder] = useState(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
+  const location = useLocation();
+  const { cart, getCartSummary, clearCart } = useCart();
+
+  // Check if this is a direct checkout (from Buy Now)
+  const isDirectCheckout = location.state?.directCheckout || false;
+  const directItems = location.state?.items || [];
+  const directTotal = location.state?.totalAmount || 0;
+
+  // Use either cart items or direct items
+  const checkoutItems = isDirectCheckout ? directItems : cart.items;
+  const checkoutTotal = isDirectCheckout ? directTotal : getCartSummary().subtotal;
+
+  // State
+  const [step, setStep] = useState(1);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [shippingFee, setShippingFee] = useState(0);
+  const [address, setAddress] = useState({
+    fullName: '',
     phone: '',
-    address: '',
+    email: '',
+    addressLine: '',
     city: '',
-    state: '',
-    zipCode: '',
-    country: 'Kenya',
-    paymentMethod: 'mpesa',
-    shippingMethod: 'standard',
-    notes: ''
+    county: '',
+    town: '',
+    postalCode: ''
   });
-  
-  const [activeStep, setActiveStep] = useState(1);
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
-  const [shippingCost, setShippingCost] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [errors, setErrors] = useState({});
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+
+  // Payment methods
+  const paymentMethods = [
+    { 
+      id: 'mpesa', 
+      title: 'M-Pesa', 
+      description: 'Pay via M-Pesa',
+      icon: FiSmartphone 
+    },
+    { 
+      id: 'card', 
+      title: 'Card', 
+      description: 'Visa, Mastercard',
+      icon: FiCreditCard 
+    },
+    { 
+      id: 'cash', 
+      title: 'Cash on Delivery', 
+      description: 'Pay on delivery',
+      icon: BsCash 
+    }
+  ];
+
+  // Load saved addresses from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('savedAddresses');
+    if (saved) {
+      setSavedAddresses(JSON.parse(saved));
+    }
+  }, []);
+
+  // Initialize AOS
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: false,
+      mirror: true,
+      offset: 30,
+      easing: 'ease-out-cubic',
+    });
+  }, []);
 
   // Inject styles
   useEffect(() => {
@@ -151,837 +1126,494 @@ const Checkout = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
-  
-  const steps = [
-    { id: 1, title: 'Shipping', icon: <FiTruck /> },
-    { id: 2, title: 'Payment', icon: <FiCreditCard /> },
-    { id: 3, title: 'Confirm', icon: <FiCheck /> }
-  ];
 
-  // Calculate subtotal
-  const calculateSubtotal = () => {
-    return cart?.items?.reduce((sum, item) => {
-      const price = item.discountPrice || item.price || 0;
-      return sum + (price * item.quantity);
-    }, 0) || 0;
-  };
-
-  // Calculate shipping cost based on items and selected method
-  const calculateShippingCost = () => {
-    let totalShipping = 0;
-    
-    cart.items.forEach(item => {
-      if (item.freeShipping) return;
-      if (item.flatShippingRate > 0) {
-        totalShipping += item.flatShippingRate * item.quantity;
-      } else {
-        // Default rates based on shipping method
-        switch (formData.shippingMethod) {
-          case 'express':
-            totalShipping += 500 * item.quantity;
-            break;
-          case 'overnight':
-            totalShipping += 1500 * item.quantity;
-            break;
-          default:
-            // Standard shipping free for now
-            break;
-        }
-      }
-    });
-    
-    return totalShipping;
-  };
-
-  // Calculate tax (8%)
-  const calculateTax = () => {
-    return calculateSubtotal() * 0.08;
-  };
-
-  // Calculate total
-  const calculateTotal = () => {
-    return calculateSubtotal() + shippingCost + calculateTax();
-  };
-
+  // Updated redirect check
   useEffect(() => {
-    setShippingCost(calculateShippingCost());
-  }, [formData.shippingMethod, cart.items]);
+    if (!isDirectCheckout && cart.items.length === 0) {
+      toast.info('Your cart is empty');
+      navigate('/cart');
+    }
+  }, [cart.items, navigate, isDirectCheckout]);
 
-  // Format KES
-  const formatKES = (amount) => {
-    if (!amount && amount !== 0) return "KSh 0";
-    return `KSh ${Math.round(amount).toLocaleString()}`;
+  // Validate address form
+  const validateAddress = () => {
+    const newErrors = {};
+    
+    if (!address.fullName.trim()) newErrors.fullName = 'Full name is required';
+    if (!address.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    } else if (!/^0\d{9}$/.test(address.phone.replace(/\s/g, ''))) {
+      newErrors.phone = 'Enter a valid Kenyan phone number';
+    }
+    if (!address.addressLine.trim()) newErrors.addressLine = 'Address is required';
+    if (!address.city.trim()) newErrors.city = 'City is required';
+    if (!address.county) newErrors.county = 'County is required';
+    if (!address.town) newErrors.town = 'Town/Area is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  // Format zone name
-  const formatZoneName = (zone) => {
-    const zoneNames = {
-      'na': 'North America',
-      'eu': 'Europe',
-      'asia': 'Asia',
-      'africa': 'Africa',
-      'sa': 'South America',
-      'oceania': 'Oceania'
-    };
-    return zoneNames[zone] || zone;
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
+  // Handle next step
   const handleNextStep = () => {
-    if (activeStep < 3) {
-      // Validate current step before proceeding
-      if (activeStep === 1 && !validateShippingInfo()) {
-        toast.error('Please fill in all required shipping information');
+    if (step === 1) {
+      if (validateAddress()) {
+        setStep(2);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } else if (step === 2) {
+      if (!paymentMethod) {
+        toast.error('Please select a payment method');
         return;
       }
-      if (activeStep === 2 && !validatePaymentInfo()) {
-        toast.error('Please complete payment information');
-        return;
-      }
-      setActiveStep(activeStep + 1);
+      setStep(3);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const handlePreviousStep = () => {
-    if (activeStep > 1) {
-      setActiveStep(activeStep - 1);
+  // Handle previous step
+  const handlePrevStep = () => {
+    setStep(step - 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Save address to localStorage
+  const saveAddress = () => {
+    const updated = [...savedAddresses, { ...address, id: Date.now() }];
+    setSavedAddresses(updated);
+    localStorage.setItem('savedAddresses', JSON.stringify(updated));
+    toast.success('Address saved');
+  };
+
+  // Load saved address
+  const loadAddress = (saved) => {
+    setAddress(saved);
+    if (saved.county && saved.town) {
+      const countyData = KENYAN_LOCATIONS[saved.county];
+      const townData = countyData?.towns.find(t => t.name === saved.town);
+      if (townData) {
+        setShippingFee(townData.fee);
+      }
     }
+    setShowSavedAddresses(false);
   };
 
-  const validateShippingInfo = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode'];
-    return required.every(field => formData[field]?.trim());
-  };
-
-  const validatePaymentInfo = () => {
-    return formData.paymentMethod;
-  };
-
+  // Handle place order
   const handlePlaceOrder = async () => {
-    if (!validateShippingInfo()) {
-      toast.error('Please complete all required fields');
+    if (checkoutItems.length === 0) {
+      toast.error('No items to order');
       return;
     }
 
-    if (cart?.items?.length === 0) {
-      toast.error('Your cart is empty');
-      navigate('/products');
-      return;
-    }
-
-    setLoading(true);
-    setIsProcessingPayment(true);
+    setIsProcessing(true);
 
     try {
+      const orderItems = checkoutItems.map(item => ({
+        productId: item.id || item.productId,
+        name: item.name,
+        price: item.discountPrice || item.price || 0,
+        quantity: item.quantity,
+        image: item.images?.[0]?.url || item.image
+      }));
+
+      const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const total = subtotal + shippingFee;
+      
+      const shippingAddress = `${address.addressLine}, ${address.town}, ${address.city}, ${address.county}${address.postalCode ? ', ' + address.postalCode : ''}`;
+
       const orderData = {
-        shippingInfo: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
-          country: formData.country
+        items: orderItems,
+        shippingAddress: {
+          fullName: address.fullName,
+          phone: address.phone,
+          email: address.email || undefined,
+          address: shippingAddress,
+          city: address.city,
+          county: address.county,
+          town: address.town,
+          postalCode: address.postalCode || undefined
         },
-        items: cart.items.map(item => ({
-          productId: item.id || item.productId,
-          name: item.name,
-          price: item.discountPrice || item.price,
-          quantity: item.quantity,
-          sku: item.sku,
-          weight: item.weight,
-          weightUnit: item.weightUnit,
-          requiresShipping: item.requiresShipping,
-          freeShipping: item.freeShipping,
-          flatShippingRate: item.flatShippingRate
-        })),
-        paymentMethod: formData.paymentMethod,
-        shippingMethod: formData.shippingMethod,
-        subtotal: calculateSubtotal(),
-        shippingCost,
-        tax: calculateTax(),
-        total: calculateTotal(),
-        notes: formData.notes
+        paymentMethod: paymentMethod,
+        subtotal: subtotal,
+        shippingCost: shippingFee,
+        totalAmount: total,
+        status: 'pending',
+        paymentStatus: paymentMethod === 'cash' ? 'pending' : 'processing',
+        notes: `Order placed via ${paymentMethod}`,
+        createdAt: new Date().toISOString()
       };
+
+      console.log('📤 Creating order:', orderData);
 
       const response = await clientOrderService.createOrder(orderData);
 
-      if (response.success) {
-        toast.success('Order placed successfully!');
-        clearCart();
+      console.log('📥 Order response:', response);
 
-        // Redirect to order confirmation page
-        navigate(`/order-confirmation/${response.order._id}`);
+      if (response && response.success) {
+        toast.success('Order placed successfully!');
+        
+        if (window.confirm('Would you like to save this address for future orders?')) {
+          saveAddress();
+        }
+
+        if (!isDirectCheckout) {
+          clearCart();
+        }
+
+        sessionStorage.removeItem('directCheckout');
+
+        if (response.order && response.order._id) {
+          navigate(`/order-confirmation/${response.order._id}`);
+        } else {
+          navigate('/orders');
+        }
       } else {
-        toast.error(response.message || 'Failed to place order');
+        toast.error(response?.message || 'Failed to place order');
       }
     } catch (error) {
-      console.error('Order error:', error);
-      toast.error('An error occurred while processing your order');
+      console.error('❌ Error placing order:', error);
+      
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please login again.');
+        navigate('/login');
+      } else if (error.response?.status === 400) {
+        toast.error(error.response.data?.message || 'Invalid order data');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to place order. Please try again.');
+      }
     } finally {
-      setLoading(false);
-      setIsProcessingPayment(false);
+      setIsProcessing(false);
     }
   };
 
-  const renderStepContent = () => {
-    switch (activeStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-white">
-              <FiUser className="text-indigo-500" />
-              Shipping Information
-            </h3>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">First Name *</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">Last Name *</label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">Email *</label>
-                <div className="relative">
-                  <FiMail className="absolute text-gray-400 left-3 top-3" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 pl-10 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                    required
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">Phone *</label>
-                <div className="relative">
-                  <FiPhone className="absolute text-gray-400 left-3 top-3" />
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 pl-10 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium text-gray-300">Address *</label>
-              <div className="relative">
-                <FiMapPin className="absolute text-gray-400 left-3 top-3" />
-                <input
-                  type="text"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 pl-10 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">City *</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">State/Province *</label>
-                <input
-                  type="text"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block mb-1 text-sm font-medium text-gray-300">ZIP/Postal Code *</label>
-                <input
-                  type="text"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium text-gray-300">Country</label>
-              <select
-                name="country"
-                value={formData.country}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 text-white border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-              >
-                <option value="Kenya" className="bg-gray-800">Kenya</option>
-                <option value="Uganda" className="bg-gray-800">Uganda</option>
-                <option value="Tanzania" className="bg-gray-800">Tanzania</option>
-                <option value="Rwanda" className="bg-gray-800">Rwanda</option>
-                <option value="Burundi" className="bg-gray-800">Burundi</option>
-                <option value="South Sudan" className="bg-gray-800">South Sudan</option>
-                <option value="Ethiopia" className="bg-gray-800">Ethiopia</option>
-                <option value="Somalia" className="bg-gray-800">Somalia</option>
-                <option value="DRC" className="bg-gray-800">DR Congo</option>
-                <option value="Other" className="bg-gray-800">Other</option>
-              </select>
-            </div>
-
-            {/* SHIPPING METHOD SELECTION */}
-            <div>
-              <label className="block mb-3 text-sm font-medium text-gray-300">Shipping Method</label>
-              <div className="space-y-3">
-                {[
-                  { 
-                    id: 'standard', 
-                    label: 'Standard Shipping', 
-                    desc: '5-7 business days', 
-                    price: 0,
-                    icon: <FiPackage />
-                  },
-                  { 
-                    id: 'express', 
-                    label: 'Express Shipping', 
-                    desc: '2-3 business days', 
-                    price: 500,
-                    icon: <FiTruck />
-                  },
-                  { 
-                    id: 'overnight', 
-                    label: 'Overnight Shipping', 
-                    desc: 'Next business day', 
-                    price: 1500,
-                    icon: <FiClock />
-                  }
-                ].map(method => {
-                  // Check if any items have free shipping
-                  const hasFreeShippingItems = cart.items.some(i => i.freeShipping);
-                  const methodPrice = hasFreeShippingItems && method.id === 'standard' ? 0 : method.price;
-                  
-                  return (
-                    <label key={method.id} className="flex items-center p-4 transition-all border border-gray-700 rounded-lg cursor-pointer bg-gray-800/95 backdrop-blur-sm hover:border-indigo-500/50 group">
-                      <input
-                        type="radio"
-                        name="shippingMethod"
-                        value={method.id}
-                        checked={formData.shippingMethod === method.id}
-                        onChange={handleInputChange}
-                        className="mr-3 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <div className="flex items-center flex-1 gap-3">
-                        <span className="text-gray-400 group-hover:text-indigo-500">{method.icon}</span>
-                        <div>
-                          <div className="font-medium text-white">{method.label}</div>
-                          <div className="text-sm text-gray-400">{method.desc}</div>
-                        </div>
-                      </div>
-                      <div className="font-semibold text-indigo-500">
-                        {methodPrice === 0 ? 'Free' : formatKES(methodPrice)}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Order Notes */}
-            <div>
-              <label className="block mb-1 text-sm font-medium text-gray-300">Order Notes (Optional)</label>
-              <textarea
-                name="notes"
-                rows={3}
-                value={formData.notes}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 text-white placeholder-gray-400 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
-                placeholder="Special instructions for delivery..."
-              />
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-white">
-              <FiCreditCard className="text-indigo-500" />
-              Payment Information
-            </h3>
-
-            <div className="space-y-4">
-              {[
-                { id: 'mpesa', label: 'M-Pesa', icon: <FiCreditCard />, desc: 'Pay via M-Pesa (Safaricom)' },
-                { id: 'delivery', label: 'Pay on Delivery', icon: <FiTruck />, desc: 'Cash or card on delivery' },
-                { id: 'paypal', label: 'PayPal', icon: <FiGlobe />, desc: 'Secure PayPal payment' }
-              ].map(method => (
-                <label key={method.id} className="flex items-center p-4 transition-all border border-gray-700 rounded-lg cursor-pointer bg-gray-800/95 backdrop-blur-sm hover:border-indigo-500/50 group">
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={method.id}
-                    checked={formData.paymentMethod === method.id}
-                    onChange={handleInputChange}
-                    className="mr-3 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div className="flex items-center flex-1 gap-3">
-                    <span className="text-gray-400 group-hover:text-indigo-500">{method.icon}</span>
-                    <div>
-                      <div className="font-medium text-white">{method.label}</div>
-                      <div className="text-sm text-gray-400">{method.desc}</div>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">Secure</span>
-                </label>
-              ))}
-            </div>
-
-            {formData.paymentMethod === 'mpesa' && (
-              <div className="p-4 space-y-4 border rounded-lg border-indigo-500/30 bg-indigo-600/10">
-                <h4 className="font-medium text-indigo-400">M-Pesa Payment Instructions</h4>
-                <ol className="ml-4 space-y-2 text-sm text-indigo-300 list-decimal">
-                  <li>Go to M-Pesa menu on your phone</li>
-                  <li>Select "Lipa Na M-Pesa"</li>
-                  <li>Enter Business No: <strong className="text-white">123456</strong></li>
-                  <li>Enter Account No: <strong className="text-white">{Math.random().toString(36).substring(7).toUpperCase()}</strong></li>
-                  <li>Enter Amount: <strong className="text-white">{formatKES(calculateTotal())}</strong></li>
-                  <li>Enter your M-Pesa PIN and confirm</li>
-                  <li>You'll receive a confirmation SMS</li>
-                </ol>
-                <p className="mt-2 text-xs text-indigo-400">
-                  Your order will be processed immediately after payment confirmation
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center text-sm text-gray-400">
-              <FiLock className="mr-2 text-indigo-500" />
-              <span>Your payment information is secure and encrypted</span>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-white">
-              <FiCheck className="text-green-500" />
-              Order Summary
-            </h3>
-
-            <div className="p-6 border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm">
-              <div className="space-y-4">
-                <div>
-                  <h4 className="mb-2 font-semibold text-white">Shipping Details</h4>
-                  <p className="text-gray-300">
-                    {formData.firstName} {formData.lastName}<br />
-                    {formData.address}<br />
-                    {formData.city}, {formData.state} {formData.zipCode}<br />
-                    {formData.country}<br />
-                    📧 {formData.email}<br />
-                    📱 {formData.phone}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="mb-2 font-semibold text-white">Shipping Method</h4>
-                  <p className="text-gray-300">
-                    {formData.shippingMethod === 'standard' ? 'Standard Shipping (5-7 days)' :
-                     formData.shippingMethod === 'express' ? 'Express Shipping (2-3 days)' :
-                     'Overnight Shipping (Next day)'}
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="mb-2 font-semibold text-white">Payment Method</h4>
-                  <p className="text-gray-300">
-                    {formData.paymentMethod === 'mpesa' ? 'M-Pesa' :
-                     formData.paymentMethod === 'delivery' ? 'Pay on Delivery' :
-                     'PayPal'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-gray-700">
-              <h4 className="mb-3 font-semibold text-white">Order Items</h4>
-              <div className="space-y-3 overflow-y-auto max-h-60">
-                {cart.items.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border border-gray-700 rounded-lg bg-gray-800/95">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-12 h-12 bg-gray-700 rounded">
-                        {item.images?.[0]?.url ? (
-                          <img 
-                            src={item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:5000${item.images[0].url}`} 
-                            alt={item.name} 
-                            className="object-cover w-full h-full rounded"
-                            onError={(e) => {
-                              e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=50&h=50&fit=crop';
-                            }}
-                          />
-                        ) : (
-                          <FiPackage className="text-gray-400" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium text-white">{item.name}</div>
-                        <div className="text-sm text-gray-400">Qty: {item.quantity}</div>
-                        {item.sku && <div className="text-xs text-gray-500">SKU: {item.sku}</div>}
-                        
-                        {/* Shipping info for this item */}
-                        {item.requiresShipping !== false && (
-                          <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
-                            {item.weight > 0 && (
-                              <span className="flex items-center">
-                                <FiScale className="mr-1" /> {item.weight}{item.weightUnit}
-                              </span>
-                            )}
-                            {item.dimensions && (item.dimensions.length || item.dimensions.width || item.dimensions.height) && (
-                              <span className="flex items-center">
-                                <FiRuler className="mr-1" /> {item.dimensions.length || 0}×{item.dimensions.width || 0}×{item.dimensions.height || 0}{item.dimensions.unit || 'cm'}
-                              </span>
-                            )}
-                            {item.freeShipping && (
-                              <span className="text-green-500">Free Shipping</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="font-semibold text-indigo-500">
-                      {formatKES((item.discountPrice || item.price) * item.quantity)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
-  if (orderId && !order) {
-    // Fetch existing order if orderId is provided
-    useEffect(() => {
-      const fetchOrder = async () => {
-        try {
-          const response = await clientOrderService.getOrder(orderId);
-          if (response.success) {
-            setOrder(response.order);
-          }
-        } catch (error) {
-          console.error('Error fetching order:', error);
-        }
-      };
-
-      fetchOrder();
-    }, [orderId]);
-  }
+  const summary = getCartSummary();
+  const subtotal = isDirectCheckout ? checkoutTotal : summary.subtotal;
+  const total = subtotal + shippingFee;
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Full-page Background Image */}
-      <div className="fixed inset-0">
-        <img 
-          src={checkoutBackgroundImage}
-          alt="Background"
-          className="object-cover w-full h-full"
-        />
-        {/* Dark overlay for better text visibility */}
-        <div className="absolute inset-0 bg-black/60"></div>
-        {/* Bottom gradient - indigo/blue/cyan */}
-        <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
-        {/* Final black gradient at the very bottom */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-      </div>
+      <TopBar />
 
-      {/* Animated Glow Orbs */}
-      <div className="fixed rounded-full pointer-events-none w-96 h-96 bg-indigo-600/30 blur-3xl -top-48 -left-48 animate-pulse"></div>
-      <div className="fixed delay-1000 rounded-full pointer-events-none w-96 h-96 bg-blue-600/30 blur-3xl -bottom-48 -right-48 animate-pulse"></div>
-
-      {/* Top Bar */}
-      <div className="sticky top-0 z-50">
-        <TopBar />
-      </div>
-
-      {/* Main Content */}
-      <main className="relative z-10 max-w-6xl px-4 py-8 mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center mb-4 text-indigo-500 transition-colors hover:text-indigo-400"
-          >
-            <FiArrowLeft className="mr-2" />
-            Back to Cart
-          </button>
-          <h1 className="text-3xl font-bold text-white">Checkout</h1>
-          <p className="mt-2 text-gray-400">Complete your purchase securely</p>
+      {/* Header Image - COMPACT */}
+      <div 
+        className="relative w-full h-32 overflow-hidden sm:h-36 md:h-40"
+        data-aos="fade-in"
+        data-aos-duration="1500"
+      >
+        <div className="absolute inset-0">
+          <img 
+            src={checkoutHeaderImage}
+            alt="Checkout"
+            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
         </div>
-
-        <div className="flex flex-col gap-8 lg:flex-row">
-          {/* Left Column - Checkout Form */}
-          <div className="lg:w-2/3">
-            {/* Progress Steps */}
-            <div className="p-6 mb-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                {steps.map((step, index) => (
-                  <React.Fragment key={step.id}>
-                    <div className="flex flex-col items-center">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2
-                        ${activeStep >= step.id ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white' : 'bg-gray-800 text-gray-400'}
-                        ${activeStep === step.id ? 'ring-4 ring-indigo-500/50' : ''}`}>
-                        {activeStep > step.id ? <FiCheck /> : step.icon}
-                      </div>
-                      <span className={`text-sm font-medium ${activeStep >= step.id ? 'text-indigo-500' : 'text-gray-500'}`}>
-                        {step.title}
-                      </span>
-                    </div>
-                    {index < steps.length - 1 && (
-                      <div className={`flex-1 h-1 mx-4 ${activeStep > step.id ? 'bg-gradient-to-r from-indigo-600 to-blue-600' : 'bg-gray-800'}`} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-
-            {/* Step Content */}
-            <div className="p-6 mb-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
-              {renderStepContent()}
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between">
-              {activeStep > 1 && (
-                <button
-                  onClick={handlePreviousStep}
-                  className="px-6 py-3 text-white transition-colors border border-gray-700 rounded-lg hover:bg-gray-800"
-                  disabled={loading}
-                >
-                  Previous
-                </button>
-              )}
-
-              {activeStep < 3 ? (
-                <button
-                  onClick={handleNextStep}
-                  className="px-6 py-3 ml-auto text-white transition-all rounded-lg bg-gradient-to-r from-indigo-600 to-blue-600 hover:opacity-90"
-                >
-                  Continue to {steps.find(s => s.id === activeStep + 1)?.title}
-                </button>
-              ) : (
-                <button
-                  onClick={handlePlaceOrder}
-                  disabled={loading || isProcessingPayment}
-                  className="flex items-center gap-2 px-8 py-3 ml-auto text-white transition-all rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessingPayment ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <FiLock />
-                      Place Order
-                    </>
-                  )}
-                </button>
-              )}
+        
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full px-4 mx-auto max-w-7xl">
+            <div 
+              className="max-w-2xl"
+              data-aos="fade-right"
+              data-aos-duration="1200"
+            >
+              <h1 className="text-lg font-bold text-white sm:text-xl md:text-2xl">CHECKOUT</h1>
+              <p className="text-xs text-gray-300">
+                {isDirectCheckout ? 'Complete your purchase' : 'Complete your order'}
+              </p>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Right Column - Order Summary */}
-          <div className="lg:w-1/3">
-            <div className="sticky p-6 border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm top-8">
-              <h2 className="mb-6 text-xl font-bold text-white">Order Summary</h2>
+      {/* Main Content - COMPACT */}
+      <div className="container px-3 py-3 mx-auto max-w-7xl sm:px-4">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1 mb-2 text-xs">
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-yellow-500">Home</button>
+          <FiChevronRight className="w-2 h-2 text-gray-600" />
+          <button onClick={() => navigate('/shop')} className="text-gray-400 hover:text-yellow-500">Shop</button>
+          <FiChevronRight className="w-2 h-2 text-gray-600" />
+          {!isDirectCheckout && (
+            <>
+              <button onClick={() => navigate('/cart')} className="text-gray-400 hover:text-yellow-500">Cart</button>
+              <FiChevronRight className="w-2 h-2 text-gray-600" />
+            </>
+          )}
+          <span className="font-medium text-white truncate">Checkout</span>
+        </nav>
 
-              {/* Order Items Preview */}
-              <div className="mb-6 space-y-3 overflow-y-auto max-h-80">
-                {cart.items.map(item => {
+        {/* Progress Steps - COMPACT */}
+        <div className="flex items-center justify-center mb-3">
+          <div className="flex items-center">
+            <div className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+              step >= 1 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'
+            }`}>
+              <span className="text-xs font-medium text-white">1</span>
+            </div>
+            <span className={`ml-1 text-xs hidden sm:inline ${step >= 1 ? 'text-yellow-500' : 'text-gray-500'}`}>Address</span>
+          </div>
+          <div className={`w-8 h-0.5 mx-1.5 ${step >= 2 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'}`}></div>
+          <div className="flex items-center">
+            <div className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+              step >= 2 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'
+            }`}>
+              <span className="text-xs font-medium text-white">2</span>
+            </div>
+            <span className={`ml-1 text-xs hidden sm:inline ${step >= 2 ? 'text-yellow-500' : 'text-gray-500'}`}>Payment</span>
+          </div>
+          <div className={`w-8 h-0.5 mx-1.5 ${step >= 3 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'}`}></div>
+          <div className="flex items-center">
+            <div className={`flex items-center justify-center w-5 h-5 rounded-full text-xs ${
+              step >= 3 ? 'bg-gradient-to-r from-yellow-600 to-orange-600' : 'bg-gray-800'
+            }`}>
+              <span className="text-xs font-medium text-white">3</span>
+            </div>
+            <span className={`ml-1 text-xs hidden sm:inline ${step >= 3 ? 'text-yellow-500' : 'text-gray-500'}`}>Review</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 lg:flex-row">
+          {/* Left Column - Forms */}
+          <div className="lg:w-2/3 space-y-3">
+            {/* Step 1: Shipping Address */}
+            {step === 1 && (
+              <div 
+                className="order-summary-card"
+                data-aos="fade-right"
+                data-aos-duration="800"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-semibold text-white">Shipping Address</h2>
+                  {savedAddresses.length > 0 && (
+                    <button
+                      onClick={() => setShowSavedAddresses(!showSavedAddresses)}
+                      className="text-xs text-yellow-500 hover:text-yellow-400"
+                    >
+                      {showSavedAddresses ? 'Hide' : 'Use saved'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Saved Addresses - COMPACT */}
+                {showSavedAddresses && savedAddresses.length > 0 && (
+                  <div className="mb-2 space-y-1 max-h-28 overflow-y-auto custom-scrollbar">
+                    {savedAddresses.map((saved) => (
+                      <div
+                        key={saved.id}
+                        onClick={() => loadAddress(saved)}
+                        className="flex items-center justify-between p-1.5 text-xs transition-colors border border-gray-800 rounded-lg cursor-pointer bg-gray-800/30 hover:border-yellow-500/50"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{saved.fullName}</p>
+                          <p className="text-gray-400">{saved.addressLine}, {saved.town}</p>
+                        </div>
+                        <FiEdit2 className="w-3 h-3 text-gray-500" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <AddressForm 
+                  address={address} 
+                  setAddress={setAddress} 
+                  errors={errors} 
+                  setShippingFee={setShippingFee}
+                />
+
+                {/* Shipping Fee Preview - COMPACT */}
+                {shippingFee > 0 && (
+                  <div className="flex items-center justify-between p-1.5 mt-2 text-xs border border-yellow-500/20 rounded-lg bg-yellow-600/10">
+                    <span className="text-gray-400">Shipping Fee:</span>
+                    <span className="font-semibold text-yellow-500">{formatKES(shippingFee)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 2: Payment Method */}
+            {step === 2 && (
+              <div 
+                className="order-summary-card"
+                data-aos="fade-right"
+                data-aos-duration="800"
+              >
+                <h2 className="mb-2 text-sm font-semibold text-white">Payment Method</h2>
+                <div className="space-y-1.5">
+                  {paymentMethods.map((method) => (
+                    <PaymentMethodCard
+                      key={method.id}
+                      method={method.id}
+                      selected={paymentMethod === method.id}
+                      onSelect={setPaymentMethod}
+                      icon={method.icon}
+                      title={method.title}
+                      description={method.description}
+                    />
+                  ))}
+                </div>
+
+                {paymentMethod === 'mpesa' && (
+                  <div className="p-1.5 mt-2 text-xs border rounded-lg border-yellow-500/20 bg-yellow-600/10">
+                    <p className="text-yellow-500">
+                      You'll receive an M-Pesa prompt
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step 3: Review Order */}
+            {step === 3 && (
+              <div 
+                className="order-summary-card"
+                data-aos="fade-right"
+                data-aos-duration="800"
+              >
+                <h2 className="mb-2 text-sm font-semibold text-white">Review Order</h2>
+                
+                {/* Shipping Address Review - COMPACT */}
+                <div className="p-1.5 mb-1.5 text-xs border border-gray-800 rounded-lg">
+                  <h3 className="mb-0.5 font-medium text-yellow-500">Shipping Address</h3>
+                  <p className="text-white">{address.fullName}</p>
+                  <p className="text-gray-400">{address.addressLine}, {address.town}</p>
+                  <p className="text-gray-400">{address.city}, {address.county}</p>
+                  <p className="text-gray-400">Phone: {address.phone}</p>
+                </div>
+
+                {/* Payment Method Review - COMPACT */}
+                <div className="p-1.5 mb-1.5 text-xs border border-gray-800 rounded-lg">
+                  <h3 className="mb-0.5 font-medium text-yellow-500">Payment Method</h3>
+                  <p className="text-white capitalize">
+                    {paymentMethods.find(m => m.id === paymentMethod)?.title || paymentMethod}
+                  </p>
+                </div>
+
+                {/* Items Review - COMPACT */}
+                <div>
+                  <h3 className="mb-1 text-xs font-medium text-yellow-500">Items</h3>
+                  <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                    {checkoutItems.map((item) => (
+                      <OrderItem key={item.id} item={item} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Order Summary - COMPACT */}
+          <div 
+            className="lg:w-1/3"
+            data-aos="fade-left"
+            data-aos-duration="800"
+          >
+            <div className="sticky order-summary-card top-4">
+              <h2 className="flex items-center gap-1 mb-2 text-sm font-semibold text-white">
+                <FiPackage className="w-4 h-4 text-yellow-500" />
+                Order Summary
+              </h2>
+
+              {/* Items Preview - COMPACT */}
+              <div className="mb-2 space-y-1 max-h-32 overflow-y-auto text-xs custom-scrollbar">
+                {checkoutItems.map((item) => {
                   const price = item.discountPrice || item.price || 0;
-                  const itemTotal = price * item.quantity;
-                  
                   return (
-                    <div key={item.id} className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-16 h-16 bg-gray-800 rounded">
-                        {item.images?.[0]?.url ? (
-                          <img 
-                            src={item.images[0].url.startsWith('http') ? item.images[0].url : `http://localhost:5000${item.images[0].url}`} 
-                            alt={item.name} 
-                            className="object-cover w-full h-full rounded"
-                            onError={(e) => {
-                              e.target.src = 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop';
-                            }}
-                          />
-                        ) : (
-                          <FiPackage className="text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-medium text-white line-clamp-2">{item.name}</div>
-                        <div className="text-sm text-gray-400">Qty: {item.quantity}</div>
-                      </div>
-                      <div className="font-semibold text-indigo-500">
-                        {formatKES(itemTotal)}
-                      </div>
+                    <div key={item.id} className="flex justify-between">
+                      <span className="text-gray-400 truncate max-w-[100px]">
+                        {item.name} <span className="text-gray-500">×{item.quantity}</span>
+                      </span>
+                      <span className="text-white">{formatKES(price * item.quantity)}</span>
                     </div>
                   );
                 })}
               </div>
 
-              {/* SHIPPING DETAILS SUMMARY */}
-              <div className="p-4 mt-4 border border-gray-700 rounded-lg bg-gray-800/95">
-                <h4 className="flex items-center mb-3 font-medium text-white">
-                  <FiTruck className="w-4 h-4 mr-2 text-indigo-500" />
-                  Shipping Details
-                </h4>
+              {/* Totals - COMPACT */}
+              <div className="pt-1.5 space-y-1 text-xs border-t border-gray-800">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Subtotal</span>
+                  <span className="text-white">{formatKES(subtotal)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Shipping</span>
+                  <span className="text-yellow-500">{formatKES(shippingFee)}</span>
+                </div>
+                <div className="pt-1 mt-1 text-sm font-bold border-t border-gray-800">
+                  <div className="flex justify-between">
+                    <span className="text-white">Total</span>
+                    <span className="text-yellow-500 glow-text">{formatKES(total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Buttons - COMPACT */}
+              <div className="flex gap-1.5 mt-3">
+                {step > 1 && (
+                  <button
+                    onClick={handlePrevStep}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-gray-300 transition-colors border border-gray-700 rounded-full btn-outline"
+                  >
+                    Back
+                  </button>
+                )}
                 
-                {cart.items.map(item => (
-                  item.requiresShipping !== false && (
-                    <div key={item.id} className="pb-3 mb-3 text-sm border-b border-gray-700 last:border-0 last:pb-0">
-                      <div className="flex justify-between">
-                        <span className="font-medium text-gray-300">{item.name}</span>
-                        {item.freeShipping ? (
-                          <span className="font-medium text-green-500">Free</span>
-                        ) : item.flatShippingRate > 0 ? (
-                          <span className="font-medium text-indigo-500">{formatKES(item.flatShippingRate)}</span>
-                        ) : (
-                          <span className="text-gray-500">Calculated</span>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-500">
-                        {item.weight > 0 && (
-                          <span className="flex items-center">
-                            <FiScale className="mr-1" /> {item.weight}{item.weightUnit}
-                          </span>
-                        )}
-                        {item.dimensions && (item.dimensions.length || item.dimensions.width || item.dimensions.height) && (
-                          <span className="flex items-center">
-                            <FiRuler className="mr-1" /> {item.dimensions.length || 0}×{item.dimensions.width || 0}×{item.dimensions.height || 0}{item.dimensions.unit || 'cm'}
-                          </span>
-                        )}
-                        {item.estimatedDeliveryMin && item.estimatedDeliveryMax && (
-                          <span className="flex items-center">
-                            <FiClock className="mr-1" /> {item.estimatedDeliveryMin}-{item.estimatedDeliveryMax} days
-                          </span>
-                        )}
-                      </div>
-                      {item.shippingZones && item.shippingZones.length > 0 && (
-                        <div className="mt-1 text-xs text-amber-500" title={`Restricted to: ${item.shippingZones.map(formatZoneName).join(', ')}`}>
-                          ⚠️ Restricted shipping zones apply
-                        </div>
-                      )}
-                      {item.internationalShipping && (
-                        <div className="mt-1 text-xs text-indigo-500">
-                          <FiGlobe className="inline mr-1" />
-                          International shipping available
-                        </div>
-                      )}
-                    </div>
-                  )
-                ))}
-
-                {/* Selected Shipping Method */}
-                <div className="pt-3 mt-3 border-t border-gray-700">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-gray-300">Shipping Method:</span>
-                    <span className="text-indigo-500 capitalize">
-                      {formData.shippingMethod === 'standard' ? 'Standard' :
-                       formData.shippingMethod === 'express' ? 'Express' :
-                       'Overnight'}
-                    </span>
-                  </div>
-                </div>
+                {step < 3 ? (
+                  <button
+                    onClick={handleNextStep}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white rounded-full btn-gradient"
+                  >
+                    Continue
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isProcessing}
+                    className="flex-1 px-2 py-1.5 text-xs font-medium text-white rounded-full btn-gradient disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <span className="flex items-center justify-center gap-1">
+                        <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        <span>Processing</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-1">
+                        Place Order
+                        <BsArrowRight className="w-3 h-3" />
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
 
-              {/* Order Totals */}
-              <div className="pt-4 space-y-3 border-t border-gray-700">
-                <div className="flex justify-between text-gray-400">
-                  <span>Subtotal</span>
-                  <span className="text-white">{formatKES(calculateSubtotal())}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Shipping</span>
-                  <span className="text-indigo-500">{shippingCost === 0 ? 'Free' : formatKES(shippingCost)}</span>
-                </div>
-                <div className="flex justify-between text-gray-400">
-                  <span>Tax (8%)</span>
-                  <span className="text-white">{formatKES(calculateTax())}</span>
-                </div>
-                <div className="flex justify-between pt-3 text-lg font-bold border-t border-gray-700">
-                  <span className="text-white">Total</span>
-                  <span className="text-indigo-500 glow-text">{formatKES(calculateTotal())}</span>
-                </div>
-              </div>
-
-              {/* Security Badge */}
-              <div className="p-4 mt-6 border rounded-lg bg-indigo-600/10 border-indigo-600/20">
-                <div className="flex items-center gap-3 text-sm text-indigo-400">
-                  <FiShield className="text-indigo-500" />
-                  <div>
-                    <div className="font-medium">Secure Checkout</div>
-                    <div className="text-xs text-indigo-400/80">Your information is encrypted and secure</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Return Policy */}
-              <div className="mt-4 text-xs text-center text-gray-500">
-                By placing your order, you agree to our{' '}
-                <a href="/terms" className="text-indigo-500 hover:text-indigo-400 hover:underline">Terms of Service</a>
-                {' '}and{' '}
-                <a href="/privacy" className="text-indigo-500 hover:text-indigo-400 hover:underline">Privacy Policy</a>
+              {/* Security Note - COMPACT */}
+              <div className="flex items-center justify-center gap-1 mt-2 text-xs text-yellow-500">
+                <FiShield className="w-3 h-3" />
+                <span>Secure checkout</span>
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      {/* Custom Scrollbar Styles - UPDATED colors */}
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(31, 41, 55, 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(245, 158, 11, 0.5);
+          border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(245, 158, 11, 0.8);
+        }
+      `}</style>
     </div>
   );
 };

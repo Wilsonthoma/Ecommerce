@@ -1,4 +1,4 @@
-// src/pages/Product.jsx - WITH UNIFORM GRADIENT and header banner matching Shop page
+// src/pages/Product.jsx - COMPLETE FIXED with Yellow-Orange Theme
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -40,7 +40,7 @@ import { useWishlist } from '../context/WishlistContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles matching homepage
+// Font styles with Yellow-Orange theme
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -77,7 +77,7 @@ const fontStyles = `
   .price-large {
     font-weight: 800;
     font-size: clamp(1.4rem, 4vw, 1.6rem);
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -89,23 +89,23 @@ const fontStyles = `
     color: #9CA3AF;
   }
   
-  /* TINY BUTTONS - 1/4 of original size */
+  /* TINY BUTTONS */
   .btn-primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+    background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
     color: white;
     font-weight: 500;
     padding: 0.2rem 0.6rem;
     border-radius: 9999px;
     transition: all 0.3s ease;
     border: none;
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
     font-size: 0.65rem;
     letter-spacing: 0.02em;
   }
   
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
   }
   
   .btn-secondary {
@@ -120,8 +120,8 @@ const fontStyles = `
   }
   
   .btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.5);
-    background: rgba(255, 255, 255, 0.05);
+    border-color: #F59E0B;
+    background: rgba(245, 158, 11, 0.1);
   }
   
   .btn-wishlist {
@@ -136,12 +136,12 @@ const fontStyles = `
   }
   
   .btn-wishlist:hover {
-    border-color: rgba(239, 68, 68, 0.8);
+    border-color: #EF4444;
     background: rgba(239, 68, 68, 0.1);
   }
   
   .btn-wishlist.active {
-    background: linear-gradient(135deg, #EF4444, #EC4899);
+    background: linear-gradient(135deg, #EF4444, #F59E0B);
     border: none;
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
   }
@@ -156,7 +156,7 @@ const fontStyles = `
   }
   
   .info-icon:hover {
-    border-color: #3B82F6;
+    border-color: #F59E0B;
     transform: translateY(-1px);
   }
   
@@ -169,13 +169,13 @@ const fontStyles = `
   }
   
   .badge-primary {
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
   }
   
   .badge-discount {
@@ -199,27 +199,27 @@ const fontStyles = `
   }
   
   .badge-trending {
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 5px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
   }
   
   .badge-new {
-    background: linear-gradient(135deg, #10B981, #3B82F6);
+    background: linear-gradient(135deg, #F59E0B, #EF4444);
     color: white;
     font-weight: 600;
     padding: 0.1rem 0.4rem;
     border-radius: 9999px;
     font-size: 0.6rem;
-    box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
   }
   
   .glow-text {
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
   }
 `;
 
@@ -260,7 +260,7 @@ const animationStyles = `
   }
   
   .glow-text {
-    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
   }
   
   .scrollbar-hide::-webkit-scrollbar {
@@ -273,8 +273,8 @@ const animationStyles = `
   }
 `;
 
-// Gradient for header bottom transition - indigo/blue/cyan (matching Shop page)
-const headerGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+// Gradient for header bottom transition - Yellow-Orange
+const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -282,10 +282,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Fallback image
 const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-3780681.jpeg?auto=compress&cs=tinysrgb&w=800';
 
-// Product header image (matching Shop page)
+// Product header image
 const productHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Top Bar Component (matching homepage)
+// Top Bar Component - Updated colors
 const TopBar = () => {
   const navigate = useNavigate();
   
@@ -294,7 +294,7 @@ const TopBar = () => {
       <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
         <button 
           onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-white"
+          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
           <FiMapPin className="w-3 h-3" />
           <span>FIND STORE</span>
@@ -302,7 +302,7 @@ const TopBar = () => {
         <span className="text-gray-700">|</span>
         <button 
           onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-white"
+          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
         >
           SHOP ONLINE
         </button>
@@ -598,6 +598,63 @@ const Product = () => {
     setIsAddingToCart(false);
   };
 
+  const handleBuyNow = () => {
+    if (!product) return;
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Please login to continue');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const directCheckoutItem = {
+        id: product._id || product.id,
+        productId: product._id || product.id,
+        name: product.name,
+        price: product.price,
+        discountPrice: product.discountPrice || null,
+        quantity: quantity,
+        image: product.images?.[0]?.url || product.image,
+        images: product.images || [],
+        description: product.description || '',
+        category: product.category || '',
+        brand: product.brand || '',
+        
+        stockQuantity: product.stockQuantity || product.stock || product.quantity || 10,
+        trackQuantity: product.trackQuantity !== false,
+        
+        requiresShipping: product.requiresShipping !== false,
+        freeShipping: product.freeShipping || false,
+        flatShippingRate: product.flatShippingRate || 0,
+        weight: product.weight || 0,
+        estimatedDeliveryMin: product.estimatedDeliveryMin || null,
+        estimatedDeliveryMax: product.estimatedDeliveryMax || null
+      };
+
+      sessionStorage.setItem('directCheckout', JSON.stringify({
+        items: [directCheckoutItem],
+        totalQuantity: quantity,
+        totalPrice: product.price * quantity
+      }));
+
+      navigate('/checkout', { 
+        state: { 
+          directCheckout: true,
+          items: [directCheckoutItem],
+          totalAmount: product.price * quantity
+        } 
+      });
+
+      toast.info('Proceeding to checkout...');
+      
+    } catch (error) {
+      console.error('Error preparing checkout:', error);
+      toast.error('Failed to proceed to checkout');
+    }
+  };
+
   const handleWishlistToggle = async () => {
     if (!isLoggedIn) {
       toast.error('Please login to use wishlist');
@@ -606,6 +663,12 @@ const Product = () => {
     }
     await toggleWishlist(product);
   };
+
+  // ✅ Check if current user has already reviewed this product
+  const userHasReviewed = reviews.some(review => 
+    review.userName === currentUser?.name || 
+    (review.userId && review.userId === currentUser?.id)
+  );
 
   const handleSubmitReview = async () => {
     if (!isLoggedIn) {
@@ -632,7 +695,12 @@ const Product = () => {
         return;
       }
 
-      const reviewData = { rating: userRating, comment: reviewText.trim() };
+      const reviewData = { 
+        rating: userRating, 
+        comment: reviewText.trim()
+      };
+
+      console.log('📤 Submitting review:', reviewData);
 
       let response;
       if (editingReview) {
@@ -640,6 +708,8 @@ const Product = () => {
       } else {
         response = await clientProductService.addProductReview(id, reviewData);
       }
+
+      console.log('📥 Review response:', response);
 
       if (response && response.success) {
         toast.success(editingReview ? 'Review updated successfully!' : 'Review added successfully!');
@@ -654,7 +724,12 @@ const Product = () => {
       }
     } catch (error) {
       console.error('❌ Error submitting review:', error);
-      if (error.response?.status === 401) {
+      
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('already reviewed')) {
+        toast.error('You have already reviewed this product');
+        // Refresh reviews to show the existing review
+        await fetchReviews();
+      } else if (error.response?.status === 401) {
         toast.error('Session expired. Please login again.');
         navigate('/login');
       } else if (error.response?.status === 403) {
@@ -672,7 +747,7 @@ const Product = () => {
   const handleEditReview = (review) => {
     setEditingReview(review);
     setUserRating(review.rating);
-    setReviewText(review.comment);
+    setReviewText(review.comment || review.review || '');
     setShowReviewForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -753,7 +828,7 @@ const Product = () => {
       
       <TopBar />
 
-      {/* Product Header Image - matching Shop page with indigo/blue/cyan gradient */}
+      {/* Product Header Image - Yellow-Orange gradient */}
       <div 
         className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
         data-aos="fade-in"
@@ -767,15 +842,11 @@ const Product = () => {
             alt="Product Details"
             className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
           />
-          {/* Dark overlay for text visibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          {/* Bottom gradient - indigo/blue/cyan that transitions to black (matching Shop page) */}
           <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          {/* Final black gradient at the very bottom to blend with background */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
         </div>
         
-        {/* Header Content */}
         <div className="absolute inset-0 flex items-center">
           <div className="w-full px-6 mx-auto max-w-7xl">
             <div 
@@ -796,18 +867,18 @@ const Product = () => {
         </div>
       </div>
 
-      {/* Main content - continues with black background */}
+      {/* Main content */}
       <div className="container relative px-4 py-6 mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 mb-4 text-xs">
-          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white">Home</button>
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-yellow-500">Home</button>
           <FiChevronRight className="w-3 h-3 text-gray-600" />
-          <button onClick={() => navigate('/shop')} className="text-gray-400 hover:text-white">Shop</button>
+          <button onClick={() => navigate('/shop')} className="text-gray-400 hover:text-yellow-500">Shop</button>
           <FiChevronRight className="w-3 h-3 text-gray-600" />
           <span className="max-w-[150px] font-medium text-white truncate sm:max-w-xs">{product.name}</span>
         </nav>
 
-        {/* Product Main Section - FLEXBOX with balanced gaps */}
+        {/* Product Main Section */}
         <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
           {/* Left Column - Images */}
           <div className="flex-shrink-0 lg:w-72">
@@ -850,7 +921,7 @@ const Product = () => {
                 <div className="absolute z-10 bottom-2 right-2">
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleZoom(); }}
-                    className="p-1.5 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-blue-500/50"
+                    className="p-1.5 transition-all border rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:border-yellow-500/50"
                   >
                     {isZooming ? (
                       <FiMinimize2 className="w-3 h-3 text-white" />
@@ -869,7 +940,7 @@ const Product = () => {
                       key={index}
                       onClick={() => setSelectedImageIndex(index)}
                       className={`w-12 h-12 rounded-lg overflow-hidden border ${
-                        selectedImageIndex === index ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-700'
+                        selectedImageIndex === index ? 'border-yellow-500 ring-1 ring-yellow-500' : 'border-gray-700'
                       }`}
                     >
                       <img src={image.url} alt="" className="object-cover w-full h-full" />
@@ -884,11 +955,11 @@ const Product = () => {
           <div className="flex-1 space-y-3">
             {/* Category */}
             <div className="flex gap-1">
-              <span className="inline-block px-2 py-0.5 text-xs font-medium text-blue-500 border rounded-full bg-blue-500/10 border-blue-500/30">
+              <span className="inline-block px-2 py-0.5 text-xs font-medium text-yellow-500 border rounded-full bg-yellow-500/10 border-yellow-500/30">
                 {product.category || 'Uncategorized'}
               </span>
               {product.subcategory && (
-                <span className="inline-block px-2 py-0.5 text-xs font-medium text-purple-500 border rounded-full bg-purple-500/10 border-purple-500/30">
+                <span className="inline-block px-2 py-0.5 text-xs font-medium text-orange-500 border rounded-full bg-orange-500/10 border-orange-500/30">
                   {product.subcategory}
                 </span>
               )}
@@ -978,7 +1049,7 @@ const Product = () => {
                 </button>
 
                 <button
-                  onClick={() => navigate('/checkout', { state: { product, quantity } })}
+                  onClick={handleBuyNow}
                   className="btn-secondary"
                 >
                   Buy Now
@@ -989,7 +1060,7 @@ const Product = () => {
                   className={`btn-wishlist flex items-center gap-1 ${inWishlist ? 'active' : ''}`}
                 >
                   <FiHeart className={`w-3 h-3 ${inWishlist ? 'fill-white' : ''}`} />
-                  <span>{inWishlist ? 'Remove' : 'Save'}</span>
+                  <span>{inWishlist ? 'Remove' : 'Wishlist'}</span>
                 </button>
               </div>
             )}
@@ -1008,22 +1079,22 @@ const Product = () => {
             {/* Info Icons */}
             <div className="grid grid-cols-4 gap-2 pt-2">
               <div className="flex flex-col items-center p-2 info-icon">
-                <FiTruck className="w-4 h-4 text-blue-500" />
+                <FiTruck className="w-4 h-4 text-yellow-500" />
                 <span className="text-xs text-white">Free</span>
                 <span className="text-[8px] text-gray-400">Shipping</span>
               </div>
               <div className="flex flex-col items-center p-2 info-icon">
-                <FiShield className="w-4 h-4 text-green-500" />
+                <FiShield className="w-4 h-4 text-yellow-500" />
                 <span className="text-xs text-white">2Y</span>
                 <span className="text-[8px] text-gray-400">Warranty</span>
               </div>
               <div className="flex flex-col items-center p-2 info-icon">
-                <FiRefreshCw className="w-4 h-4 text-purple-500" />
+                <FiRefreshCw className="w-4 h-4 text-yellow-500" />
                 <span className="text-xs text-white">30D</span>
                 <span className="text-[8px] text-gray-400">Returns</span>
               </div>
               <div className="flex flex-col items-center p-2 info-icon">
-                <FiShare2 className="w-4 h-4 text-orange-500" />
+                <FiShare2 className="w-4 h-4 text-yellow-500" />
                 <span className="text-xs text-white">24/7</span>
                 <span className="text-[8px] text-gray-400">Support</span>
               </div>
@@ -1060,7 +1131,12 @@ const Product = () => {
               </div>
               
               <div className="w-20">
-                {!showReviewForm ? (
+                {/* ✅ OPTION 2: Show "Already Reviewed" message if user has reviewed */}
+                {userHasReviewed ? (
+                  <div className="text-xs text-yellow-500 text-center py-1.5 bg-yellow-500/10 rounded-full border border-yellow-500/30">
+                    Already Reviewed
+                  </div>
+                ) : !showReviewForm ? (
                   <button
                     onClick={() => {
                       if (!isLoggedIn) {
@@ -1086,8 +1162,8 @@ const Product = () => {
             </div>
           </div>
 
-          {/* Review Form */}
-          {showReviewForm && (
+          {/* Review Form - Only show if user hasn't reviewed */}
+          {showReviewForm && !userHasReviewed && (
             <div className="p-3 mb-3 border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50">
               <RatingStars interactive={true} size="w-4 h-4" />
               <textarea
@@ -1113,7 +1189,7 @@ const Product = () => {
                 <div key={review._id || review.id} className="p-3 testimonial-card">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-blue-600 to-purple-600">
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
                         <FiUser className="w-3 h-3 text-white" />
                       </div>
                       <div>
@@ -1126,7 +1202,7 @@ const Product = () => {
                     </div>
                     {isLoggedIn && currentUser && currentUser.name === review.userName && (
                       <div className="flex gap-1">
-                        <button onClick={() => handleEditReview(review)} className="p-1 text-gray-400 hover:text-blue-500">
+                        <button onClick={() => handleEditReview(review)} className="p-1 text-gray-400 hover:text-yellow-500">
                           <FiEdit2 className="w-3 h-3" />
                         </button>
                         <button onClick={() => handleDeleteReview(review._id)} className="p-1 text-gray-400 hover:text-red-500">
@@ -1138,7 +1214,7 @@ const Product = () => {
                   <div className="flex items-center gap-0.5 mt-1">
                     {renderStars(review.rating, "w-2.5 h-2.5")}
                   </div>
-                  <p className="mt-1 text-xs text-gray-300">{review.comment}</p>
+                  <p className="mt-1 text-xs text-gray-300">{review.comment || review.review}</p>
                 </div>
               ))
             ) : (
@@ -1172,8 +1248,8 @@ const Product = () => {
                     <div className="relative mb-1 overflow-hidden border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800 to-gray-900 aspect-square">
                       <img src={getFullImageUrl(relatedImage)} alt={relatedProduct.name} className="object-cover w-full h-full transition-transform group-hover:scale-110" />
                     </div>
-                    <h3 className="text-xs font-medium text-white truncate group-hover:text-blue-500">{relatedProduct.name}</h3>
-                    <p className="text-xs font-bold text-blue-500">{formatKES(relatedProduct.price)}</p>
+                    <h3 className="text-xs font-medium text-white truncate group-hover:text-yellow-500">{relatedProduct.name}</h3>
+                    <p className="text-xs font-bold text-yellow-500">{formatKES(relatedProduct.price)}</p>
                   </div>
                 );
               })}
@@ -1186,7 +1262,7 @@ const Product = () => {
       {lightboxOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 bg-black/95 backdrop-blur-xl" onClick={() => setLightboxOpen(false)}>
           <div className="relative flex items-center justify-center w-full h-full" onClick={(e) => e.stopPropagation()}>
-            <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/20 via-blue-600/20 to-cyan-600/20 blur-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/20 via-orange-600/20 to-red-600/20 blur-3xl"></div>
             <div className="relative w-full max-w-4xl">
               <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-3">
                 <div className="px-3 py-1 border rounded-full bg-black/50 border-white/10">
@@ -1198,10 +1274,10 @@ const Product = () => {
               </div>
               {productImages.length > 1 && (
                 <>
-                  <button onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1)} className="absolute p-2 transition-all -translate-y-1/2 border rounded-full left-4 top-1/2 bg-black/50 border-white/10 hover:border-blue-500/50">
+                  <button onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : productImages.length - 1)} className="absolute p-2 transition-all -translate-y-1/2 border rounded-full left-4 top-1/2 bg-black/50 border-white/10 hover:border-yellow-500/50">
                     <FiChevronLeft className="w-5 h-5 text-white" />
                   </button>
-                  <button onClick={() => setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0)} className="absolute p-2 transition-all -translate-y-1/2 border rounded-full right-4 top-1/2 bg-black/50 border-white/10 hover:border-blue-500/50">
+                  <button onClick={() => setSelectedImageIndex(prev => prev < productImages.length - 1 ? prev + 1 : 0)} className="absolute p-2 transition-all -translate-y-1/2 border rounded-full right-4 top-1/2 bg-black/50 border-white/10 hover:border-yellow-500/50">
                     <FiChevronRight className="w-5 h-5 text-white" />
                   </button>
                 </>

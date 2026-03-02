@@ -1,8 +1,10 @@
-// src/pages/Dashboard.jsx - COMPLETELY REDESIGNED MODERN DASHBOARD
+// src/pages/Dashboard.jsx - COMPLETELY REDESIGNED MODERN DASHBOARD with hidden algorithm tracking
 import React, { useContext, useEffect, useState } from 'react';
 import { AppContext } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import clientApi from '../services/client/api';
+import { clientProductService } from '../services/client/products';
+import LoadingSpinner, { ContentLoader } from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import {
   FiUser,
@@ -27,7 +29,8 @@ import {
   FiClock as FiClockIcon,
   FiShoppingCart,
   FiEye,
-  FiGift
+  FiGift,
+  FiCpu
 } from 'react-icons/fi';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -35,8 +38,11 @@ import 'aos/dist/aos.css';
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Background image
+// Dashboard header image (same as Shop page)
 const dashboardHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
+
+// Gradient for header - Yellow-Orange (matching Shop page)
+const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 // Yellow-Orange gradient theme (matching Home.jsx)
 const theme = {
@@ -210,6 +216,10 @@ const Dashboard = () => {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  
   // Data states
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -221,6 +231,13 @@ const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [reviewsCount, setReviewsCount] = useState(0);
+  
+  // Algorithm performance tracking (hidden from UI, only in console)
+  const [loadTimes, setLoadTimes] = useState({});
+  const [cacheStats, setCacheStats] = useState({
+    totalRequests: 0,
+    cacheHits: 0
+  });
 
   // Initialize AOS with wave effect from Home.jsx
   useEffect(() => {
@@ -238,6 +255,39 @@ const Dashboard = () => {
     }, 1000);
   }, []);
 
+  // Generic fetch function with performance tracking (console only)
+  const fetchWithTracking = async (fetchFn, sectionName) => {
+    const startTime = performance.now();
+    
+    try {
+      const response = await fetchFn();
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      const isCached = response?.cached || false;
+      
+      setLoadTimes(prev => ({
+        ...prev,
+        [sectionName]: {
+          time: loadTimeMs,
+          cached: isCached
+        }
+      }));
+      
+      setCacheStats(prev => ({
+        totalRequests: prev.totalRequests + 1,
+        cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+      }));
+      
+      // Log to console only - hidden from UI
+      console.log(`⚡ Dashboard ${sectionName} loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
+      
+      return response;
+    } catch (error) {
+      console.error(`Failed to fetch ${sectionName}:`, error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (!isLoggedIn) {
       navigate('/login');
@@ -245,21 +295,31 @@ const Dashboard = () => {
     }
 
     const fetchDashboardData = async () => {
+      setLoading(true);
       try {
-        await getUserData();
+        await fetchWithTracking(
+          () => getUserData(),
+          'userData'
+        );
         
         // Try to fetch stats
         try {
-          const statsResponse = await clientApi.get('/user/stats');
-          if (statsResponse.data.success) setStats(statsResponse.data.stats);
+          const statsResponse = await fetchWithTracking(
+            () => clientApi.get('/user/stats'),
+            'stats'
+          );
+          if (statsResponse?.data?.success) setStats(statsResponse.data.stats);
         } catch (error) {
           console.log('Stats endpoint not implemented yet, using defaults');
         }
 
         // Try to fetch orders
         try {
-          const ordersResponse = await clientApi.get('/user/orders?limit=5');
-          if (ordersResponse.data.success) setRecentOrders(ordersResponse.data.orders || []);
+          const ordersResponse = await fetchWithTracking(
+            () => clientApi.get('/user/orders?limit=5'),
+            'orders'
+          );
+          if (ordersResponse?.data?.success) setRecentOrders(ordersResponse.data.orders || []);
         } catch (error) {
           console.log('Orders endpoint not implemented yet');
         }
@@ -274,14 +334,20 @@ const Dashboard = () => {
 
         // Try to fetch reviews count
         try {
-          const reviewsResponse = await clientApi.get('/user/reviews/count');
-          if (reviewsResponse.data.success) setReviewsCount(reviewsResponse.data.count || 0);
+          const reviewsResponse = await fetchWithTracking(
+            () => clientApi.get('/user/reviews/count'),
+            'reviews'
+          );
+          if (reviewsResponse?.data?.success) setReviewsCount(reviewsResponse.data.count || 0);
         } catch (error) {
           console.log('Reviews endpoint not implemented yet');
         }
 
       } catch (error) {
         console.error('Dashboard data fetch error:', error);
+      } finally {
+        setLoading(false);
+        setInitialLoad(false);
       }
     };
 
@@ -374,43 +440,100 @@ const Dashboard = () => {
     return `KSh ${Math.round(amount).toLocaleString()}`;
   };
 
+  // Loading state
+  if (loading && initialLoad) {
+    return (
+      <div className="min-h-screen bg-black">
+        <style>{fontStyles}</style>
+        <style>{animationStyles}</style>
+        
+        {/* Dashboard Header Image */}
+        <div 
+          className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
+          data-aos="fade-in"
+          data-aos-duration="1500"
+        >
+          <div className="absolute inset-0">
+            <img 
+              src={dashboardHeaderImage}
+              alt="Dashboard"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full px-4 mx-auto max-w-7xl">
+              <div 
+                className="max-w-2xl"
+                data-aos="fade-right"
+                data-aos-duration="1200"
+              >
+                <div className="section-title-wrapper">
+                  <h1 className="section-title">MY DASHBOARD</h1>
+                </div>
+                <p className="mt-2 text-lg text-gray-300 animate-pulse">
+                  Loading your dashboard...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading Spinner */}
+        <div className="flex justify-center py-12">
+          <ContentLoader message="Loading your data..." />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <style>{fontStyles}</style>
       <style>{animationStyles}</style>
       
-      {/* BACKGROUND LAYER - Background image with proper overlay */}
-      <div className="fixed inset-0">
-        <img 
-          src={dashboardHeaderImage}
-          alt="Background"
-          className="object-cover w-full h-full opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-black"></div>
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/10 via-orange-600/10 to-red-600/10 mix-blend-overlay"></div>
+      {/* Dashboard Header Image - styled exactly like Shop page */}
+      <div 
+        className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
+        data-aos="fade-in"
+        data-aos-duration="1500"
+      >
+        <div className="absolute inset-0">
+          <img 
+            src={dashboardHeaderImage}
+            alt="Dashboard"
+            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+        </div>
+        
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full px-4 mx-auto max-w-7xl">
+            <div 
+              className="max-w-2xl"
+              data-aos="fade-right"
+              data-aos-duration="1200"
+            >
+              {/* Page Header with Section Title Wrapper (from Home.jsx) */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">MY DASHBOARD</h1>
+              </div>
+              <p className="mt-2 text-lg text-gray-300">
+                Welcome back, <span className="font-bold text-gradient-yellow-orange">{userData?.name?.split(' ')[0] || 'User'}</span>!
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Animated gradient overlay from Home.jsx */}
-      <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-yellow-600/5 via-orange-600/5 to-red-600/5 animate-gradient"></div>
-
-      {/* MAIN CONTENT - Starts after navbar */}
-      <main className="relative z-10 px-4 pt-8 pb-16 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      {/* MAIN CONTENT */}
+      <main className="relative z-10 px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
         
-        {/* Page Header with Section Title Wrapper (from Home.jsx) */}
-        <div 
-          className="mb-8"
-          data-aos="fade-down"
-          data-aos-duration="1000"
-          data-aos-delay="200"
-        >
-          <div className="section-title-wrapper">
-            <h1 className="section-title">MY DASHBOARD</h1>
-          </div>
-          <p className="mt-2 text-lg text-gray-400">
-            Welcome back, <span className="font-bold text-gradient-yellow-orange">{userData?.name?.split(' ')[0] || 'User'}</span>!
-          </p>
-        </div>
-
         {/* PROFILE OVERVIEW CARD - Modern glassmorphism */}
         <div 
           className="p-6 mb-8 dashboard-card rounded-2xl"

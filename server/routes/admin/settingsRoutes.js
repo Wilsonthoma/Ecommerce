@@ -52,9 +52,9 @@ router.get('/test', (req, res) => {
     success: true,
     message: 'Settings endpoint is working!',
     admin: {
-      id: req.admin._id,
-      email: req.admin.email,
-      role: req.admin.role
+      id: req.admin?._id,
+      email: req.admin?.email,
+      role: req.admin?.role
     },
     timestamp: new Date().toISOString(),
     endpoints: [
@@ -75,15 +75,19 @@ router.get('/test', (req, res) => {
 // CATCH-ALL ROUTE FOR DEBUGGING
 router.all('*', (req, res) => {
   console.log(`🔄 Settings route not found: ${req.method} ${req.originalUrl}`);
-  console.log('Available routes:', router.stack.map(r => r.route?.path).filter(Boolean));
+  
+  const availableRoutes = router.stack
+    .filter(r => r.route?.path)
+    .map(r => ({
+      method: Object.keys(r.route.methods).join(', ').toUpperCase(),
+      path: r.route.path
+    }));
   
   res.status(404).json({
     success: false,
     error: `Settings route not found: ${req.method} ${req.originalUrl}`,
-    availableRoutes: router.stack
-      .map(r => r.route?.path)
-      .filter(Boolean)
-      .map(path => `${req.method} ${path}`)
+    availableRoutes,
+    message: 'Check the available routes above'
   });
 });
 

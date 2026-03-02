@@ -1,4 +1,4 @@
-// src/pages/ResetPassword.jsx - RESTYLED to match Login page theme
+// src/pages/ResetPassword.jsx - RESTYLED with LoadingSpinner
 import React, { useState, useRef, useContext, useEffect, useCallback } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +7,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { IoArrowBack } from "react-icons/io5";
-import { FcGoogle } from "react-icons/fc";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Reset password background image (same as login)
 const resetBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
@@ -30,9 +30,17 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otpAutoSubmit, setOtpAutoSubmit] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const inputRefs = useRef([]);
   const autoSubmitTimeoutRef = useRef(null);
   const isAutoSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    // Simulate initial page load
+    setTimeout(() => {
+      setPageLoading(false);
+    }, 500);
+  }, []);
 
   // Step 2: Verify OTP
   const handleVerifyOtp = useCallback(async (e) => {
@@ -516,6 +524,27 @@ const ResetPassword = () => {
     }
   };
 
+  // Page loading state
+  if (pageLoading) {
+    return (
+      <div className="fixed inset-0 overflow-hidden bg-black">
+        <div className="absolute inset-0">
+          <img 
+            src={resetBackgroundImage}
+            alt="Background"
+            className="object-cover w-full h-full"
+          />
+          <div className="absolute inset-0 bg-black/60"></div>
+          <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoadingSpinner message="Loading reset password..." size="lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 overflow-hidden bg-black">
       {/* Full-page Background Image */}
@@ -601,7 +630,14 @@ const ResetPassword = () => {
                     disabled={isLoading}
                     className="relative w-full py-2 mt-1 overflow-hidden text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:shadow-lg hover:shadow-orange-600/20 disabled:opacity-50"
                   >
-                    {isLoading ? "Sending..." : "Send Code"}
+                    {isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Sending...
+                      </span>
+                    ) : (
+                      "Send Code"
+                    )}
                   </button>
                 </form>
 
@@ -654,7 +690,14 @@ const ResetPassword = () => {
                     disabled={isLoading || otpAutoSubmit}
                     className="relative w-full py-2 mb-2 overflow-hidden text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:shadow-lg hover:shadow-orange-600/20 disabled:opacity-50"
                   >
-                    {isLoading || otpAutoSubmit ? "Verifying..." : "Verify Code"}
+                    {isLoading || otpAutoSubmit ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Verifying...
+                      </span>
+                    ) : (
+                      "Verify Code"
+                    )}
                   </button>
                 </form>
 
@@ -752,7 +795,14 @@ const ResetPassword = () => {
                     disabled={isLoading}
                     className="relative w-full py-2 mt-1 overflow-hidden text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:shadow-lg hover:shadow-orange-600/20 disabled:opacity-50"
                   >
-                    {isLoading ? "Resetting..." : "Reset Password"}
+                    {isLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                        Resetting...
+                      </span>
+                    ) : (
+                      "Reset Password"
+                    )}
                   </button>
                 </form>
               </>

@@ -1,4 +1,4 @@
-// src/pages/Login.jsx - FIXED Google OAuth
+// src/pages/Login.jsx - FIXED Google OAuth with LoadingSpinner
 import React, { useContext, useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -7,6 +7,7 @@ import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { FcGoogle } from "react-icons/fc";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Login background image
 const loginBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
@@ -32,6 +33,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const [rememberMe, setRememberMe] = useState(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
@@ -54,6 +56,7 @@ const Login = () => {
   // FIXED Google OAuth handler
   const handleGoogleLogin = async () => {
     try {
+      setGoogleLoading(true);
       // Save redirect location
       sessionStorage.setItem('redirectAfterLogin', from);
       console.log('📍 Initiating Google login, redirect to:', from);
@@ -75,6 +78,7 @@ const Login = () => {
     } catch (error) {
       console.error('Google login error:', error);
       toast.error('Failed to connect to Google. Please try again.');
+      setGoogleLoading(false);
     }
   };
 
@@ -241,14 +245,23 @@ const Login = () => {
               {state === "Sign Up" ? "Sign up to get started" : "Login to your account"}
             </p>
 
-            {/* Google Button - FIXED */}
+            {/* Google Button with Loading State */}
             <button
               onClick={handleGoogleLogin}
-              disabled={isSubmitting}
+              disabled={isSubmitting || googleLoading}
               className="flex items-center justify-center w-full gap-2 px-3 py-2 mb-3 text-xs font-medium text-white transition-all border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm hover:bg-gray-700 hover:border-yellow-500/50 disabled:opacity-50"
             >
-              <FcGoogle className="w-4 h-4" />
-              <span>Continue with Google</span>
+              {googleLoading ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <>
+                  <FcGoogle className="w-4 h-4" />
+                  <span>Continue with Google</span>
+                </>
+              )}
             </button>
 
             <div className="relative mb-3">

@@ -1,5 +1,10 @@
-// client/src/services/client/orders.js - Cleaned up - ONLY order management
+// client/src/services/client/orders.js - UPDATED with LRU Cache and performance tracking
 import clientApi from './api';
+import { LRUCache } from '../../dataStructures/LRUCache';
+
+// Create dedicated cache for orders
+const orderCache = new LRUCache(30); // Cache up to 30 orders/collections
+const orderListCache = new LRUCache(20); // Cache up to 20 order lists
 
 /**
  * Order Service - Handles ONLY order management after checkout
@@ -9,11 +14,20 @@ export const clientOrderService = {
   // ========== ORDER MANAGEMENT ==========
 
   /**
-   * Get all orders for the current user
+   * Get all orders for the current user (CACHED)
    * @param {Object} params - Query parameters (page, limit, status, sort)
    * @returns {Promise<Object>} - { success, orders, total, pages, currentPage }
    */
   getUserOrders: async (params = {}) => {
+    const cacheKey = `user_orders_${JSON.stringify(params)}`;
+    
+    // Check cache first
+    const cached = orderListCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Orders list cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Fetching user orders with params:', params);
       
@@ -29,13 +43,18 @@ export const clientOrderService = {
       console.log('📥 User orders response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           orders: response.data.orders || [],
           total: response.data.total || 0,
           pages: response.data.pages || 1,
           currentPage: response.data.currentPage || 1
         };
+        
+        // Cache the result
+        orderListCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -59,11 +78,20 @@ export const clientOrderService = {
   },
 
   /**
-   * Get single order by ID
+   * Get single order by ID (CACHED)
    * @param {string} id - Order ID
    * @returns {Promise<Object>} - { success, order }
    */
   getOrder: async (id) => {
+    const cacheKey = `order_${id}`;
+    
+    // Check cache first
+    const cached = orderCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Order cache hit:', id);
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching order ${id}`);
       
@@ -78,10 +106,15 @@ export const clientOrderService = {
       console.log('📥 Order response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           order: response.data.order || null
         };
+        
+        // Cache the result
+        orderCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -100,7 +133,7 @@ export const clientOrderService = {
   },
 
   /**
-   * Cancel an order
+   * Cancel an order (NO CACHE - WRITE OPERATION)
    * @param {string} id - Order ID
    * @param {string} reason - Cancellation reason (optional)
    * @returns {Promise<Object>} - { success, message }
@@ -123,6 +156,10 @@ export const clientOrderService = {
       );
       
       console.log('📥 Cancel order response:', response.data);
+      
+      // Clear order caches after cancellation
+      clientOrderService.clearOrderCaches(id);
+      
       return response.data;
     } catch (error) {
       console.error(`❌ Error cancelling order ${id}:`, error);
@@ -131,11 +168,20 @@ export const clientOrderService = {
   },
 
   /**
-   * Track order status and location
+   * Track order status and location (CACHED - short TTL)
    * @param {string} id - Order ID
    * @returns {Promise<Object>} - { success, tracking }
    */
   trackOrder: async (id) => {
+    const cacheKey = `order_tracking_${id}`;
+    
+    // Check cache first (short TTL handled by cache implementation)
+    const cached = orderCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Order tracking cache hit:', id);
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Tracking order ${id}`);
       
@@ -150,10 +196,15 @@ export const clientOrderService = {
       console.log('📥 Track order response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           tracking: response.data.tracking || {}
         };
+        
+        // Cache tracking for 2 minutes (tracking updates frequently)
+        orderCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -173,13 +224,22 @@ export const clientOrderService = {
   // ========== ORDER HISTORY ==========
 
   /**
-   * Get order history with pagination and filters
+   * Get order history with pagination and filters (CACHED)
    * @param {number} page - Page number
    * @param {number} limit - Items per page
    * @param {string} status - Filter by status
    * @returns {Promise<Object>} - { success, orders, total, pages }
    */
   getOrderHistory: async (page = 1, limit = 10, status = '') => {
+    const cacheKey = `order_history_${page}_${limit}_${status}`;
+    
+    // Check cache first
+    const cached = orderListCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Order history cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching order history: page ${page}, limit ${limit}, status ${status}`);
       
@@ -195,13 +255,18 @@ export const clientOrderService = {
       console.log('📥 Order history response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           orders: response.data.orders || [],
           total: response.data.total || 0,
           pages: response.data.pages || 1,
           currentPage: response.data.currentPage || page
         };
+        
+        // Cache the result
+        orderListCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -227,7 +292,7 @@ export const clientOrderService = {
   // ========== ORDER ACTIONS ==========
 
   /**
-   * Request return for an order
+   * Request return for an order (NO CACHE - WRITE OPERATION)
    * @param {string} orderId - Order ID
    * @param {Array} items - Items to return
    * @param {string} reason - Return reason
@@ -251,6 +316,10 @@ export const clientOrderService = {
       );
       
       console.log('📥 Return request response:', response.data);
+      
+      // Clear order cache after return request
+      clientOrderService.clearOrderCaches(orderId);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error requesting return:', error);
@@ -259,11 +328,19 @@ export const clientOrderService = {
   },
 
   /**
-   * Get return status for an order
+   * Get return status for an order (CACHED)
    * @param {string} orderId - Order ID
    * @returns {Promise<Object>} - { success, status, details }
    */
   getReturnStatus: async (orderId) => {
+    const cacheKey = `order_return_${orderId}`;
+    
+    const cached = orderCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Return status cache hit:', orderId);
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Getting return status for order ${orderId}`);
       
@@ -278,11 +355,16 @@ export const clientOrderService = {
       console.log('📥 Return status response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           status: response.data.status || 'pending',
           details: response.data.details || {}
         };
+        
+        // Cache return status
+        orderCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -302,7 +384,7 @@ export const clientOrderService = {
   },
 
   /**
-   * Add note to an order
+   * Add note to an order (NO CACHE - WRITE OPERATION)
    * @param {string} orderId - Order ID
    * @param {string} note - Note text
    * @returns {Promise<Object>} - { success, message }
@@ -325,6 +407,10 @@ export const clientOrderService = {
       );
       
       console.log('📥 Add note response:', response.data);
+      
+      // Clear order cache after adding note
+      clientOrderService.clearOrderCaches(orderId);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error adding order note:', error);
@@ -333,7 +419,7 @@ export const clientOrderService = {
   },
 
   /**
-   * Download invoice for an order
+   * Download invoice for an order (NO CACHE)
    * @param {string} orderId - Order ID
    * @returns {Promise<Object>} - { success, blob }
    */
@@ -370,7 +456,7 @@ export const clientOrderService = {
   },
 
   /**
-   * Reorder previous order (add all items to cart)
+   * Reorder previous order (add all items to cart) - NO CACHE
    * @param {string} orderId - Order ID
    * @returns {Promise<Object>} - { success, message, items }
    */
@@ -397,7 +483,7 @@ export const clientOrderService = {
   },
 
   /**
-   * Rate an order (leave review)
+   * Rate an order (leave review) - NO CACHE
    * @param {string} orderId - Order ID
    * @param {number} rating - Rating (1-5)
    * @param {string} review - Review text
@@ -421,11 +507,42 @@ export const clientOrderService = {
       );
       
       console.log('📥 Rate order response:', response.data);
+      
+      // Clear order cache after rating
+      clientOrderService.clearOrderCaches(orderId);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error rating order:', error);
       throw error;
     }
+  },
+
+  // ========== CACHE MANAGEMENT ==========
+
+  /**
+   * Clear caches for a specific order
+   * @param {string} orderId - Order ID
+   */
+  clearOrderCaches: (orderId) => {
+    // Clear specific order cache
+    orderCache.put(`order_${orderId}`, null);
+    orderCache.put(`order_tracking_${orderId}`, null);
+    orderCache.put(`order_return_${orderId}`, null);
+    
+    // Clear order lists (since they might contain this order)
+    orderListCache.clear();
+    
+    console.log(`🗑️ Cleared caches for order ${orderId}`);
+  },
+
+  /**
+   * Clear all order caches
+   */
+  clearAllCaches: () => {
+    orderCache.clear();
+    orderListCache.clear();
+    console.log('🗑️ All order caches cleared');
   }
 };
 

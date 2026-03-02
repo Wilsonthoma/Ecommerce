@@ -1,4 +1,4 @@
-// src/pages/Orders.jsx - COMPLETE ORDERS PAGE with Yellow-Orange Theme and Compact Sizing
+// src/pages/Orders.jsx - COMPLETE ORDERS PAGE with Yellow-Orange Theme, LoadingSpinner, and Algorithm Tracking (hidden from UI)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -29,6 +29,8 @@ import { BsTruck, BsCheckCircleFill, BsClockFill } from 'react-icons/bs';
 import { IoFlashOutline } from 'react-icons/io5';
 import { toast } from 'react-toastify';
 import { clientOrderService } from '../services/client/orders';
+import { clientProductService } from '../services/client/products';
+import LoadingSpinner, { CardSkeleton, ContentLoader } from '../components/LoadingSpinner';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
@@ -45,6 +47,36 @@ const fontStyles = `
     letter-spacing: -0.02em;
   }
   
+  /* Section title styling */
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+      padding: 0.4rem 1.5rem;
+    }
+  }
+  
   .page-title {
     font-weight: 800;
     font-size: clamp(1.5rem, 4vw, 2rem);
@@ -56,7 +88,7 @@ const fontStyles = `
     background-clip: text;
   }
   
-  .section-title {
+  .section-title-small {
     font-weight: 700;
     font-size: clamp(1rem, 2.5vw, 1.2rem);
     letter-spacing: -0.02em;
@@ -619,11 +651,21 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Algorithm performance states (internal only - not shown to users)
+  const [loadTime, setLoadTime] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheStats, setCacheStats] = useState({
+    totalRequests: 0,
+    cacheHits: 0
+  });
+  
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -666,17 +708,60 @@ const Orders = () => {
     };
   }, []);
 
-  // Fetch orders
+  // Generic fetch function with performance tracking (console only)
+  const fetchWithTracking = async (fetchFn, sectionName) => {
+    const startTime = performance.now();
+    
+    try {
+      const response = await fetchFn();
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      const isCached = response?.cached || false;
+      
+      setLoadTime(loadTimeMs);
+      setFromCache(isCached);
+      
+      setCacheStats(prev => ({
+        totalRequests: prev.totalRequests + 1,
+        cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+      }));
+      
+      // Log to console only - hidden from UI
+      console.log(`⚡ Orders ${sectionName} loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
+      
+      return response;
+    } catch (error) {
+      console.error(`Failed to fetch ${sectionName}:`, error);
+      return null;
+    }
+  };
+
+  // Fetch orders with performance tracking
   const fetchOrders = async () => {
     try {
       setLoading(true);
       console.log('📤 Fetching user orders...');
+      
+      const startTime = performance.now();
       
       const response = await clientOrderService.getUserOrders({
         limit: 50,
         sort: '-createdAt'
       });
       
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      const isCached = response?.cached || false;
+      
+      setLoadTime(loadTimeMs);
+      setFromCache(isCached);
+      
+      setCacheStats(prev => ({
+        totalRequests: prev.totalRequests + 1,
+        cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+      }));
+      
+      console.log(`⚡ Orders loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
       console.log('📥 Orders response:', response);
       
       if (response && response.success) {
@@ -698,6 +783,7 @@ const Orders = () => {
       }
     } finally {
       setLoading(false);
+      setInitialLoad(false);
     }
   };
 
@@ -813,24 +899,63 @@ const Orders = () => {
     setSortBy('newest');
   };
 
-  if (loading) {
+  // Calculate cache hit rate (internal only)
+  const cacheHitRate = cacheStats.totalRequests > 0 
+    ? ((cacheStats.cacheHits / cacheStats.totalRequests) * 100).toFixed(0)
+    : 0;
+
+  // Loading state with CardSkeleton
+  if (loading && initialLoad) {
     return (
       <div className="min-h-screen bg-black">
+        <style>{fontStyles}</style>
+        <style>{animationStyles}</style>
+        
         <TopBar />
-        <div className="container px-3 py-5 mx-auto max-w-7xl">
-          <div className="animate-pulse">
-            <div className="h-6 mb-5 bg-gray-800 rounded w-36"></div>
-            <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-20 bg-gray-800 rounded-xl"></div>
-              ))}
-            </div>
-            <div className="mt-5 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-gray-800 h-28 rounded-xl"></div>
-              ))}
+
+        {/* Header Image - COMPACT with Dashboard-style heading */}
+        <div 
+          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
+          data-aos="fade-in"
+          data-aos-duration="1500"
+        >
+          <div className="absolute inset-0">
+            <img 
+              src={ordersHeaderImage}
+              alt="My Orders"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full px-4 mx-auto max-w-7xl">
+              <div 
+                className="max-w-2xl"
+                data-aos="fade-right"
+                data-aos-duration="1200"
+              >
+                <div className="section-title-wrapper">
+                  <h1 className="section-title">MY ORDERS</h1>
+                </div>
+                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
+                  Loading your orders...
+                </p>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="container px-3 py-5 mx-auto max-w-7xl sm:px-4">
+          <div className="grid grid-cols-2 gap-2 mb-4 md:grid-cols-3 lg:grid-cols-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-20 bg-gray-800 rounded-xl animate-pulse"></div>
+            ))}
+          </div>
+          <CardSkeleton count={3} />
         </div>
       </div>
     );
@@ -844,7 +969,7 @@ const Orders = () => {
       
       <TopBar />
 
-      {/* Header Image - COMPACT */}
+      {/* Header Image - COMPACT with Dashboard-style heading */}
       <div 
         className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
         data-aos="fade-in"
@@ -869,8 +994,11 @@ const Orders = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
             >
-              <h1 className="text-xl font-bold text-white sm:text-2xl md:text-3xl">MY ORDERS</h1>
-              <p className="mt-0.5 text-xs text-gray-300 sm:text-sm">
+              {/* Updated heading with Dashboard style */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">MY ORDERS</h1>
+              </div>
+              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 Track and manage your orders
               </p>
             </div>
@@ -1036,6 +1164,13 @@ const Orders = () => {
             </div>
           )}
         </div>
+
+        {/* Loading overlay for subsequent loads */}
+        {loading && !initialLoad && (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner message="Updating orders..." size="sm" fullScreen={false} />
+          </div>
+        )}
 
         {/* Orders List - COMPACT */}
         {filteredOrders.length > 0 ? (

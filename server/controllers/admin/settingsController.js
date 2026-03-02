@@ -5,87 +5,11 @@ import mongoose from 'mongoose';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import GlobalSettings from '../../models/GlobalSettings.js';
+import UserSettings from '../../models/UserSettings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Default settings
-const defaultSettings = {
-  // General Settings
-  storeName: 'KwetuShop',
-  storeEmail: 'admin@kwetushop.co.ke',
-  storePhone: '+254712345678',
-  storeAddress: '123 Kimathi Street, Nairobi, Kenya',
-  storeLogo: '/uploads/logo.png',
-  currency: 'KES',
-  timezone: 'Africa/Nairobi',
-  dateFormat: 'dd/MM/yyyy',
-  timeFormat: '24h',
-  
-  // Payment Settings
-  paymentMethods: ['mpesa', 'card', 'cash_on_delivery'],
-  stripePublicKey: '',
-  stripeSecretKey: '',
-  mpesaShortCode: '174379',
-  mpesaPasskey: '',
-  mpesaConsumerKey: '',
-  mpesaConsumerSecret: '',
-  
-  // Shipping Settings
-  shippingMethods: ['standard', 'express', 'pickup'],
-  standardShippingPrice: 200,
-  expressShippingPrice: 500,
-  freeShippingThreshold: 2000,
-  shippingZones: [
-    { name: 'Nairobi', price: 150 },
-    { name: 'Mombasa', price: 300 },
-    { name: 'Kisumu', price: 250 }
-  ],
-  
-  // Email Settings
-  emailNotifications: true,
-  orderConfirmation: true,
-  shippingUpdates: true,
-  promotionalEmails: false,
-  adminNotifications: true,
-  smtpHost: '',
-  smtpPort: 587,
-  smtpUsername: '',
-  smtpPassword: '',
-  smtpFromEmail: 'noreply@kwetushop.co.ke',
-  smtpFromName: 'KwetuShop',
-  
-  // Security Settings
-  require2FA: false,
-  sessionTimeout: 30,
-  passwordPolicy: 'medium',
-  apiRateLimit: 100,
-  loginAttempts: 5,
-  maintenanceMode: false,
-  
-  // SEO Settings
-  metaTitle: 'KwetuShop - Online Shopping in Kenya',
-  metaDescription: 'Best online shopping in Kenya with quality products and fast delivery',
-  metaKeywords: 'online shopping, kenya, electronics, fashion, home',
-  googleAnalyticsId: '',
-  
-  // Social Media
-  facebookUrl: '',
-  twitterUrl: '',
-  instagramUrl: '',
-  whatsappNumber: '',
-  
-  // Timestamps
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  updatedBy: null
-};
-
-// In-memory settings storage (in production, use database)
-let currentSettings = { ...defaultSettings };
-
-// Load settings on startup
-loadSettingsFromFile();
 
 /**
  * @desc    Get all settings
@@ -93,12 +17,19 @@ loadSettingsFromFile();
  * @access  Private/Admin
  */
 export const getSettings = asyncHandler(async (req, res) => {
-  console.log(`📋 GET Settings requested by: ${req.admin.email}`);
+  console.log(`📋 GET Settings requested by: ${req.admin?.email || req.user?.email}`);
+  
+  // Get or create global settings
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = await GlobalSettings.create({});
+    console.log('✅ Created default global settings');
+  }
   
   res.status(200).json({
     success: true,
     message: 'Settings retrieved successfully',
-    data: currentSettings,
+    data: settings,
     timestamp: new Date().toISOString()
   });
 });
@@ -109,19 +40,25 @@ export const getSettings = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const updateSettings = asyncHandler(async (req, res) => {
-  console.log(`🔄 UPDATE Settings requested by: ${req.admin.email}`);
+  console.log(`🔄 UPDATE Settings requested by: ${req.admin?.email || req.user?.email}`);
   console.log('Updates:', JSON.stringify(req.body, null, 2));
+  
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
   
   const updates = req.body;
   
-  // Validate updates
-  if (updates.currency && !['KES', 'USD', 'EUR', 'GBP'].includes(updates.currency)) {
+  // Validate currency
+  if (updates.currency?.code && !['KES', 'USD', 'EUR', 'GBP'].includes(updates.currency.code)) {
     return res.status(400).json({
       success: false,
       error: 'Invalid currency. Allowed: KES, USD, EUR, GBP'
     });
   }
   
+  // Validate timezone
   if (updates.timezone && !['Africa/Nairobi', 'UTC', 'Africa/Dar_es_Salaam', 'Africa/Kampala'].includes(updates.timezone)) {
     return res.status(400).json({
       success: false,
@@ -129,25 +66,92 @@ export const updateSettings = asyncHandler(async (req, res) => {
     });
   }
   
-  // Update settings
-  currentSettings = {
-    ...currentSettings,
-    ...updates,
-    updatedAt: new Date(),
-    updatedBy: req.admin.id
-  };
+  // Update store info
+  if (updates.storeInfo) {
+    settings.storeInfo = {
+      ...settings.storeInfo.toObject(),
+      ...updates.storeInfo
+    };
+  }
   
-  // Save to file for persistence
-  saveSettingsToFile();
+  // Update currency
+  if (updates.currency) {
+    settings.currency = {
+      ...settings.currency.toObject(),
+      ...updates.currency
+    };
+  }
   
-  console.log(`✅ Settings updated by: ${req.admin.email}`);
+  // Update shipping
+  if (updates.shipping) {
+    settings.shipping = {
+      ...settings.shipping.toObject(),
+      ...updates.shipping
+    };
+  }
+  
+  // Update maintenance
+  if (updates.maintenance !== undefined) {
+    settings.maintenance = {
+      ...settings.maintenance.toObject(),
+      ...updates.maintenance
+    };
+  }
+  
+  // Update social media
+  if (updates.socialMedia) {
+    settings.socialMedia = {
+      ...settings.socialMedia.toObject(),
+      ...updates.socialMedia
+    };
+  }
+  
+  // Update payment methods
+  if (updates.paymentMethods) {
+    settings.paymentMethods = updates.paymentMethods;
+  }
+  
+  // Update features
+  if (updates.features) {
+    settings.features = {
+      ...settings.features.toObject(),
+      ...updates.features
+    };
+  }
+  
+  // Update other top-level fields
+  const topLevelFields = [
+    'storeName', 'storeEmail', 'storePhone', 'storeAddress', 'storeLogo',
+    'currency', 'timezone', 'dateFormat', 'timeFormat',
+    'stripePublicKey', 'stripeSecretKey', 'mpesaShortCode', 'mpesaPasskey',
+    'mpesaConsumerKey', 'mpesaConsumerSecret', 'standardShippingPrice',
+    'expressShippingPrice', 'freeShippingThreshold', 'shippingZones',
+    'emailNotifications', 'orderConfirmation', 'shippingUpdates',
+    'promotionalEmails', 'adminNotifications', 'smtpHost', 'smtpPort',
+    'smtpUsername', 'smtpPassword', 'smtpFromEmail', 'smtpFromName',
+    'require2FA', 'sessionTimeout', 'passwordPolicy', 'apiRateLimit',
+    'loginAttempts', 'maintenanceMode', 'metaTitle', 'metaDescription',
+    'metaKeywords', 'googleAnalyticsId', 'facebookUrl', 'twitterUrl',
+    'instagramUrl', 'whatsappNumber'
+  ];
+  
+  topLevelFields.forEach(field => {
+    if (updates[field] !== undefined) {
+      settings[field] = updates[field];
+    }
+  });
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  console.log(`✅ Settings updated by: ${req.admin?.email || req.user?.email}`);
   
   res.status(200).json({
     success: true,
     message: 'Settings updated successfully',
-    data: currentSettings,
-    updatedBy: req.admin.email,
-    updatedAt: currentSettings.updatedAt
+    data: settings,
+    updatedBy: req.admin?.email || req.user?.email,
+    updatedAt: settings.updatedAt
   });
 });
 
@@ -157,18 +161,20 @@ export const updateSettings = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const getEmailSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
   const emailSettings = {
-    emailNotifications: currentSettings.emailNotifications,
-    orderConfirmation: currentSettings.orderConfirmation,
-    shippingUpdates: currentSettings.shippingUpdates,
-    promotionalEmails: currentSettings.promotionalEmails,
-    adminNotifications: currentSettings.adminNotifications,
-    smtpHost: currentSettings.smtpHost,
-    smtpPort: currentSettings.smtpPort,
-    smtpUsername: currentSettings.smtpUsername,
-    smtpPassword: currentSettings.smtpPassword,
-    smtpFromEmail: currentSettings.smtpFromEmail,
-    smtpFromName: currentSettings.smtpFromName
+    emailNotifications: settings?.emailNotifications ?? true,
+    orderConfirmation: settings?.orderConfirmation ?? true,
+    shippingUpdates: settings?.shippingUpdates ?? true,
+    promotionalEmails: settings?.promotionalEmails ?? false,
+    adminNotifications: settings?.adminNotifications ?? true,
+    smtpHost: settings?.smtpHost || '',
+    smtpPort: settings?.smtpPort || 587,
+    smtpUsername: settings?.smtpUsername || '',
+    smtpPassword: settings?.smtpPassword || '',
+    smtpFromEmail: settings?.smtpFromEmail || 'noreply@kwetushop.co.ke',
+    smtpFromName: settings?.smtpFromName || 'KwetuShop'
   };
   
   res.status(200).json({
@@ -183,27 +189,38 @@ export const getEmailSettings = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const updateEmailSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
   const emailUpdates = req.body;
   
-  // Update only email-related settings
-  currentSettings = {
-    ...currentSettings,
-    ...emailUpdates,
-    updatedAt: new Date(),
-    updatedBy: req.admin.id
-  };
+  // Update email-related fields
+  const emailFields = [
+    'emailNotifications', 'orderConfirmation', 'shippingUpdates',
+    'promotionalEmails', 'adminNotifications', 'smtpHost', 'smtpPort',
+    'smtpUsername', 'smtpPassword', 'smtpFromEmail', 'smtpFromName'
+  ];
   
-  saveSettingsToFile();
+  emailFields.forEach(field => {
+    if (emailUpdates[field] !== undefined) {
+      settings[field] = emailUpdates[field];
+    }
+  });
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
   
   res.status(200).json({
     success: true,
     message: 'Email settings updated successfully',
     data: {
-      emailNotifications: currentSettings.emailNotifications,
-      orderConfirmation: currentSettings.orderConfirmation,
-      shippingUpdates: currentSettings.shippingUpdates,
-      promotionalEmails: currentSettings.promotionalEmails,
-      adminNotifications: currentSettings.adminNotifications
+      emailNotifications: settings.emailNotifications,
+      orderConfirmation: settings.orderConfirmation,
+      shippingUpdates: settings.shippingUpdates,
+      promotionalEmails: settings.promotionalEmails,
+      adminNotifications: settings.adminNotifications
     }
   });
 });
@@ -214,6 +231,8 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const getSystemInfo = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
   const systemInfo = {
     server: {
       platform: os.platform(),
@@ -238,8 +257,8 @@ export const getSystemInfo = asyncHandler(async (req, res) => {
       uptime: formatUptime(process.uptime()),
       memoryUsage: formatBytes(process.memoryUsage().heapUsed),
       pid: process.pid,
-      settingsCount: Object.keys(currentSettings).length,
-      maintenanceMode: currentSettings.maintenanceMode,
+      settingsCount: settings ? Object.keys(settings.toObject()).length : 0,
+      maintenanceMode: settings?.maintenance?.isEnabled || false,
       version: '1.0.0'
     },
     network: {
@@ -259,7 +278,7 @@ export const getSystemInfo = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const toggleMaintenance = asyncHandler(async (req, res) => {
-  const { enabled } = req.body;
+  const { enabled, message } = req.body;
   
   if (typeof enabled !== 'boolean') {
     return res.status(400).json({
@@ -268,19 +287,27 @@ export const toggleMaintenance = asyncHandler(async (req, res) => {
     });
   }
   
-  currentSettings.maintenanceMode = enabled;
-  currentSettings.updatedAt = new Date();
-  currentSettings.updatedBy = req.admin.id;
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
   
-  saveSettingsToFile();
+  settings.maintenance = {
+    isEnabled: enabled,
+    message: message || settings.maintenance?.message || 'Site under maintenance',
+    allowedIps: settings.maintenance?.allowedIps || []
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
   
   res.status(200).json({
     success: true,
     message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'}`,
     data: {
-      maintenanceMode: currentSettings.maintenanceMode,
-      updatedAt: currentSettings.updatedAt,
-      updatedBy: req.admin.email
+      maintenanceMode: settings.maintenance.isEnabled,
+      updatedAt: settings.updatedAt,
+      updatedBy: req.admin?.email || req.user?.email
     }
   });
 });
@@ -345,18 +372,21 @@ export const uploadFile = asyncHandler(async (req, res) => {
   console.log(`   Size: ${formatBytes(req.file.size)}`);
   
   // Update settings
-  if (type === 'logo') {
-    currentSettings.storeLogo = fileUrl;
-  } else if (type === 'favicon') {
-    currentSettings.favicon = fileUrl;
-  } else if (type === 'banner') {
-    currentSettings.storeBanner = fileUrl;
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
   }
   
-  currentSettings.updatedAt = new Date();
-  currentSettings.updatedBy = req.admin.id;
+  if (type === 'logo') {
+    settings.storeLogo = fileUrl;
+  } else if (type === 'favicon') {
+    settings.favicon = fileUrl;
+  } else if (type === 'banner') {
+    settings.storeBanner = fileUrl;
+  }
   
-  saveSettingsToFile();
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
   
   res.status(200).json({
     success: true,
@@ -369,7 +399,7 @@ export const uploadFile = asyncHandler(async (req, res) => {
       formattedSize: formatBytes(req.file.size),
       mimetype: req.file.mimetype,
       originalName: req.file.originalname,
-      uploadedBy: req.admin.email,
+      uploadedBy: req.admin?.email || req.user?.email,
       uploadedAt: new Date().toISOString()
     }
   });
@@ -381,63 +411,21 @@ export const uploadFile = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const resetSettings = asyncHandler(async (req, res) => {
-  console.log(`🔄 RESET Settings requested by: ${req.admin.email}`);
+  console.log(`🔄 RESET Settings requested by: ${req.admin?.email || req.user?.email}`);
   
-  currentSettings = { 
-    ...defaultSettings,
-    resetBy: req.admin.id,
-    resetAt: new Date(),
-    updatedAt: new Date(),
-    updatedBy: req.admin.id
-  };
-  
-  saveSettingsToFile();
+  await GlobalSettings.deleteMany({});
+  const settings = await GlobalSettings.create({});
   
   res.status(200).json({
     success: true,
     message: 'Settings reset to defaults',
-    data: currentSettings,
-    resetBy: req.admin.email,
-    resetAt: currentSettings.resetAt
+    data: settings,
+    resetBy: req.admin?.email || req.user?.email,
+    resetAt: new Date().toISOString()
   });
 });
 
 // ==================== HELPER FUNCTIONS ====================
-
-function saveSettingsToFile() {
-  const settingsFile = path.join(__dirname, '../../../settings.json');
-  const data = {
-    ...currentSettings,
-    _savedAt: new Date().toISOString()
-  };
-  
-  try {
-    fs.writeFileSync(settingsFile, JSON.stringify(data, null, 2));
-    console.log(`💾 Settings saved to file: ${settingsFile}`);
-  } catch (error) {
-    console.error('❌ Error saving settings to file:', error);
-  }
-}
-
-function loadSettingsFromFile() {
-  const settingsFile = path.join(__dirname, '../../../settings.json');
-  
-  try {
-    if (fs.existsSync(settingsFile)) {
-      const data = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
-      currentSettings = { ...defaultSettings, ...data };
-      console.log(`📂 Settings loaded from file: ${settingsFile}`);
-      console.log(`   Store name: ${currentSettings.storeName}`);
-      console.log(`   Currency: ${currentSettings.currency}`);
-      console.log(`   Last updated: ${currentSettings.updatedAt}`);
-    } else {
-      console.log('📝 No settings file found, using defaults');
-      saveSettingsToFile(); // Create initial settings file
-    }
-  } catch (error) {
-    console.error('❌ Error loading settings from file:', error);
-  }
-}
 
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';

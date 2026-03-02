@@ -1,7 +1,8 @@
-// src/pages/Cart.jsx - Only TopBar removed, heading styled like Dashboard
+// src/pages/Cart.jsx - Updated with LoadingSpinner (algorithm tracking hidden from UI)
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { clientProductService } from '../services/client/products';
 import { toast } from 'react-toastify';
 import { 
   Trash2, 
@@ -16,10 +17,11 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronLeft,
-  ChevronRight as ChevronRightIcon,
+  ChevronRight as ChevronRightIcon
 } from 'lucide-react';
 import { BsArrowRight } from 'react-icons/bs';
 import { FiMapPin } from 'react-icons/fi';
+import LoadingSpinner, { CardSkeleton, ContentLoader } from '../components/LoadingSpinner';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
@@ -143,9 +145,16 @@ const Cart = () => {
     updateQuantity, 
     removeFromCart, 
     clearCart,
-    loading,
+    loading: cartLoading,
     getCartSummary
   } = useCart();
+
+  // Algorithm performance states (internal only - not shown to users)
+  const [loadTime, setLoadTime] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [productDetails, setProductDetails] = useState({});
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   // State for image gallery
   const [selectedImageIndex, setSelectedImageIndex] = useState({});
@@ -173,6 +182,48 @@ const Cart = () => {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Fetch additional product details with performance tracking
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (!cart.items.length) {
+        setInitialLoad(false);
+        return;
+      }
+
+      setLoadingProducts(true);
+      const startTime = performance.now();
+      
+      try {
+        const productIds = cart.items.map(item => item.id || item.productId);
+        const response = await clientProductService.getProductsByIds?.(productIds);
+        
+        const endTime = performance.now();
+        const loadTimeMs = (endTime - startTime).toFixed(0);
+        
+        setLoadTime(loadTimeMs);
+        setFromCache(response?.cached || false);
+        
+        if (response?.success) {
+          const detailsMap = {};
+          response.products.forEach(product => {
+            detailsMap[product.id] = product;
+          });
+          setProductDetails(detailsMap);
+          
+          // Log to console only - hidden from UI
+          console.log(`⚡ Cart products loaded in ${loadTimeMs}ms ${response?.cached ? '(from LRU Cache)' : '(from API)'}`);
+        }
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+      } finally {
+        setLoadingProducts(false);
+        setInitialLoad(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [cart.items]);
+
   // Format KES
   const formatKES = (amount) => {
     if (!amount && amount !== 0) return "KSh 0";
@@ -187,19 +238,27 @@ const Cart = () => {
     return `${API_URL}/uploads/products/${imagePath}`;
   };
 
-  // Handle quantity change
+  // Handle quantity change with performance tracking
   const handleQuantityChange = async (item, change) => {
+    const startTime = performance.now();
     const newQuantity = item.quantity + change;
     const maxStock = item.stockQuantity || 10;
     
     if (newQuantity >= 1 && newQuantity <= maxStock) {
       await updateQuantity(item.id || item.productId, newQuantity);
+      const endTime = performance.now();
+      // Log to console only - hidden from UI
+      console.log(`⚡ Quantity update completed in ${(endTime - startTime).toFixed(0)}ms`);
     }
   };
 
-  // Handle remove item
+  // Handle remove item with performance tracking
   const handleRemoveItem = async (item) => {
+    const startTime = performance.now();
     await removeFromCart(item.id || item.productId);
+    const endTime = performance.now();
+    // Log to console only - hidden from UI
+    console.log(`⚡ Item removal completed in ${(endTime - startTime).toFixed(0)}ms`);
   };
 
   // Handle clear cart
@@ -245,9 +304,10 @@ const Cart = () => {
 
   // Get stock badge - UPDATED colors
   const getStockBadge = (item) => {
-    if ((item.stockQuantity || 10) <= 0) {
+    const stockQty = item.stockQuantity || 10;
+    if (stockQty <= 0) {
       return { bg: 'bg-gradient-to-r from-red-600 to-pink-600', label: 'Sold Out', icon: <AlertCircle className="w-3 h-3" /> };
-    } else if ((item.stockQuantity || 10) <= 5) {
+    } else if (stockQty <= 5) {
       return { bg: 'bg-gradient-to-r from-yellow-600 to-orange-600', label: 'Low Stock', icon: <AlertCircle className="w-3 h-3" /> };
     } else {
       return { bg: 'bg-gradient-to-r from-green-600 to-emerald-600', label: 'In Stock', icon: <CheckCircle className="w-3 h-3" /> };
@@ -257,25 +317,51 @@ const Cart = () => {
   const summary = getCartSummary();
   const subtotal = summary.subtotal;
 
-  if (loading) {
+  // Loading states
+  if (cartLoading || (loadingProducts && initialLoad)) {
     return (
       <div className="min-h-screen bg-black">
-        <div className="container px-4 py-6 mx-auto max-w-7xl">
-          <div className="animate-pulse">
-            <div className="h-6 mb-6 bg-gray-800 rounded w-36"></div>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
-                  <div className="h-32 bg-gray-800 rounded"></div>
+        <style>{fontStyles}</style>
+        <style>{animationStyles}</style>
+        
+        {/* Cart Header Image */}
+        <div 
+          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
+          data-aos="fade-in"
+          data-aos-duration="1500"
+        >
+          <div className="absolute inset-0">
+            <img 
+              src={cartHeaderImage}
+              alt="Shopping Cart"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full px-4 mx-auto max-w-7xl">
+              <div 
+                className="max-w-2xl"
+                data-aos="fade-right"
+                data-aos-duration="1200"
+              >
+                <div className="section-title-wrapper">
+                  <h1 className="section-title">SHOPPING CART</h1>
                 </div>
-              </div>
-              <div className="lg:col-span-1">
-                <div className="p-4 bg-gray-900 border border-gray-800 rounded-xl">
-                  <div className="h-48 bg-gray-800 rounded"></div>
-                </div>
+                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
+                  Loading your cart...
+                </p>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="container px-3 py-5 mx-auto max-w-7xl sm:px-4">
+          <CardSkeleton count={3} />
         </div>
       </div>
     );
@@ -317,6 +403,8 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
 
       {/* Cart Header Image - COMPACT */}
       <div 
@@ -349,6 +437,8 @@ const Cart = () => {
               <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
               </p>
+              
+              {/* Algorithm Performance Badges REMOVED - hidden from users */}
             </div>
           </div>
         </div>
@@ -393,6 +483,7 @@ const Cart = () => {
                   const itemTotal = price * item.quantity;
                   const stockBadge = getStockBadge(item);
                   const images = item.images || [];
+                  const enhancedDetails = productDetails[item.id] || {};
                   
                   if (selectedImageIndex[item.id] === undefined) {
                     setTimeout(() => {
@@ -463,6 +554,8 @@ const Cart = () => {
                                   {stockBadge.label}
                                 </div>
                                 
+                                {/* Algorithm Badge for this item REMOVED - hidden from users */}
+                                
                                 {/* Quantity Controls - COMPACT */}
                                 <div className="flex items-center gap-2 mt-2">
                                   <div className="flex items-center overflow-hidden bg-gray-800 border border-gray-700 rounded-lg">
@@ -524,6 +617,8 @@ const Cart = () => {
                 <Package className="w-4 h-4 text-yellow-500" />
                 Order Summary
               </h2>
+              
+              {/* Algorithm Stats Summary REMOVED - hidden from users */}
               
               {/* Items List - COMPACT */}
               <div className="mb-3 space-y-1 overflow-y-auto text-xs max-h-40 custom-scrollbar">
@@ -622,7 +717,7 @@ const Cart = () => {
         </div>
       )}
       
-      {/* Custom Scrollbar Styles - UPDATED colors */}
+      {/* Custom Scrollbar Styles */}
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
           width: 3px;

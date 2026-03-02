@@ -1,10 +1,11 @@
-// src/pages/Home.jsx - COMPLETE FIXED with rating preservation
+// src/pages/Home.jsx - COMPLETE FIXED with rating preservation (algorithm tracking hidden from UI)
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
 import { clientProductService } from "../services/client/products";
+import LoadingSpinner, { CardSkeleton, ContentLoader } from "../components/LoadingSpinner";
 import { toast } from "react-toastify";
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -17,8 +18,10 @@ import {
   FiArrowRight,
   FiPlay,
   FiPause,
+  FiCpu
 } from "react-icons/fi";
 import { FaStar, FaRegStar } from "react-icons/fa";
+import { BsLightningCharge } from "react-icons/bs";
 import Typewriter from 'typewriter-effect';
 
 // Category header images
@@ -477,6 +480,9 @@ const normalizeProductData = (product) => {
     reviewsCount: reviewsCount,
     reviews: product.reviews || [],
     
+    // Cache flag (for internal use only)
+    _cached: product._cached || false,
+    
     // Shipping
     weight: product.weight || 0,
     weightUnit: product.weightUnit || 'kg',
@@ -509,7 +515,8 @@ const normalizeProductData = (product) => {
     featured: normalized.featured,
     isInStock: normalized.quantity > 0,
     rating: normalized.rating,
-    reviewsCount: normalized.reviewsCount
+    reviewsCount: normalized.reviewsCount,
+    cached: normalized._cached
   });
   
   return normalized;
@@ -536,6 +543,13 @@ const Home = () => {
   const [loadingTrending, setLoadingTrending] = useState(true);
   const [loadingJustArrived, setLoadingJustArrived] = useState(true);
   const [loadingCategories, setLoadingCategories] = useState(true);
+  
+  // Algorithm performance states (internal only - not shown to users)
+  const [loadTimes, setLoadTimes] = useState({});
+  const [cacheStats, setCacheStats] = useState({
+    totalRequests: 0,
+    cacheHits: 0
+  });
   
   const [videoPlaying, setVideoPlaying] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -601,136 +615,161 @@ const Home = () => {
     return () => observer.disconnect();
   }, []);
 
+  // Generic fetch function with performance tracking (console only)
+  const fetchWithTracking = async (fetchFn, sectionName) => {
+    const startTime = performance.now();
+    
+    try {
+      const response = await fetchFn();
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      const isCached = response?._cached || false;
+      
+      setLoadTimes(prev => ({
+        ...prev,
+        [sectionName]: {
+          time: loadTimeMs,
+          cached: isCached
+        }
+      }));
+      
+      setCacheStats(prev => ({
+        totalRequests: prev.totalRequests + 1,
+        cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+      }));
+      
+      // Log to console only - hidden from UI
+      console.log(`⚡ ${sectionName} loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
+      
+      return response;
+    } catch (error) {
+      console.error(`Failed to fetch ${sectionName}:`, error);
+      return null;
+    }
+  };
+
   // Fetch featured products
   const fetchFeaturedProducts = async () => {
-    try {
-      setLoadingFeatured(true);
-      const response = await clientProductService.getFeaturedProducts(8);
-      
-      if (response.success) {
-        console.log('✅ Featured products fetched:', response.products?.length || 0);
-        const normalizedProducts = (response.products || []).map(normalizeProductData);
-        setFeaturedProducts(normalizedProducts);
-      }
-    } catch (error) {
-      console.error("Failed to fetch featured products:", error);
-    } finally {
-      setLoadingFeatured(false);
+    setLoadingFeatured(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getFeaturedProducts(8),
+      'featured'
+    );
+    
+    if (response?.success) {
+      console.log('✅ Featured products fetched:', response.products?.length || 0);
+      const normalizedProducts = (response.products || []).map(p => ({
+        ...normalizeProductData(p),
+        _cached: response._cached
+      }));
+      setFeaturedProducts(normalizedProducts);
     }
+    setLoadingFeatured(false);
   };
 
   // Fetch latest products
   const fetchLatestProducts = async () => {
-    try {
-      setLoadingLatest(true);
-      const response = await clientProductService.getProducts({ 
-        limit: 8, 
-        sort: '-createdAt' 
-      });
-      
-      if (response.success) {
-        console.log('✅ Latest products fetched:', response.products?.length || 0);
-        const normalizedProducts = (response.products || []).map(normalizeProductData);
-        setLatestProducts(normalizedProducts);
-      }
-    } catch (error) {
-      console.error("Failed to fetch latest products:", error);
-    } finally {
-      setLoadingLatest(false);
+    setLoadingLatest(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getProducts({ limit: 8, sort: '-createdAt' }),
+      'latest'
+    );
+    
+    if (response?.success) {
+      console.log('✅ Latest products fetched:', response.products?.length || 0);
+      const normalizedProducts = (response.products || []).map(p => ({
+        ...normalizeProductData(p),
+        _cached: response._cached
+      }));
+      setLatestProducts(normalizedProducts);
     }
+    setLoadingLatest(false);
   };
 
   // Fetch flash sale products
   const fetchFlashSaleProducts = async () => {
-    try {
-      setLoadingFlashSale(true);
-      const response = await clientProductService.getFlashSaleProducts(10);
+    setLoadingFlashSale(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getFlashSaleProducts(10),
+      'flashSale'
+    );
+    
+    if (response?.success && response.products?.length > 0) {
+      console.log('✅ Flash sale products fetched:', response.products.length);
+      const normalizedProducts = (response.products || []).map(p => ({
+        ...normalizeProductData(p),
+        _cached: response._cached
+      }));
+      setFlashSaleProducts(normalizedProducts);
+    } else {
+      console.log('⚠️ No flash sale products, fetching discounted products...');
+      const fallbackResponse = await clientProductService.getProducts({ 
+        limit: 10,
+        sort: '-discountPercentage'
+      });
       
-      if (response.success && response.products && response.products.length > 0) {
-        console.log('✅ Flash sale products fetched:', response.products.length);
-        const normalizedProducts = (response.products || []).map(normalizeProductData);
+      if (fallbackResponse?.success) {
+        const normalizedProducts = (fallbackResponse.products || []).map(p => ({
+          ...normalizeProductData(p),
+          _cached: fallbackResponse._cached
+        }));
         setFlashSaleProducts(normalizedProducts);
-      } else {
-        console.log('⚠️ No flash sale products, fetching discounted products...');
-        const fallbackResponse = await clientProductService.getProducts({ 
-          limit: 10,
-          sort: '-discountPercentage'
-        });
-        
-        if (fallbackResponse.success) {
-          const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductData);
-          setFlashSaleProducts(normalizedProducts);
-        } else {
-          const latestResponse = await clientProductService.getProducts({ 
-            limit: 10,
-            sort: '-createdAt'
-          });
-          if (latestResponse.success) {
-            const normalizedProducts = (latestResponse.products || []).map(normalizeProductData);
-            setFlashSaleProducts(normalizedProducts);
-          }
-        }
       }
-    } catch (error) {
-      console.error("Failed to fetch flash sale products:", error);
-      setFlashSaleProducts([]);
-    } finally {
-      setLoadingFlashSale(false);
     }
+    setLoadingFlashSale(false);
   };
 
   // Fetch trending products
   const fetchTrendingProducts = async () => {
-    try {
-      setLoadingTrending(true);
-      const response = await clientProductService.getTrendingProducts(8);
-      
-      if (response.success) {
-        console.log('✅ Trending products fetched:', response.products?.length || 0);
-        const normalizedProducts = (response.products || []).map(normalizeProductData);
-        setTrendingProducts(normalizedProducts);
-      }
-    } catch (error) {
-      console.error("Failed to fetch trending products:", error);
-    } finally {
-      setLoadingTrending(false);
+    setLoadingTrending(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getTrendingProducts(8),
+      'trending'
+    );
+    
+    if (response?.success) {
+      console.log('✅ Trending products fetched:', response.products?.length || 0);
+      const normalizedProducts = (response.products || []).map(p => ({
+        ...normalizeProductData(p),
+        _cached: response._cached
+      }));
+      setTrendingProducts(normalizedProducts);
     }
+    setLoadingTrending(false);
   };
 
   // Fetch just arrived products
   const fetchJustArrivedProducts = async () => {
-    try {
-      setLoadingJustArrived(true);
-      const response = await clientProductService.getJustArrivedProducts(8);
-      
-      if (response.success) {
-        console.log('✅ Just arrived products fetched:', response.products?.length || 0);
-        const normalizedProducts = (response.products || []).map(normalizeProductData);
-        setJustArrivedProducts(normalizedProducts);
-      }
-    } catch (error) {
-      console.error("Failed to fetch just arrived products:", error);
-    } finally {
-      setLoadingJustArrived(false);
+    setLoadingJustArrived(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getJustArrivedProducts(8),
+      'justArrived'
+    );
+    
+    if (response?.success) {
+      console.log('✅ Just arrived products fetched:', response.products?.length || 0);
+      const normalizedProducts = (response.products || []).map(p => ({
+        ...normalizeProductData(p),
+        _cached: response._cached
+      }));
+      setJustArrivedProducts(normalizedProducts);
     }
+    setLoadingJustArrived(false);
   };
 
   // Fetch categories
   const fetchCategories = async () => {
-    try {
-      setLoadingCategories(true);
-      const response = await clientProductService.getCategories();
-      
-      if (response.success) {
-        console.log('✅ Categories fetched:', response.categories?.length || 0);
-        setCategories(response.categories || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch categories:", error);
-      setCategories([]);
-    } finally {
-      setLoadingCategories(false);
+    setLoadingCategories(true);
+    const response = await fetchWithTracking(
+      () => clientProductService.getCategories(),
+      'categories'
+    );
+    
+    if (response?.success) {
+      console.log('✅ Categories fetched:', response.categories?.length || 0);
+      setCategories(response.categories || []);
     }
+    setLoadingCategories(false);
   };
 
   // Fetch all data
@@ -1110,6 +1149,7 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">TRUSTED BY HUNDREDS</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-16 md:gap-24">
@@ -1165,14 +1205,11 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">FEATURED PRODUCTS</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
 
           {loadingFeatured ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i) => (
-                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
-              ))}
-            </div>
+            <CardSkeleton count={4} />
           ) : featuredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {featuredProducts.slice(0, 4).map((product, index) => (
@@ -1185,6 +1222,7 @@ const Home = () => {
                   data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
+                  {/* Cached badge REMOVED - hidden from users */}
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -1225,6 +1263,7 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">FLASH SALE</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
 
           <div 
@@ -1264,6 +1303,7 @@ const Home = () => {
                     data-aos-delay={300 + (index * 100)}
                     data-aos-once="false"
                   >
+                    {/* Cached badge REMOVED - hidden from users */}
                     <ProductCard product={product} />
                   </div>
                 ))
@@ -1322,14 +1362,11 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">TRENDING NOW</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
 
           {loadingTrending ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i) => (
-                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
-              ))}
-            </div>
+            <CardSkeleton count={4} />
           ) : trendingProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {trendingProducts.slice(0, 4).map((product, index) => (
@@ -1342,6 +1379,7 @@ const Home = () => {
                   data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
+                  {/* Cached badge REMOVED - hidden from users */}
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -1382,14 +1420,11 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">JUST ARRIVED</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
 
           {loadingJustArrived ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i) => (
-                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
-              ))}
-            </div>
+            <CardSkeleton count={4} />
           ) : justArrivedProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {justArrivedProducts.slice(0, 4).map((product, index) => (
@@ -1402,6 +1437,7 @@ const Home = () => {
                   data-aos-delay={200 + (index * 100)}
                   data-aos-once="false"
                 >
+                  {/* Cached badge REMOVED - hidden from users */}
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -1442,14 +1478,11 @@ const Home = () => {
             <div className="section-title-wrapper">
               <h2 className="section-title">SHOP BY CATEGORY</h2>
             </div>
+            {/* Algorithm Badge REMOVED - hidden from users */}
           </div>
           
           {loadingCategories ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
-              {[1,2,3,4].map((i) => (
-                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
-              ))}
-            </div>
+            <CardSkeleton count={4} />
           ) : displayCategories.length > 0 ? (
             <div className="relative">
               <div 

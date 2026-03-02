@@ -1,4 +1,4 @@
-// src/pages/EmailVerify.jsx - UPDATED with consistent yellow/orange theme matching Login page
+// src/pages/EmailVerify.jsx - UPDATED with LoadingSpinner
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
@@ -7,6 +7,7 @@ import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
 import { BsLightningCharge, BsArrowRight } from "react-icons/bs";
 import { FiMail, FiMapPin } from "react-icons/fi";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 // Font styles matching homepage
 const fontStyles = `
@@ -99,12 +100,19 @@ const EmailVerify = () => {
   const inputRefs = useRef([]);
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [pageLoading, setPageLoading] = useState(true);
 
   // Inject styles
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = fontStyles + animationStyles;
     document.head.appendChild(style);
+    
+    // Simulate initial page load
+    setTimeout(() => {
+      setPageLoading(false);
+    }, 500);
+    
     return () => document.head.removeChild(style);
   }, []);
 
@@ -258,6 +266,27 @@ const EmailVerify = () => {
       setIsLoading(false);
     }
   };
+
+  // Page loading state
+  if (pageLoading) {
+    return (
+      <div className="relative h-screen overflow-hidden bg-black">
+        <div className="absolute inset-0">
+          <img 
+            src={emailVerifyBackgroundImage}
+            alt="Background"
+            className="object-cover w-full h-full"
+          />
+          <div className="absolute inset-0 bg-black/60"></div>
+          <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoadingSpinner message="Loading verification page..." size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-screen overflow-hidden bg-black">

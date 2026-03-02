@@ -1,8 +1,10 @@
-// src/pages/Checkout.jsx - COMPACT with Yellow-Orange Theme and Dashboard-style heading (TopBar removed)
+// src/pages/Checkout.jsx - COMPACT with Yellow-Orange Theme, LoadingSpinner (algorithm tracking hidden from UI)
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { clientOrderService } from '../services/client/orders';
+import { clientProductService } from '../services/client/products';
+import LoadingSpinner, { ContentLoader } from '../components/LoadingSpinner';
 import { toast } from 'react-toastify';
 import {
   FiMapPin,
@@ -1081,6 +1083,16 @@ const Checkout = () => {
   const [errors, setErrors] = useState({});
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
+  
+  // Algorithm performance states (internal only - not shown to users)
+  const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [loadTime, setLoadTime] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [cacheStats, setCacheStats] = useState({
+    totalRequests: 0,
+    cacheHits: 0
+  });
 
   // Payment methods
   const paymentMethods = [
@@ -1130,6 +1142,60 @@ const Checkout = () => {
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
   }, []);
+
+  // Generic fetch function with performance tracking (console only)
+  const fetchWithTracking = async (fetchFn, sectionName) => {
+    const startTime = performance.now();
+    
+    try {
+      const response = await fetchFn();
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      const isCached = response?.cached || false;
+      
+      setLoadTime(loadTimeMs);
+      setFromCache(isCached);
+      
+      setCacheStats(prev => ({
+        totalRequests: prev.totalRequests + 1,
+        cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+      }));
+      
+      // Log to console only - hidden from UI
+      console.log(`⚡ Checkout ${sectionName} loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
+      
+      return response;
+    } catch (error) {
+      console.error(`Failed to fetch ${sectionName}:`, error);
+      return null;
+    }
+  };
+
+  // Fetch initial data with performance tracking
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true);
+      
+      // Simulate loading time for demo - remove in production
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // If there are items in checkout, we could fetch additional product details
+      if (checkoutItems.length > 0) {
+        const productIds = checkoutItems.map(item => item.id || item.productId).filter(Boolean);
+        if (productIds.length > 0) {
+          await fetchWithTracking(
+            () => clientProductService.getProductsByIds?.(productIds),
+            'productDetails'
+          );
+        }
+      }
+      
+      setLoading(false);
+      setInitialLoad(false);
+    };
+
+    fetchInitialData();
+  }, [checkoutItems]);
 
   // Updated redirect check
   useEffect(() => {
@@ -1202,7 +1268,7 @@ const Checkout = () => {
     setShowSavedAddresses(false);
   };
 
-  // Handle place order
+  // Handle place order with performance tracking
   const handlePlaceOrder = async () => {
     if (checkoutItems.length === 0) {
       toast.error('No items to order');
@@ -1210,6 +1276,7 @@ const Checkout = () => {
     }
 
     setIsProcessing(true);
+    const startTime = performance.now();
 
     try {
       const orderItems = checkoutItems.map(item => ({
@@ -1250,6 +1317,9 @@ const Checkout = () => {
       console.log('📤 Creating order:', orderData);
 
       const response = await clientOrderService.createOrder(orderData);
+
+      const endTime = performance.now();
+      console.log(`⚡ Order placed in ${(endTime - startTime).toFixed(0)}ms`);
 
       console.log('📥 Order response:', response);
 
@@ -1294,8 +1364,61 @@ const Checkout = () => {
   const subtotal = isDirectCheckout ? checkoutTotal : summary.subtotal;
   const total = subtotal + shippingFee;
 
+  // Loading state
+  if (loading && initialLoad) {
+    return (
+      <div className="min-h-screen bg-black">
+        <style>{fontStyles}</style>
+        <style>{animationStyles}</style>
+        
+        {/* Header Image */}
+        <div 
+          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
+          data-aos="fade-in"
+          data-aos-duration="1500"
+        >
+          <div className="absolute inset-0">
+            <img 
+              src={checkoutHeaderImage}
+              alt="Checkout"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full px-4 mx-auto max-w-7xl">
+              <div 
+                className="max-w-2xl"
+                data-aos="fade-right"
+                data-aos-duration="1200"
+              >
+                <div className="section-title-wrapper">
+                  <h1 className="section-title">CHECKOUT</h1>
+                </div>
+                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
+                  Preparing checkout...
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading Spinner */}
+        <div className="flex justify-center py-12">
+          <ContentLoader message="Loading checkout..." />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black">
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
+
       {/* Header Image - COMPACT - Updated heading style to match Cart/Dashboard */}
       <div 
         className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"

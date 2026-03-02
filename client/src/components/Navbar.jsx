@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - UPDATED with yellow-orange theme, static top header
+// src/components/Navbar.jsx - UPDATED with yellow-orange theme, static top header, search bar styling fixed
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -595,19 +595,19 @@ const Navbar = memo(() => {
               onKeyDown={(e) => e.key === 'Enter' && navigate("/")}
             >
               <div className="relative">
-                <div className="absolute transition-opacity duration-500 rounded-full opacity-0 -inset-2 bg-gradient-to-r from-yellow-600 to-orange-600 group-hover:opacity-30 blur-xl"></div>
+                {/* Removed glow effect from logo */}
                 <img 
                   src={assets.logo} 
                   alt="KwetuShop" 
-                  className="relative w-auto h-8 transition-transform sm:h-9 lg:h-10 group-hover:scale-105" 
+                  className="relative w-auto h-8 transition-transform sm:h-9 lg:h-10" 
                 />
               </div>
             </div>
 
-            {/* Desktop Search Bar - WITHOUT Categories Dropdown */}
+            {/* Desktop Search Bar - WITHOUT Categories Dropdown - FIXED styling */}
             <div className="flex-1 hidden max-w-3xl mx-6 lg:flex">
-              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-yellow-500/50 focus-within:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all duration-300">
-                {/* Search Input - Removed categories dropdown */}
+              <div className="relative flex items-center w-full overflow-hidden transition-all duration-300 border-2 rounded-full group bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500/50">
+                {/* Search Input - Removed focus-within glow, added simple yellow border */}
                 <input
                   type="text"
                   placeholder="Search products, brands & categories..."
@@ -621,7 +621,6 @@ const Navbar = memo(() => {
                   className="group relative px-6 py-2.5 text-white font-medium transition-all overflow-hidden"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center gap-2">
                     <FiSearch className="w-5 h-5" />
                     <span className="hidden xl:inline">Search</span>
@@ -868,7 +867,7 @@ const Navbar = memo(() => {
           {/* Mobile Search Bar */}
           {mobileSearchVisible && (
             <div className="pb-3 lg:hidden animate-fadeIn">
-              <div className="group relative flex items-center w-full overflow-hidden rounded-full bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 focus-within:border-yellow-500/50 focus-within:shadow-[0_0_30px_rgba(245,158,11,0.3)] transition-all">
+              <div className="relative flex items-center w-full overflow-hidden transition-all border-2 rounded-full group bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500/50">
                 <input
                   type="text"
                   placeholder="Search products..."
@@ -883,7 +882,6 @@ const Navbar = memo(() => {
                   className="group relative px-4 py-2.5 text-white transition-all overflow-hidden"
                 >
                   <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative">
                     <FiSearch className="w-5 h-5" />
                   </span>

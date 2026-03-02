@@ -1,4 +1,4 @@
-// src/pages/Product.jsx - Only TopBar removed, section headings styled like Dashboard (smaller version)
+// src/pages/Product.jsx - Updated with LoadingSpinner (algorithm tracking hidden from UI)
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -37,6 +37,7 @@ import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import LoadingSpinner, { ProductSkeleton } from '../components/LoadingSpinner';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
@@ -353,6 +354,10 @@ const Product = () => {
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
   const [isZooming, setIsZooming] = useState(false);
   
+  // Algorithm performance states (internal only - not shown to users)
+  const [loadTime, setLoadTime] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
+  
   // Rating and review states
   const [reviews, setReviews] = useState([]);
   const [ratingDistribution, setRatingDistribution] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
@@ -556,12 +561,24 @@ const Product = () => {
   const fetchProductData = async () => {
     try {
       setLoading(true);
+      const startTime = performance.now();
+      
       const response = await clientProductService.getProduct(id);
+      
+      const endTime = performance.now();
+      const loadTimeMs = (endTime - startTime).toFixed(0);
+      
+      // Store for internal use only (not shown in UI)
+      setLoadTime(loadTimeMs);
+      setFromCache(response?.cached || false);
       
       if (response.success) {
         const productData = response.product || response.data;
         setProduct(productData);
         setRelatedProducts(response.relatedProducts || []);
+        
+        // Log to console only - hidden from UI
+        console.log(`⚡ Product loaded in ${loadTimeMs}ms ${response?.cached ? '(from LRU Cache)' : '(from API)'}`);
         
         // Refresh AOS after data loads
         setTimeout(() => AOS.refresh(), 500);
@@ -688,7 +705,7 @@ const Product = () => {
     await toggleWishlist(product);
   };
 
-  // ✅ Check if current user has already reviewed this product
+  // Check if current user has already reviewed this product
   const userHasReviewed = reviews.some(review => 
     review.userName === currentUser?.name || 
     (review.userId && review.userId === currentUser?.id)
@@ -751,7 +768,6 @@ const Product = () => {
       
       if (error.response?.status === 400 && error.response?.data?.message?.includes('already reviewed')) {
         toast.error('You have already reviewed this product');
-        // Refresh reviews to show the existing review
         await fetchReviews();
       } else if (error.response?.status === 401) {
         toast.error('Session expired. Please login again.');
@@ -805,27 +821,7 @@ const Product = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black">
-        <div className="container px-4 py-4 mx-auto max-w-7xl">
-          <div className="animate-pulse">
-            <div className="w-16 h-4 mb-4 bg-gray-800 rounded"></div>
-            <div className="flex flex-col gap-4 lg:flex-row">
-              <div className="w-48 h-48 mx-auto bg-gray-800 rounded-2xl lg:mx-0"></div>
-              <div className="flex-1 space-y-2">
-                <div className="w-2/3 h-5 bg-gray-800 rounded"></div>
-                <div className="w-1/3 h-4 bg-gray-800 rounded"></div>
-                <div className="w-1/4 h-5 bg-gray-800 rounded"></div>
-                <div className="space-y-1">
-                  <div className="h-2 bg-gray-800 rounded"></div>
-                  <div className="h-2 bg-gray-800 rounded"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <ProductSkeleton />;
   }
 
   if (!product) return null;
@@ -884,6 +880,8 @@ const Product = () => {
               <p className="mt-2 text-sm text-gray-300 sm:text-base">
                 {product.name}
               </p>
+              
+              {/* Algorithm Performance Badge REMOVED - hidden from users */}
             </div>
           </div>
         </div>

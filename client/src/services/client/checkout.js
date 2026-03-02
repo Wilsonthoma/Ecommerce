@@ -1,5 +1,9 @@
-// client/src/services/client/checkout.js - Complete Checkout Service
+// client/src/services/client/checkout.js - UPDATED with LRU Cache
 import clientApi from './api';
+import { LRUCache } from '../../dataStructures/LRUCache';
+
+// Create dedicated cache for checkout data
+const checkoutCache = new LRUCache(20); // Cache up to 20 checkout-related items
 
 /**
  * Checkout Service - Handles all checkout-related API calls
@@ -9,7 +13,7 @@ export const clientCheckoutService = {
   // ========== CHECKOUT PROCESS ==========
 
   /**
-   * Initialize checkout process
+   * Initialize checkout process (NO CACHE - WRITE OPERATION)
    * @param {Object} checkoutData - Cart items and preliminary data
    * @returns {Promise<Object>} - { success, checkoutId, message }
    */
@@ -37,18 +41,36 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Validate checkout data before proceeding
+   * Validate checkout data before proceeding (CACHED - short TTL)
    * @param {Object} checkoutData - Checkout data to validate
    * @returns {Promise<Object>} - { success, valid, errors }
    */
   validateCheckout: async (checkoutData) => {
+    const cacheKey = `validate_${JSON.stringify(checkoutData)}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Validation cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Validating checkout:', checkoutData);
       
       const response = await clientApi.post('/checkout/validate', checkoutData);
       
       console.log('📥 Validation response:', response.data);
-      return response.data;
+      
+      const result = {
+        success: response.data?.success || false,
+        valid: response.data?.valid || false,
+        errors: response.data?.errors || {}
+      };
+      
+      // Cache validation for 1 minute (validation may change)
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error validating checkout:', error);
       return {
@@ -62,11 +84,19 @@ export const clientCheckoutService = {
   // ========== ADDRESS MANAGEMENT ==========
 
   /**
-   * Validate shipping address
+   * Validate shipping address (CACHED - short TTL)
    * @param {Object} address - Shipping address object
    * @returns {Promise<Object>} - { success, valid, errors }
    */
   validateAddress: async (address) => {
+    const cacheKey = `validate_address_${JSON.stringify(address)}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Address validation cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Validating address:', address);
       
@@ -74,19 +104,16 @@ export const clientCheckoutService = {
       
       console.log('📥 Address validation response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          valid: response.data.valid || false,
-          errors: response.data.errors || {}
-        };
-      }
-      
-      return {
-        success: true,
-        valid: false,
+      const result = {
+        success: response.data?.success || false,
+        valid: response.data?.valid || false,
         errors: response.data?.errors || {}
       };
+      
+      // Cache address validation for 5 minutes
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error validating address:', error);
       return {
@@ -98,10 +125,18 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Get saved addresses for the current user
+   * Get saved addresses for the current user (CACHED)
    * @returns {Promise<Object>} - { success, addresses }
    */
   getSavedAddresses: async () => {
+    const cacheKey = 'saved_addresses';
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Saved addresses cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Fetching saved addresses');
       
@@ -115,17 +150,15 @@ export const clientCheckoutService = {
       
       console.log('📥 Saved addresses response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          addresses: response.data.addresses || []
-        };
-      }
-      
-      return {
-        success: true,
-        addresses: []
+      const result = {
+        success: response.data?.success || false,
+        addresses: response.data?.addresses || []
       };
+      
+      // Cache addresses for 5 minutes
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error fetching saved addresses:', error);
       return {
@@ -137,7 +170,7 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Save a new address
+   * Save a new address (NO CACHE - WRITE OPERATION)
    * @param {Object} address - Address to save
    * @returns {Promise<Object>} - { success, address, message }
    */
@@ -156,6 +189,10 @@ export const clientCheckoutService = {
       });
       
       console.log('📥 Save address response:', response.data);
+      
+      // Clear saved addresses cache after adding new address
+      checkoutCache.put('saved_addresses', null);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error saving address:', error);
@@ -164,7 +201,7 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Update an existing address
+   * Update an existing address (NO CACHE - WRITE OPERATION)
    * @param {string} addressId - Address ID
    * @param {Object} address - Updated address data
    * @returns {Promise<Object>} - { success, message }
@@ -184,6 +221,10 @@ export const clientCheckoutService = {
       });
       
       console.log('📥 Update address response:', response.data);
+      
+      // Clear saved addresses cache after update
+      checkoutCache.put('saved_addresses', null);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error updating address:', error);
@@ -192,7 +233,7 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Delete a saved address
+   * Delete a saved address (NO CACHE - WRITE OPERATION)
    * @param {string} addressId - Address ID
    * @returns {Promise<Object>} - { success, message }
    */
@@ -211,6 +252,10 @@ export const clientCheckoutService = {
       });
       
       console.log('📥 Delete address response:', response.data);
+      
+      // Clear saved addresses cache after deletion
+      checkoutCache.put('saved_addresses', null);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error deleting address:', error);
@@ -221,10 +266,18 @@ export const clientCheckoutService = {
   // ========== SHIPPING METHODS ==========
 
   /**
-   * Get available shipping methods
+   * Get available shipping methods (CACHED)
    * @returns {Promise<Object>} - { success, methods }
    */
   getShippingMethods: async () => {
+    const cacheKey = 'shipping_methods';
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Shipping methods cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Fetching shipping methods');
       
@@ -232,17 +285,15 @@ export const clientCheckoutService = {
       
       console.log('📥 Shipping methods response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          methods: response.data.methods || []
-        };
-      }
-      
-      return {
-        success: true,
-        methods: []
+      const result = {
+        success: response.data?.success || false,
+        methods: response.data?.methods || []
       };
+      
+      // Cache shipping methods for 1 hour (rarely changes)
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error fetching shipping methods:', error);
       return {
@@ -254,13 +305,21 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Calculate shipping cost
+   * Calculate shipping cost (CACHED - depends on address)
    * @param {string} methodId - Shipping method ID
    * @param {Object} address - Shipping address
    * @param {Array} items - Cart items
    * @returns {Promise<Object>} - { success, cost, estimatedDays }
    */
   calculateShipping: async (methodId, address, items) => {
+    const cacheKey = `shipping_calc_${methodId}_${address?.county || 'unknown'}_${items?.length || 0}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Shipping calculation cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Calculating shipping:', { methodId, address, items });
       
@@ -270,21 +329,17 @@ export const clientCheckoutService = {
       
       console.log('📥 Shipping calculation response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          cost: response.data.cost || 0,
-          estimatedDays: response.data.estimatedDays || '3-5',
-          method: response.data.method || 'Standard'
-        };
-      }
-      
-      return {
-        success: true,
-        cost: 0,
-        estimatedDays: '3-5',
-        method: 'Standard'
+      const result = {
+        success: response.data?.success || false,
+        cost: response.data?.cost || 0,
+        estimatedDays: response.data?.estimatedDays || '3-5',
+        method: response.data?.method || 'Standard'
       };
+      
+      // Cache shipping calculation for 10 minutes
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error calculating shipping:', error);
       return {
@@ -300,12 +355,20 @@ export const clientCheckoutService = {
   // ========== TAX CALCULATION ==========
 
   /**
-   * Calculate tax for the order
+   * Calculate tax for the order (CACHED)
    * @param {number} subtotal - Order subtotal
    * @param {string} county - Delivery county
    * @returns {Promise<Object>} - { success, tax, taxRate }
    */
   calculateTax: async (subtotal, county) => {
+    const cacheKey = `tax_calc_${subtotal}_${county || 'default'}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Tax calculation cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Calculating tax:', { subtotal, county });
       
@@ -313,19 +376,16 @@ export const clientCheckoutService = {
       
       console.log('📥 Tax calculation response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          tax: response.data.tax || 0,
-          taxRate: response.data.taxRate || 0
-        };
-      }
-      
-      return {
-        success: true,
-        tax: 0,
-        taxRate: 0
+      const result = {
+        success: response.data?.success || false,
+        tax: response.data?.tax || 0,
+        taxRate: response.data?.taxRate || 0
       };
+      
+      // Cache tax calculation for 30 minutes
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error calculating tax:', error);
       return {
@@ -340,12 +400,20 @@ export const clientCheckoutService = {
   // ========== PROMO CODES ==========
 
   /**
-   * Apply promo code
+   * Apply promo code (CACHED - short TTL)
    * @param {string} code - Promo code
    * @param {number} subtotal - Order subtotal
    * @returns {Promise<Object>} - { success, discount, message, newTotal }
    */
   applyPromoCode: async (code, subtotal) => {
+    const cacheKey = `promo_${code}_${subtotal}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Promo code cache hit:', code);
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Applying promo code: ${code}`);
       
@@ -353,21 +421,19 @@ export const clientCheckoutService = {
       
       console.log('📥 Promo application response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          discount: response.data.discount || 0,
-          newTotal: response.data.newTotal || subtotal,
-          message: response.data.message || 'Promo code applied'
-        };
+      const result = {
+        success: response.data?.success || false,
+        discount: response.data?.discount || 0,
+        newTotal: response.data?.newTotal || subtotal,
+        message: response.data?.message || (response.data?.success ? 'Promo code applied' : 'Invalid promo code')
+      };
+      
+      // Cache promo code result for 5 minutes
+      if (result.success) {
+        checkoutCache.put(cacheKey, result);
       }
       
-      return {
-        success: false,
-        discount: 0,
-        newTotal: subtotal,
-        message: response.data?.message || 'Invalid promo code'
-      };
+      return result;
     } catch (error) {
       console.error('❌ Error applying promo code:', error);
       return {
@@ -380,7 +446,7 @@ export const clientCheckoutService = {
   },
 
   /**
-   * Remove applied promo code
+   * Remove applied promo code (NO CACHE)
    * @returns {Promise<Object>} - { success, message }
    */
   removePromoCode: async () => {
@@ -400,11 +466,19 @@ export const clientCheckoutService = {
   // ========== ORDER PREVIEW ==========
 
   /**
-   * Get order preview with all calculations
+   * Get order preview with all calculations (CACHED - short TTL)
    * @param {Object} checkoutData - Complete checkout data
    * @returns {Promise<Object>} - { success, preview }
    */
   getOrderPreview: async (checkoutData) => {
+    const cacheKey = `order_preview_${JSON.stringify(checkoutData)}`;
+    
+    const cached = checkoutCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Order preview cache hit');
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log('📤 Getting order preview:', checkoutData);
       
@@ -412,23 +486,9 @@ export const clientCheckoutService = {
       
       console.log('📥 Order preview response:', response.data);
       
-      if (response.data?.success) {
-        return {
-          success: true,
-          preview: response.data.preview || {
-            subtotal: 0,
-            shipping: 0,
-            tax: 0,
-            discount: 0,
-            total: 0,
-            items: []
-          }
-        };
-      }
-      
-      return {
-        success: true,
-        preview: {
+      const result = {
+        success: response.data?.success || false,
+        preview: response.data?.preview || {
           subtotal: 0,
           shipping: 0,
           tax: 0,
@@ -437,6 +497,11 @@ export const clientCheckoutService = {
           items: []
         }
       };
+      
+      // Cache order preview for 2 minutes
+      checkoutCache.put(cacheKey, result);
+      
+      return result;
     } catch (error) {
       console.error('❌ Error getting order preview:', error);
       return {
@@ -457,7 +522,7 @@ export const clientCheckoutService = {
   // ========== CHECKOUT COMPLETION ==========
 
   /**
-   * Complete checkout and create order
+   * Complete checkout and create order (NO CACHE - WRITE OPERATION)
    * @param {Object} checkoutData - Complete checkout data
    * @returns {Promise<Object>} - { success, order, message }
    */
@@ -477,11 +542,26 @@ export const clientCheckoutService = {
       });
       
       console.log('📥 Checkout complete response:', response.data);
+      
+      // Clear relevant caches after checkout completion
+      checkoutCache.put('saved_addresses', null);
+      checkoutCache.put('shipping_methods', null);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error completing checkout:', error);
       throw error;
     }
+  },
+
+  // ========== CACHE MANAGEMENT ==========
+
+  /**
+   * Clear all checkout caches
+   */
+  clearAllCaches: () => {
+    checkoutCache.clear();
+    console.log('🗑️ All checkout caches cleared');
   }
 };
 

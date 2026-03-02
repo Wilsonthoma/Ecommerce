@@ -1,9 +1,11 @@
-// src/pages/Wishlist.jsx - COMPACT with Yellow-Orange Theme using ProductCard component (TopBar removed, Dashboard-style heading)
+// src/pages/Wishlist.jsx - COMPACT with Yellow-Orange Theme, LoadingSpinner (algorithm tracking hidden from UI)
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
 import { useCart } from '../context/CartContext';
+import { clientProductService } from '../services/client/products';
 import ProductCard from '../components/ProductCard';
+import LoadingSpinner, { CardSkeleton } from '../components/LoadingSpinner';
 import { 
   FiHeart, 
   FiShoppingCart, 
@@ -17,7 +19,7 @@ import {
   FiMapPin
 } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
-import { BsArrowRight, BsLightningCharge } from 'react-icons/bs';
+import { BsArrowRight } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -164,7 +166,7 @@ const wishlistHeaderImage = "https://images.pexels.com/photos/5709661/pexels-pho
 const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 // Normalize product data function (matching ProductCard expectations)
-const normalizeProductData = (product) => {
+const normalizeProductData = (product, cached = false) => {
   if (!product) return null;
   
   return {
@@ -185,7 +187,8 @@ const normalizeProductData = (product) => {
     featured: product.featured || false,
     isTrending: product.isTrending || false,
     isFlashSale: product.isFlashSale || false,
-    isJustArrived: product.isJustArrived || false
+    isJustArrived: product.isJustArrived || false,
+    _cached: cached // Keep for internal tracking only
   };
 };
 
@@ -194,11 +197,22 @@ const Wishlist = () => {
   const { 
     wishlistItems, 
     wishlistCount, 
-    loading, 
+    loading: wishlistLoading, 
     removeFromWishlist, 
     clearWishlist 
   } = useWishlist();
   const { addToCart } = useCart();
+
+  // Algorithm performance states (internal only - not shown to users)
+  const [loadTime, setLoadTime] = useState(null);
+  const [fromCache, setFromCache] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [enhancedProducts, setEnhancedProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [cacheStats, setCacheStats] = useState({
+    totalRequests: 0,
+    cacheHits: 0
+  });
 
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
@@ -220,7 +234,7 @@ const Wishlist = () => {
     setTimeout(() => {
       AOS.refresh();
     }, 500);
-  }, [wishlistItems]);
+  }, [wishlistItems, enhancedProducts]);
 
   // Inject styles
   useEffect(() => {
@@ -230,14 +244,86 @@ const Wishlist = () => {
     return () => document.head.removeChild(style);
   }, []);
 
+  // Fetch enhanced product details when wishlist changes
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (!wishlistItems.length) {
+        setEnhancedProducts([]);
+        setInitialLoad(false);
+        return;
+      }
+
+      setLoadingProducts(true);
+      const startTime = performance.now();
+      
+      try {
+        const productIds = wishlistItems.map(item => item._id || item.id).filter(Boolean);
+        
+        if (productIds.length === 0) {
+          setEnhancedProducts(wishlistItems.map(p => normalizeProductData(p)));
+          return;
+        }
+        
+        const response = await clientProductService.getProductsByIds?.(productIds);
+        
+        const endTime = performance.now();
+        const loadTimeMs = (endTime - startTime).toFixed(0);
+        const isCached = response?.cached || false;
+        
+        setLoadTime(loadTimeMs);
+        setFromCache(isCached);
+        
+        setCacheStats(prev => ({
+          totalRequests: prev.totalRequests + 1,
+          cacheHits: isCached ? prev.cacheHits + 1 : prev.cacheHits
+        }));
+        
+        // Log to console only - hidden from UI
+        console.log(`⚡ Wishlist products loaded in ${loadTimeMs}ms ${isCached ? '(from LRU Cache)' : '(from API)'}`);
+        
+        if (response?.success) {
+          // Create a map of enhanced products
+          const enhancedMap = {};
+          response.products.forEach(p => {
+            enhancedMap[p.id] = p;
+          });
+          
+          // Merge wishlist items with enhanced data
+          const merged = wishlistItems.map(item => {
+            const itemId = item._id || item.id;
+            const enhanced = enhancedMap[itemId];
+            if (enhanced) {
+              return normalizeProductData(enhanced, isCached);
+            }
+            return normalizeProductData(item);
+          });
+          
+          setEnhancedProducts(merged);
+        } else {
+          // Use wishlist items as fallback
+          setEnhancedProducts(wishlistItems.map(p => normalizeProductData(p)));
+        }
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+        setEnhancedProducts(wishlistItems.map(p => normalizeProductData(p)));
+      } finally {
+        setLoadingProducts(false);
+        setInitialLoad(false);
+      }
+    };
+
+    fetchProductDetails();
+  }, [wishlistItems]);
+
   // Update select all when items change
   useEffect(() => {
-    if (selectedItems.length === wishlistItems.length && wishlistItems.length > 0) {
+    const items = enhancedProducts.length ? enhancedProducts : wishlistItems;
+    if (selectedItems.length === items.length && items.length > 0) {
       setSelectAll(true);
     } else {
       setSelectAll(false);
     }
-  }, [selectedItems, wishlistItems]);
+  }, [selectedItems, enhancedProducts, wishlistItems]);
 
   // Format KES currency
   const formatKES = (price) => {
@@ -259,8 +345,6 @@ const Wishlist = () => {
     e.preventDefault();
     e.stopPropagation();
     removeFromWishlist(productId);
-    
-    // Update selected items
     setSelectedItems(prev => prev.filter(id => id !== productId));
   };
 
@@ -269,10 +353,12 @@ const Wishlist = () => {
     e.preventDefault();
     e.stopPropagation();
     
+    const items = enhancedProducts.length ? enhancedProducts : wishlistItems;
+    
     if (selectAll) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(wishlistItems.map(item => item._id || item.id));
+      setSelectedItems(items.map(item => item._id || item.id));
     }
   };
 
@@ -309,10 +395,12 @@ const Wishlist = () => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (wishlistItems.length === 0) return;
+    const items = enhancedProducts.length ? enhancedProducts : wishlistItems;
+    
+    if (items.length === 0) return;
 
     let successCount = 0;
-    for (const product of wishlistItems) {
+    for (const product of items) {
       const productId = product._id || product.id;
       setAddingToCart(prev => ({ ...prev, [productId]: true }));
       
@@ -322,7 +410,7 @@ const Wishlist = () => {
       setAddingToCart(prev => ({ ...prev, [productId]: false }));
     }
 
-    toast.success(`Added ${successCount} of ${wishlistItems.length} items to cart`);
+    toast.success(`Added ${successCount} of ${items.length} items to cart`);
   };
 
   // Handle clear all
@@ -336,23 +424,58 @@ const Wishlist = () => {
     }
   };
 
-  if (loading) {
+  // Calculate cache hit rate (internal only)
+  const cacheHitRate = cacheStats.totalRequests > 0 
+    ? ((cacheStats.cacheHits / cacheStats.totalRequests) * 100).toFixed(0)
+    : 0;
+
+  const displayItems = enhancedProducts.length ? enhancedProducts : wishlistItems;
+
+  // Loading state with CardSkeleton
+  if ((wishlistLoading || (loadingProducts && initialLoad)) && wishlistItems.length > 0) {
     return (
       <div className="min-h-screen bg-black">
-        <div className="container px-3 py-5 mx-auto max-w-7xl">
-          <div className="animate-pulse">
-            <div className="h-6 mb-5 bg-gray-800 rounded w-36"></div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="p-3 bg-gray-900 border border-gray-800 rounded-lg">
-                  <div className="w-full mb-3 bg-gray-800 rounded h-36"></div>
-                  <div className="w-3/4 h-3 mb-1.5 bg-gray-800 rounded"></div>
-                  <div className="w-1/2 h-3 mb-3 bg-gray-800 rounded"></div>
-                  <div className="w-1/3 h-4 bg-gray-800 rounded"></div>
+        <style>{fontStyles}</style>
+        <style>{animationStyles}</style>
+        
+        {/* Wishlist Header Image */}
+        <div 
+          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
+          data-aos="fade-in"
+          data-aos-duration="1500"
+        >
+          <div className="absolute inset-0">
+            <img 
+              src={wishlistHeaderImage}
+              alt="My Wishlist"
+              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
+            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
+          </div>
+          
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full px-4 mx-auto max-w-7xl">
+              <div 
+                className="max-w-2xl"
+                data-aos="fade-right"
+                data-aos-duration="1200"
+              >
+                <div className="section-title-wrapper">
+                  <h1 className="section-title">MY WISHLIST</h1>
                 </div>
-              ))}
+                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
+                  Loading your wishlist...
+                </p>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="container px-3 py-5 mx-auto max-w-7xl sm:px-4">
+          <CardSkeleton count={Math.min(wishlistItems.length, 8)} />
         </div>
       </div>
     );
@@ -397,6 +520,9 @@ const Wishlist = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      <style>{fontStyles}</style>
+      <style>{animationStyles}</style>
+
       {/* Wishlist Header Image - COMPACT with Dashboard-style heading */}
       <div 
         className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
@@ -421,13 +547,15 @@ const Wishlist = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
             >
-              {/* Updated heading with Dashboard style (matching Cart page) */}
+              {/* Updated heading with Dashboard style */}
               <div className="section-title-wrapper">
                 <h1 className="section-title">MY WISHLIST</h1>
               </div>
               <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 {wishlistCount} {wishlistCount === 1 ? 'item' : 'items'} saved
               </p>
+              
+              {/* Algorithm Performance Badge REMOVED - hidden from users */}
             </div>
           </div>
         </div>
@@ -498,8 +626,10 @@ const Wishlist = () => {
           </div>
         </div>
 
+        {/* Algorithm Stats Summary REMOVED - hidden from users */}
+
         {/* Select All - COMPACT */}
-        {wishlistItems.length > 0 && (
+        {displayItems.length > 0 && (
           <div 
             className="flex items-center gap-1.5 p-2 mb-3 bg-gray-900 border border-gray-700 rounded-lg"
             data-aos="fade-up"
@@ -512,16 +642,22 @@ const Wishlist = () => {
               className="w-3.5 h-3.5 text-yellow-600 bg-gray-700 border-gray-600 rounded cursor-pointer focus:ring-yellow-500 focus:ring-offset-0"
             />
             <label className="text-xs font-medium text-white cursor-pointer" onClick={handleSelectAll}>
-              Select All ({wishlistItems.length} items)
+              Select All ({displayItems.length} items)
             </label>
+          </div>
+        )}
+
+        {/* Loading overlay for subsequent loads */}
+        {loadingProducts && !initialLoad && (
+          <div className="flex justify-center py-4">
+            <LoadingSpinner message="Updating wishlist..." size="sm" fullScreen={false} />
           </div>
         )}
 
         {/* Wishlist Grid - Using ProductCard component */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {wishlistItems.map((product, index) => {
+          {displayItems.map((product, index) => {
             const productId = product._id || product.id;
-            const normalizedProduct = normalizeProductData(product);
             
             return (
               <div 
@@ -531,6 +667,8 @@ const Wishlist = () => {
                 data-aos-duration="800"
                 data-aos-delay={index * 50}
               >
+                {/* Cache Indicator Badge REMOVED - hidden from users */}
+                
                 {/* Custom remove button overlay - COMPACT */}
                 <button
                   onClick={(e) => handleRemove(productId, e)}
@@ -554,7 +692,7 @@ const Wishlist = () => {
                 
                 {/* Product Card */}
                 <div className="relative card-3d-content">
-                  <ProductCard product={normalizedProduct} />
+                  <ProductCard product={product} />
                 </div>
               </div>
             );

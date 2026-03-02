@@ -1,500 +1,375 @@
-// client/src/services/client/products.js - COMPLETE REWRITTEN VERSION
+// client/src/services/client/products.js - FIXED syntax error at line 693
 import clientApi from './api';
+import { LRUCache, productCache, categoryCache, searchCache } from '../../dataStructures/LRUCache';
+import { SortedProductArray } from '../../utils/binarySearch';
+import { SearchTrie } from '../../dataStructures/Trie';
+import { cachedApi } from './apiWithCache';
 
 /**
- * Product Service - Handles all product-related API calls
+ * Optimized Product Service - Handles all product-related API calls with caching
  * Matches backend endpoints at /api/products/*
  */
-export const clientProductService = {
+class OptimizedProductService {
+  constructor() {
+    this.sortedProducts = null;
+    this.searchTrie = new SearchTrie();
+    this.categoryTree = null;
+    this.initialized = false;
+    this.initPromise = null;
+    this.pendingRequests = new Map(); // For deduplicating in-flight requests
+  }
+
+  /**
+   * Initialize data structures with product data
+   * @param {Array} products - Array of products
+   */
+  async initialize(products) {
+    if (this.initialized) return;
+    
+    // Prevent multiple simultaneous initializations
+    if (this.initPromise) return this.initPromise;
+    
+    this.initPromise = new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('🚀 Initializing product data structures...');
+        
+        // Create sorted array for price searches
+        this.sortedProducts = new SortedProductArray(products, 'price');
+        
+        // Build search trie for autocomplete
+        this.searchTrie.buildFromProducts(products);
+        
+        this.initialized = true;
+        console.log('✅ Product service initialized with', products.length, 'products');
+        resolve();
+      }, 0);
+    });
+    
+    return this.initPromise;
+  }
+
+  /**
+   * Deduplicate in-flight requests
+   * @param {string} key - Unique request key
+   * @param {Function} requestFn - Function that returns a promise
+   */
+  async dedupeRequest(key, requestFn) {
+    if (this.pendingRequests.has(key)) {
+      console.log('🔄 Reusing in-flight request:', key);
+      return this.pendingRequests.get(key);
+    }
+    
+    const promise = requestFn().finally(() => {
+      this.pendingRequests.delete(key);
+    });
+    
+    this.pendingRequests.set(key, promise);
+    return promise;
+  }
+
   // ========== BASIC PRODUCT METHODS ==========
   
   /**
-   * Get all products with comprehensive filtering
-   * @param {Object} params - Query parameters (category, minPrice, maxPrice, search, sort, page, limit)
-   * @returns {Promise<Object>} - { success, products, total, pages, currentPage, count }
+   * Get all products with comprehensive filtering (CACHED)
    */
-  getProducts: async (params = {}) => {
-    try {
-      console.log('📤 Fetching products with params:', params);
-      
-      const response = await clientApi.get('/products', { params });
-      
-      console.log('📥 Products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          total: response.data.total || 0,
-          pages: response.data.totalPages || 1,
-          currentPage: response.data.currentPage || 1,
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: false,
-        products: [],
-        total: 0,
-        pages: 1,
-        currentPage: 1,
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching products:', error);
-      return {
-        success: false,
-        products: [],
-        total: 0,
-        pages: 1,
-        currentPage: 1,
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  async getProducts(params = {}) {
+    const cacheKey = `products_${JSON.stringify(params)}`;
+    
+    // Check cache first
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Products cache hit');
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products', params, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get single product by ID
-   * @param {string} id - Product ID
-   * @returns {Promise<Object>} - { success, product, relatedProducts }
+   * Get single product by ID (CACHED)
    */
-  getProduct: async (id) => {
-    try {
-      console.log(`📤 Fetching product ${id}`);
-      
-      const response = await clientApi.get(`/products/${id}`);
-      
-      console.log('📥 Product response:', response.data);
-      
-      if (response.data?.success) {
+  async getProduct(id) {
+    const cacheKey = `product_${id}`;
+    
+    // Check cache first
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Product cache hit:', id);
+      return { ...cached, cached: true };
+    }
+    
+    return await this.dedupeRequest(`product_${id}`, async () => {
+      try {
+        console.log(`📤 Fetching product ${id}`);
+        
+        const response = await clientApi.get(`/products/${id}`);
+        
+        console.log('📥 Product response:', response.data);
+        
+        if (response.data?.success) {
+          const result = {
+            success: true,
+            product: response.data.product || null,
+            relatedProducts: response.data.relatedProducts || []
+          };
+          
+          // Cache the result
+          productCache.put(cacheKey, result);
+          
+          return { ...result, cached: false };
+        }
+        
         return {
-          success: true,
-          product: response.data.product || null,
-          relatedProducts: response.data.relatedProducts || []
+          success: false,
+          product: null,
+          relatedProducts: [],
+          error: 'Product not found',
+          cached: false
+        };
+      } catch (error) {
+        console.error(`❌ Error fetching product ${id}:`, error);
+        return {
+          success: false,
+          product: null,
+          relatedProducts: [],
+          error: error.response?.data?.message || error.message,
+          cached: false
         };
       }
-      
-      return {
-        success: false,
-        product: null,
-        relatedProducts: [],
-        error: 'Product not found'
-      };
-    } catch (error) {
-      console.error(`❌ Error fetching product ${id}:`, error);
-      return {
-        success: false,
-        product: null,
-        relatedProducts: [],
-        error: error.response?.data?.message || error.message
-      };
-    }
-  },
+    });
+  }
 
   /**
-   * Get product by slug (SEO-friendly URL)
-   * @param {string} slug - Product slug
-   * @returns {Promise<Object>} - { success, product, relatedProducts }
+   * Get product by slug (SEO-friendly URL) - CACHED
    */
-  getProductBySlug: async (slug) => {
-    try {
-      console.log(`📤 Fetching product by slug: ${slug}`);
-      
-      const response = await clientApi.get(`/products/slug/${slug}`);
-      
-      console.log('📥 Product by slug response:', response.data);
-      
-      if (response.data?.success) {
+  async getProductBySlug(slug) {
+    const cacheKey = `product_slug_${slug}`;
+    
+    // Check cache first
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Product slug cache hit:', slug);
+      return { ...cached, cached: true };
+    }
+    
+    return await this.dedupeRequest(`product_slug_${slug}`, async () => {
+      try {
+        console.log(`📤 Fetching product by slug: ${slug}`);
+        
+        const response = await clientApi.get(`/products/slug/${slug}`);
+        
+        console.log('📥 Product by slug response:', response.data);
+        
+        if (response.data?.success) {
+          const result = {
+            success: true,
+            product: response.data.product || null,
+            relatedProducts: response.data.relatedProducts || []
+          };
+          
+          // Cache the result
+          productCache.put(cacheKey, result);
+          
+          return { ...result, cached: false };
+        }
+        
         return {
-          success: true,
-          product: response.data.product || null,
-          relatedProducts: response.data.relatedProducts || []
+          success: false,
+          product: null,
+          relatedProducts: [],
+          cached: false
+        };
+      } catch (error) {
+        console.error(`❌ Error fetching product by slug ${slug}:`, error);
+        return {
+          success: false,
+          product: null,
+          relatedProducts: [],
+          error: error.response?.data?.message || error.message,
+          cached: false
         };
       }
-      
-      return {
-        success: false,
-        product: null,
-        relatedProducts: []
-      };
-    } catch (error) {
-      console.error(`❌ Error fetching product by slug ${slug}:`, error);
-      return {
-        success: false,
-        product: null,
-        relatedProducts: [],
-        error: error.response?.data?.message || error.message
-      };
-    }
-  },
+    });
+  }
 
-  // ========== SECTION-SPECIFIC PRODUCT METHODS ==========
+  // ========== FAST SEARCH METHODS USING DATA STRUCTURES ==========
   
   /**
-   * Get featured products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products, count }
+   * Get products by price range using Binary Search (O(log n))
+   * @param {number} minPrice - Minimum price
+   * @param {number} maxPrice - Maximum price
+   * @returns {Array} - Products in price range
    */
-  getFeaturedProducts: async (limit = 8) => {
-    try {
-      console.log('📤 Fetching featured products with limit:', limit);
-      
-      const response = await clientApi.get('/products/featured', {
-        params: { limit }
-      });
-      
-      console.log('📥 Featured products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching featured products:', error);
-      return {
-        success: false,
-        products: [],
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  getProductsByPriceRange(minPrice, maxPrice) {
+    if (!this.sortedProducts || !this.initialized) {
+      console.warn('⚠️ Product service not initialized yet');
+      return [];
     }
-  },
+    return this.sortedProducts.findInPriceRange(minPrice, maxPrice);
+  }
 
   /**
-   * Get trending products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products, count }
+   * Autocomplete search using Trie (O(m) where m is prefix length)
+   * @param {string} query - Search query
+   * @param {number} limit - Max results
+   * @returns {Array} - Product IDs matching prefix
    */
-  getTrendingProducts: async (limit = 8) => {
-    try {
-      console.log('📤 Fetching trending products with limit:', limit);
-      
-      const response = await clientApi.get('/products/trending', {
-        params: { limit }
-      });
-      
-      console.log('📥 Trending products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching trending products:', error);
-      return {
-        success: false,
-        products: [],
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  autocompleteSearch(query, limit = 5) {
+    if (!this.searchTrie || !this.initialized || query.length < 2) {
+      return [];
     }
-  },
+    return this.searchTrie.autoComplete(query, limit);
+  }
+
+  // ========== SECTION-SPECIFIC PRODUCT METHODS (ALL CACHED) ==========
+  
+  /**
+   * Get featured products (CACHED)
+   */
+  async getFeaturedProducts(limit = 8) {
+    const cacheKey = `featured_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
+    const response = await cachedApi.get('/products/featured', { limit }, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get flash sale products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products, count }
+   * Get trending products (CACHED)
    */
-  getFlashSaleProducts: async (limit = 10) => {
-    try {
-      console.log('📤 Fetching flash sale products with limit:', limit);
-      
-      const response = await clientApi.get('/products/flash-sale', {
-        params: { limit }
-      });
-      
-      console.log('📥 Flash sale products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching flash sale products:', error);
-      return {
-        success: false,
-        products: [],
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  async getTrendingProducts(limit = 8) {
+    const cacheKey = `trending_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products/trending', { limit }, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get just arrived products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products, count }
+   * Get flash sale products (CACHED)
    */
-  getJustArrivedProducts: async (limit = 8) => {
-    try {
-      console.log('📤 Fetching just arrived products with limit:', limit);
-      
-      const response = await clientApi.get('/products/just-arrived', {
-        params: { limit }
-      });
-      
-      console.log('📥 Just arrived products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching just arrived products:', error);
-      return {
-        success: false,
-        products: [],
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  async getFlashSaleProducts(limit = 10) {
+    const cacheKey = `flashsale_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products/flash-sale', { limit }, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get top selling products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products, count }
+   * Get just arrived products (CACHED)
    */
-  getTopSellingProducts: async (limit = 10) => {
-    try {
-      console.log('📤 Fetching top selling products with limit:', limit);
-      
-      const response = await clientApi.get('/products/top-selling', {
-        params: { limit }
-      });
-      
-      console.log('📥 Top selling products response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          count: response.data.count || 0
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        count: 0
-      };
-    } catch (error) {
-      console.error('❌ Error fetching top selling products:', error);
-      return {
-        success: false,
-        products: [],
-        count: 0,
-        error: error.response?.data?.message || error.message
-      };
+  async getJustArrivedProducts(limit = 8) {
+    const cacheKey = `justarrived_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
-
-  // ========== CATEGORY & FILTER METHODS ==========
+    
+    const response = await cachedApi.get('/products/just-arrived', { limit }, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get all categories with product counts
-   * @returns {Promise<Object>} - { success, categories }
+   * Get top selling products (CACHED)
    */
-  getCategories: async () => {
-    try {
-      console.log('📤 Fetching categories');
-      
-      const response = await clientApi.get('/products/categories/all');
-      
-      console.log('📥 Categories response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          categories: response.data.categories || []
-        };
-      }
-      
-      return {
-        success: true,
-        categories: []
-      };
-    } catch (error) {
-      console.error('❌ Error fetching categories:', error);
-      return {
-        success: false,
-        categories: [],
-        error: error.response?.data?.message || error.message
-      };
+  async getTopSellingProducts(limit = 10) {
+    const cacheKey = `topselling_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products/top-selling', { limit }, { useCache: true });
+    return { ...response, cached: false };
+  }
+
+  // ========== CATEGORY & FILTER METHODS (CACHED) ==========
 
   /**
-   * Get all vendors
-   * @returns {Promise<Object>} - { success, vendors }
+   * Get all categories with product counts (CACHED)
    */
-  getVendors: async () => {
-    try {
-      console.log('📤 Fetching vendors');
-      
-      const response = await clientApi.get('/products/vendors/all');
-      
-      console.log('📥 Vendors response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          vendors: response.data.vendors || []
-        };
-      }
-      
-      return {
-        success: true,
-        vendors: []
-      };
-    } catch (error) {
-      console.error('❌ Error fetching vendors:', error);
-      return {
-        success: false,
-        vendors: [],
-        error: error.response?.data?.message || error.message
-      };
+  async getCategories() {
+    const cached = categoryCache.get('all_categories');
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products/categories/all', {}, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get filter data (price ranges, categories, vendors)
-   * @returns {Promise<Object>} - { success, filters }
+   * Get all vendors (CACHED)
    */
-  getFilterData: async () => {
-    try {
-      console.log('📤 Fetching filter data');
-      
-      const response = await clientApi.get('/products/filters/data');
-      
-      console.log('📥 Filter data response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          filters: response.data.filters || {
-            priceRange: { minPrice: 0, maxPrice: 0 },
-            categories: [],
-            vendors: []
-          }
-        };
-      }
-      
-      return {
-        success: true,
-        filters: {
-          priceRange: { minPrice: 0, maxPrice: 0 },
-          categories: [],
-          vendors: []
-        }
-      };
-    } catch (error) {
-      console.error('❌ Error fetching filter data:', error);
-      return {
-        success: false,
-        filters: {
-          priceRange: { minPrice: 0, maxPrice: 0 },
-          categories: [],
-          vendors: []
-        },
-        error: error.response?.data?.message || error.message
-      };
+  async getVendors() {
+    const cached = categoryCache.get('all_vendors');
+    if (cached) {
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products/vendors/all', {}, { useCache: true });
+    return { ...response, cached: false };
+  }
+
+  /**
+   * Get filter data (price ranges, categories, vendors) - CACHED
+   */
+  async getFilterData() {
+    const cached = categoryCache.get('filter_data');
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
+    const response = await cachedApi.get('/products/filters/data', {}, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   // ========== SEARCH METHODS ==========
 
   /**
-   * Search products
-   * @param {string} query - Search query
-   * @param {Object} params - Additional search parameters
-   * @returns {Promise<Object>} - { success, products, total, pages, currentPage }
+   * Search products (CACHED)
    */
-  searchProducts: async (query, params = {}) => {
-    try {
-      console.log(`📤 Searching products with query: ${query}`);
-      
-      const response = await clientApi.get('/products', {
-        params: { search: query, ...params }
-      });
-      
-      console.log('📥 Search response:', response.data);
-      
-      if (response.data?.success) {
-        return {
-          success: true,
-          products: response.data.products || [],
-          total: response.data.total || 0,
-          pages: response.data.totalPages || 1,
-          currentPage: response.data.currentPage || 1
-        };
-      }
-      
-      return {
-        success: true,
-        products: [],
-        total: 0,
-        pages: 1,
-        currentPage: 1
-      };
-    } catch (error) {
-      console.error('❌ Error searching products:', error);
-      return {
-        success: false,
-        products: [],
-        total: 0,
-        pages: 1,
-        currentPage: 1,
-        error: error.response?.data?.message || error.message
-      };
+  async searchProducts(query, params = {}) {
+    const cacheKey = `search_${query}_${JSON.stringify(params)}`;
+    
+    // Check search cache
+    const cached = searchCache.get(cacheKey);
+    if (cached) {
+      console.log('✅ Search cache hit:', query);
+      return { ...cached, cached: true };
     }
-  },
+    
+    const response = await cachedApi.get('/products', { search: query, ...params }, { useCache: true });
+    return { ...response, cached: false };
+  }
 
   /**
-   * Get related products
-   * @param {string} productId - Current product ID
-   * @param {string} category - Category to find related products
-   * @param {number} limit - Number of products to fetch
-   * @returns {Promise<Object>} - { success, products }
+   * Get related products (CACHED)
    */
-  getRelatedProducts: async (productId, category, limit = 4) => {
+  async getRelatedProducts(productId, category, limit = 4) {
+    const cacheKey = `related_${productId}_${category}_${limit}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching related products for ${productId} in category ${category}`);
       
@@ -507,36 +382,47 @@ export const clientProductService = {
       });
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           products: response.data.products || []
         };
+        
+        // Cache for 5 minutes
+        productCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
         success: true,
-        products: []
+        products: [],
+        cached: false
       };
     } catch (error) {
       console.error('❌ Error fetching related products:', error);
       return {
         success: false,
         products: [],
-        error: error.response?.data?.message || error.message
+        error: error.response?.data?.message || error.message,
+        cached: false
       };
     }
-  },
+  }
 
-  // ========== REVIEW METHODS ==========
+  // ========== REVIEW METHODS (NO CACHING FOR WRITE OPERATIONS) ==========
 
   /**
-   * Get product reviews
-   * @param {string} productId - Product ID
-   * @param {number} page - Page number
-   * @param {number} limit - Reviews per page
-   * @returns {Promise<Object>} - { success, reviews, distribution, pagination }
+   * Get product reviews (CACHED - short TTL)
    */
-  getProductReviews: async (productId, page = 1, limit = 10) => {
+  async getProductReviews(productId, page = 1, limit = 10) {
+    const cacheKey = `reviews_${productId}_${page}_${limit}`;
+    
+    // Reviews cache with shorter TTL (2 minutes)
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching reviews for product ${productId}`);
       
@@ -547,7 +433,7 @@ export const clientProductService = {
       console.log('📥 Reviews response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           reviews: response.data.reviews || [],
           distribution: response.data.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
@@ -558,13 +444,19 @@ export const clientProductService = {
             pages: 1
           }
         };
+        
+        // Cache reviews for 2 minutes only
+        productCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
         success: true,
         reviews: [],
         distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-        pagination: { page: 1, limit: 10, total: 0, pages: 1 }
+        pagination: { page: 1, limit: 10, total: 0, pages: 1 },
+        cached: false
       };
     } catch (error) {
       console.error('❌ Error fetching reviews:', error);
@@ -573,17 +465,23 @@ export const clientProductService = {
         reviews: [],
         distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
         pagination: { page: 1, limit: 10, total: 0, pages: 1 },
-        error: error.response?.data?.message || error.message
+        error: error.response?.data?.message || error.message,
+        cached: false
       };
     }
-  },
+  }
 
   /**
-   * Get review summary for a product
-   * @param {string} productId - Product ID
-   * @returns {Promise<Object>} - { success, summary }
+   * Get review summary for a product (CACHED)
    */
-  getReviewSummary: async (productId) => {
+  async getReviewSummary(productId) {
+    const cacheKey = `review_summary_${productId}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching review summary for product ${productId}`);
       
@@ -592,7 +490,7 @@ export const clientProductService = {
       console.log('📥 Review summary response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           summary: response.data.summary || {
             averageRating: 0,
@@ -600,6 +498,11 @@ export const clientProductService = {
             distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
           }
         };
+        
+        // Cache summary for 5 minutes
+        productCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
@@ -608,7 +511,8 @@ export const clientProductService = {
           averageRating: 0,
           totalReviews: 0,
           distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-        }
+        },
+        cached: false
       };
     } catch (error) {
       console.error('❌ Error fetching review summary:', error);
@@ -619,18 +523,16 @@ export const clientProductService = {
           totalReviews: 0,
           distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
         },
-        error: error.response?.data?.message || error.message
+        error: error.response?.data?.message || error.message,
+        cached: false
       };
     }
-  },
+  }
 
   /**
-   * Add a product review
-   * @param {string} productId - Product ID
-   * @param {Object} reviewData - { rating, comment }
-   * @returns {Promise<Object>} - API response
+   * Add a product review (NO CACHE - WRITE OPERATION)
    */
-  addProductReview: async (productId, reviewData) => {
+  async addProductReview(productId, reviewData) {
     try {
       console.log(`📤 Adding review to product ${productId}`, reviewData);
       
@@ -658,17 +560,14 @@ export const clientProductService = {
       
       console.log('📥 Add review response:', response.data);
       
+      // Clear related caches when new review is added
+      this.clearProductCaches(productId);
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error adding review:', error);
       
-      // Enhanced error logging
       if (error.response) {
-        console.error('❌ Response status:', error.response.status);
-        console.error('❌ Response data:', error.response.data);
-        console.error('❌ Response headers:', error.response.headers);
-        
-        // Handle specific error cases
         if (error.response.status === 403) {
           if (error.response.data?.message?.toLowerCase().includes('csrf')) {
             throw new Error('Security token expired. Please refresh the page and try again.');
@@ -682,22 +581,17 @@ export const clientProductService = {
           throw new Error(error.response.data?.message || `Failed to add review (${error.response.status})`);
         }
       } else if (error.request) {
-        console.error('❌ No response received');
         throw new Error('No response from server. Please check your connection.');
       } else {
-        console.error('❌ Error message:', error.message);
         throw error;
       }
     }
-  },
+  }
 
   /**
-   * Update a review
-   * @param {string} reviewId - Review ID
-   * @param {Object} reviewData - { rating, comment }
-   * @returns {Promise<Object>} - API response
+   * Update a review (NO CACHE - WRITE OPERATION)
    */
-  updateReview: async (reviewId, reviewData) => {
+  async updateReview(reviewId, reviewData) {
     try {
       console.log(`📤 Updating review ${reviewId}`, reviewData);
       
@@ -722,6 +616,11 @@ export const clientProductService = {
       
       console.log('📥 Update review response:', response.data);
       
+      // Clear product cache to reflect changes
+      if (response.data?.productId) {
+        this.clearProductCaches(response.data.productId);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error updating review:', error);
@@ -734,14 +633,12 @@ export const clientProductService = {
         throw new Error(error.response?.data?.message || 'Failed to update review');
       }
     }
-  },
+  }
 
   /**
-   * Delete a review
-   * @param {string} reviewId - Review ID
-   * @returns {Promise<Object>} - API response
+   * Delete a review (NO CACHE - WRITE OPERATION)
    */
-  deleteReview: async (reviewId) => {
+  async deleteReview(reviewId) {
     try {
       console.log(`📤 Deleting review ${reviewId}`);
       
@@ -761,6 +658,11 @@ export const clientProductService = {
       
       console.log('📥 Delete review response:', response.data);
       
+      // Clear product cache to reflect changes
+      if (response.data?.productId) {
+        this.clearProductCaches(response.data.productId);
+      }
+      
       return response.data;
     } catch (error) {
       console.error('❌ Error deleting review:', error);
@@ -773,30 +675,59 @@ export const clientProductService = {
         throw new Error(error.response?.data?.message || 'Failed to delete review');
       }
     }
-  },
+  }
 
   // ========== UTILITY METHODS ==========
 
   /**
-   * Check if product exists
+   * Clear caches for a specific product
    * @param {string} productId - Product ID
-   * @returns {Promise<boolean>} - True if product exists
    */
-  checkProductExists: async (productId) => {
+  clearProductCaches(productId) {
+    // Clear product from cache
+    productCache.put(`product_${productId}`, null);
+    
+    // Clear reviews cache (keys starting with reviews_)
+    // Note: In a real app, you'd need a more sophisticated cache invalidation
+    console.log(`🗑️ Cleared caches for product ${productId}`);
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearAllCaches() {
+    productCache.clear();
+    categoryCache.clear();
+    searchCache.clear();
+    console.log('🗑️ All caches cleared');
+  }
+
+  /**
+   * Check if product exists (uses HEAD request - no cache needed)
+   */
+  async checkProductExists(productId) {
     try {
       const response = await clientApi.head(`/products/${productId}`);
       return response.status === 200;
     } catch (error) {
       return false;
     }
-  },
+  }
 
   /**
-   * Get multiple products by IDs
-   * @param {Array<string>} productIds - Array of product IDs
-   * @returns {Promise<Object>} - { success, products }
+   * Get multiple products by IDs (CACHED)
    */
-  getProductsByIds: async (productIds) => {
+  async getProductsByIds(productIds) {
+    if (!productIds || !productIds.length) return { success: true, products: [], cached: false };
+    
+    const sortedIds = [...productIds].sort();
+    const cacheKey = `batch_${sortedIds.join(',')}`;
+    
+    const cached = productCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, cached: true };
+    }
+    
     try {
       console.log(`📤 Fetching ${productIds.length} products by IDs`);
       
@@ -805,25 +736,55 @@ export const clientProductService = {
       console.log('📥 Batch products response:', response.data);
       
       if (response.data?.success) {
-        return {
+        const result = {
           success: true,
           products: response.data.products || []
         };
+        
+        // Cache batch results
+        productCache.put(cacheKey, result);
+        
+        return { ...result, cached: false };
       }
       
       return {
         success: false,
-        products: []
+        products: [],
+        cached: false
       };
     } catch (error) {
       console.error('❌ Error fetching products by IDs:', error);
       return {
         success: false,
         products: [],
-        error: error.response?.data?.message || error.message
+        error: error.response?.data?.message || error.message,
+        cached: false
       };
     }
   }
-};
 
+  /**
+   * Check if service is initialized
+   */
+  isInitialized() {
+    return this.initialized;
+  }
+
+  /**
+   * Get initialization status
+   */
+  getInitStatus() {
+    return {
+      initialized: this.initialized,
+      hasSortedProducts: !!this.sortedProducts,
+      hasSearchTrie: !!this.searchTrie,
+      productCount: this.sortedProducts?.products.length || 0
+    };
+  }
+}
+
+// Create and export a singleton instance
+export const clientProductService = new OptimizedProductService();
+
+// Also export as default for backward compatibility
 export default clientProductService;

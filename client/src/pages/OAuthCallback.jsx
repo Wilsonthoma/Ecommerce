@@ -1,8 +1,9 @@
-// src/pages/OAuthCallback.jsx - COMPLETE FIXED VERSION
+// src/pages/OAuthCallback.jsx - COMPLETE FIXED VERSION with LoadingSpinner
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import clientApi from '../services/client/api';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
@@ -61,18 +62,7 @@ const OAuthCallback = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">
-      <div className="text-center">
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl font-bold text-transparent text-white bg-gradient-to-r from-indigo-500 to-blue-500 bg-clip-text">
-              K
-            </span>
-          </div>
-          <div className="w-20 h-20 border-4 border-t-4 border-gray-700 rounded-full border-t-indigo-600 animate-spin"></div>
-          <div className="absolute inset-0 w-20 h-20 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl opacity-20 animate-pulse"></div>
-        </div>
-        <p className="mt-4 text-gray-400">Completing authentication...</p>
-      </div>
+      <LoadingSpinner message="Completing authentication..." size="lg" />
     </div>
   );
 };

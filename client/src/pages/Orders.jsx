@@ -375,7 +375,7 @@ const OrderCard = ({ order, onViewDetails }) => {
 
   return (
     <div 
-      className="order-card overflow-hidden transition-all duration-300"
+      className="overflow-hidden transition-all duration-300 order-card"
       data-aos="fade-up"
       data-aos-duration="800"
     >
@@ -421,7 +421,7 @@ const OrderCard = ({ order, onViewDetails }) => {
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             {order.items.slice(0, 3).map((item, idx) => (
               <div key={idx} className="flex items-center gap-1.5 flex-shrink-0">
-                <div className="w-8 h-8 overflow-hidden rounded-lg bg-gray-800">
+                <div className="w-8 h-8 overflow-hidden bg-gray-800 rounded-lg">
                   <img 
                     src={getFullImageUrl(item.image)} 
                     alt={item.name}
@@ -452,7 +452,7 @@ const OrderCard = ({ order, onViewDetails }) => {
               {order.items?.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between p-1.5 rounded-lg bg-gray-800/30">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 overflow-hidden rounded-lg bg-gray-800">
+                    <div className="w-8 h-8 overflow-hidden bg-gray-800 rounded-lg">
                       <img 
                         src={getFullImageUrl(item.image)} 
                         alt={item.name}
@@ -599,7 +599,7 @@ const OrderCard = ({ order, onViewDetails }) => {
 
 // Stats Card Component - COMPACT with yellow-orange theme
 const StatsCard = ({ icon: Icon, label, value, gradient }) => (
-  <div className="stat-card p-3" data-aos="fade-up" data-aos-duration="800">
+  <div className="p-3 stat-card" data-aos="fade-up" data-aos-duration="800">
     <div className="flex items-center justify-between">
       <div>
         <p className="text-[10px] text-gray-400">{label}</p>
@@ -819,7 +819,7 @@ const Orders = () => {
         <TopBar />
         <div className="container px-3 py-5 mx-auto max-w-7xl">
           <div className="animate-pulse">
-            <div className="w-36 h-6 mb-5 bg-gray-800 rounded"></div>
+            <div className="h-6 mb-5 bg-gray-800 rounded w-36"></div>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-20 bg-gray-800 rounded-xl"></div>
@@ -827,7 +827,7 @@ const Orders = () => {
             </div>
             <div className="mt-5 space-y-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-28 bg-gray-800 rounded-xl"></div>
+                <div key={i} className="bg-gray-800 h-28 rounded-xl"></div>
               ))}
             </div>
           </div>
@@ -846,7 +846,7 @@ const Orders = () => {
 
       {/* Header Image - COMPACT */}
       <div 
-        className="relative w-full h-36 overflow-hidden sm:h-44 md:h-48"
+        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
         data-aos="fade-in"
         data-aos-duration="1500"
       >
@@ -1052,7 +1052,7 @@ const Orders = () => {
           /* Empty State - COMPACT */
           <div className="py-10 text-center">
             <div className="relative inline-block">
-              <div className="absolute -inset-3 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 rounded-full blur-xl"></div>
+              <div className="absolute rounded-full -inset-3 bg-gradient-to-r from-yellow-600/20 to-orange-600/20 blur-xl"></div>
               <div className="relative flex items-center justify-center w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
                 <FiShoppingBag className="w-8 h-8 text-white" />
               </div>

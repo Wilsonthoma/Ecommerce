@@ -1,8 +1,8 @@
-// server/routes/public/reviews.js
+// server/routes/public/reviews.js - ADD BETTER ERROR HANDLING
 import express from 'express';
 import Review from '../../models/Review.js';
 import Product from '../../models/Product.js';
-import { protectUser } from '../../middleware/authMiddleware.js'; // ✅ FIXED: Changed from 'auth.js' to 'authMiddleware.js'
+import { protectUser } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -11,6 +11,16 @@ router.get('/products/:productId/reviews', async (req, res) => {
   try {
     const { productId } = req.params;
     const { page = 1, limit = 10 } = req.query;
+    
+    console.log(`📥 Fetching reviews for product: ${productId}`);
+    
+    // Validate productId format
+    if (!productId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product ID format'
+      });
+    }
     
     // Check if product exists
     const product = await Product.findById(productId);
@@ -32,6 +42,8 @@ router.get('/products/:productId/reviews', async (req, res) => {
         .lean(),
       Review.countDocuments({ product: productId, status: 'approved' })
     ]);
+    
+    console.log(`📊 Found ${reviews.length} reviews for product ${productId}`);
     
     // Get rating distribution
     const distribution = await Review.aggregate([
@@ -62,10 +74,11 @@ router.get('/products/:productId/reviews', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching reviews:', error);
+    console.error('❌ Error fetching reviews:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch reviews'
+      message: 'Failed to fetch reviews',
+      error: error.message
     });
   }
 });
@@ -74,6 +87,8 @@ router.get('/products/:productId/reviews', async (req, res) => {
 router.get('/products/:productId/summary', async (req, res) => {
   try {
     const { productId } = req.params;
+    
+    console.log(`📥 Fetching review summary for product: ${productId}`);
     
     const product = await Product.findById(productId).select('rating reviewsCount');
     
@@ -108,7 +123,7 @@ router.get('/products/:productId/summary', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching review summary:', error);
+    console.error('❌ Error fetching review summary:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch review summary'
@@ -123,6 +138,8 @@ router.post('/products/:productId/reviews', protectUser, async (req, res) => {
     const { rating, comment } = req.body;
     const userId = req.user._id;
     const userName = req.user.name || req.user.email;
+
+    console.log(`📝 Creating review for product ${productId} by user ${userId}`);
 
     // Validate input
     if (!rating || rating < 1 || rating > 5) {
@@ -171,13 +188,15 @@ router.post('/products/:productId/reviews', protectUser, async (req, res) => {
       verified: false
     });
 
+    console.log(`✅ Review created with ID: ${review._id}`);
+
     res.status(201).json({
       success: true,
       message: 'Review added successfully',
       review
     });
   } catch (error) {
-    console.error('Error adding review:', error);
+    console.error('❌ Error adding review:', error);
     
     if (error.code === 11000) {
       return res.status(400).json({

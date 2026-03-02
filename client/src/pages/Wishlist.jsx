@@ -1,4 +1,4 @@
-// src/pages/Wishlist.jsx - COMPACT with Yellow-Orange Theme using ProductCard component
+// src/pages/Wishlist.jsx - COMPACT with Yellow-Orange Theme using ProductCard component (TopBar removed, Dashboard-style heading)
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
@@ -22,7 +22,7 @@ import { toast } from 'react-toastify';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles - UPDATED with yellow-orange theme
+// Font styles - UPDATED with yellow-orange theme and Dashboard-style heading
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -35,13 +35,34 @@ const fontStyles = `
     letter-spacing: -0.02em;
   }
   
+  /* Section title styling from Dashboard (matching Cart page) */
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
   .section-title {
     font-weight: 800;
-    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-size: 2rem;
     line-height: 1.2;
     text-transform: uppercase;
     color: white;
-    margin-bottom: 0;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+      padding: 0.4rem 1.5rem;
+    }
   }
   
   .glow-text {
@@ -141,32 +162,6 @@ const wishlistHeaderImage = "https://images.pexels.com/photos/5709661/pexels-pho
 
 // Gradient for header - UPDATED to yellow-orange
 const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
-
-// Top Bar Component - UPDATED colors
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-1.5 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          <span>FIND STORE</span>
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // Normalize product data function (matching ProductCard expectations)
 const normalizeProductData = (product) => {
@@ -344,14 +339,13 @@ const Wishlist = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        <TopBar />
         <div className="container px-3 py-5 mx-auto max-w-7xl">
           <div className="animate-pulse">
-            <div className="w-36 h-6 mb-5 bg-gray-800 rounded"></div>
+            <div className="h-6 mb-5 bg-gray-800 rounded w-36"></div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="p-3 bg-gray-900 border border-gray-800 rounded-lg">
-                  <div className="w-full h-36 mb-3 bg-gray-800 rounded"></div>
+                  <div className="w-full mb-3 bg-gray-800 rounded h-36"></div>
                   <div className="w-3/4 h-3 mb-1.5 bg-gray-800 rounded"></div>
                   <div className="w-1/2 h-3 mb-3 bg-gray-800 rounded"></div>
                   <div className="w-1/3 h-4 bg-gray-800 rounded"></div>
@@ -367,7 +361,6 @@ const Wishlist = () => {
   if (wishlistItems.length === 0) {
     return (
       <div className="min-h-screen bg-black">
-        <TopBar />
         <div className="container px-3 py-10 mx-auto">
           <div 
             className="max-w-md mx-auto text-center"
@@ -404,11 +397,9 @@ const Wishlist = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <TopBar />
-
-      {/* Wishlist Header Image - COMPACT */}
+      {/* Wishlist Header Image - COMPACT with Dashboard-style heading */}
       <div 
-        className="relative w-full h-36 overflow-hidden sm:h-44 md:h-48"
+        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
         data-aos="fade-in"
         data-aos-duration="1500"
       >
@@ -430,10 +421,11 @@ const Wishlist = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
             >
-              <h1 className="text-xl font-bold text-white sm:text-2xl md:text-3xl">
-                MY WISHLIST
-              </h1>
-              <p className="text-xs text-gray-300 sm:text-sm">
+              {/* Updated heading with Dashboard style (matching Cart page) */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">MY WISHLIST</h1>
+              </div>
+              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 {wishlistCount} {wishlistCount === 1 ? 'item' : 'items'} saved
               </p>
             </div>

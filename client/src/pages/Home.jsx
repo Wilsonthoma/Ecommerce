@@ -1,4 +1,4 @@
-// src/pages/Home.jsx - UPDATED with navbar header removed
+// src/pages/Home.jsx - COMPLETE FIXED with rating preservation
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
@@ -67,7 +67,7 @@ const categoryImages = {
   mice: "https://images.pexels.com/photos/2115257/pexels-photo-2115257.jpeg?auto=compress&cs=tinysrgb&w=600"
 };
 
-// Font configuration with Yellow-Orange gradient theme - REMOVED header styles
+// Font configuration with Yellow-Orange gradient theme
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -190,13 +190,13 @@ const fontStyles = `
     text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
   }
   
-  /* Typewriter with increased opacity - NO background color */
+  /* Typewriter with increased opacity */
   .typewriter-bold {
     font-weight: 800;
     text-shadow: 0 0 30px rgba(245, 158, 11, 0.7), 0 0 60px rgba(239, 68, 68, 0.4);
     letter-spacing: -0.02em;
     color: #FCD34D;
-    background: transparent; /* Ensure no background */
+    background: transparent;
   }
   
   /* Yellow-Orange gradient for other text elements */
@@ -219,7 +219,7 @@ const fontStyles = `
   }
 `;
 
-// Animation styles - REMOVED moving gradient effects
+// Animation styles
 const animationStyles = `
   @keyframes wave {
     0% {
@@ -293,7 +293,7 @@ const animationStyles = `
   }
 `;
 
-// Beautiful gradient combinations for each section - replaced with yellow-orange
+// Beautiful gradient combinations for each section
 const sectionGradients = {
   hero: "from-yellow-600/20 via-orange-600/20 to-red-600/20",
   trust: "from-yellow-600/20 via-orange-600/20 to-red-600/20",
@@ -307,9 +307,6 @@ const sectionGradients = {
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Top Bar Component - REMOVED
-// const TopBar = () => { ... }; (Deleted)
 
 // Counter Component with Yellow-Orange gradient
 const Counter = ({ end, label, duration = 4, suffix = "+" }) => {
@@ -350,10 +347,10 @@ const Counter = ({ end, label, duration = 4, suffix = "+" }) => {
   );
 };
 
-// ========== CRITICAL FIX: PROPER NORMALIZATION FUNCTION ==========
+// ========== FIXED NORMALIZATION FUNCTION WITH RATING PRESERVATION ==========
 /**
  * Normalizes product data from API to ensure all fields are present
- * Preserves ALL original fields and adds fallbacks where needed
+ * Preserves ALL original fields including ratings
  */
 const normalizeProductData = (product) => {
   if (!product) return null;
@@ -361,27 +358,25 @@ const normalizeProductData = (product) => {
   console.log('🔄 Normalizing product:', product.name || 'Unnamed', {
     originalQuantity: product.quantity,
     originalStock: product.stock,
-    originalPrice: product.price
+    originalPrice: product.price,
+    originalRating: product.rating,
+    originalReviewsCount: product.reviewsCount
   });
   
   // CRITICAL: Preserve the original _id
   const productId = product._id || product.id;
   
-  // CRITICAL: Get stock/quantity from ANY available field
-  // Check all possible stock fields in order of priority
+  // Get stock/quantity from ANY available field
   let stockValue = 0;
   if (product.quantity !== undefined && product.quantity !== null) {
     stockValue = Number(product.quantity);
   } else if (product.stock !== undefined && product.stock !== null) {
     stockValue = Number(product.stock);
   } else if (product.inStock !== undefined) {
-    // Handle boolean inStock field - convert to 1/0
     stockValue = product.inStock === true ? 10 : 0;
   } else if (product.available !== undefined) {
-    // Handle boolean available field - convert to 1/0
     stockValue = product.available === true ? 10 : 0;
   } else {
-    // Default fallback - assume in stock
     stockValue = 10;
   }
   
@@ -435,6 +430,13 @@ const normalizeProductData = (product) => {
     discountPercentage = product.discountPercentage;
   }
   
+  // ⭐ CRITICAL: Explicitly extract rating and reviewsCount
+  const rating = product.rating !== undefined ? Number(product.rating) : 0;
+  const reviewsCount = product.reviewsCount !== undefined ? Number(product.reviewsCount) : 
+                      (product.reviews ? Number(product.reviews) : 0);
+  
+  console.log(`⭐ Rating for ${product.name}: ${rating} (${reviewsCount} reviews)`);
+  
   // Build the normalized product object
   const normalized = {
     // IDs - preserve both
@@ -447,7 +449,7 @@ const normalizeProductData = (product) => {
     category: product.category || '',
     subcategory: product.subcategory || '',
     
-    // CRITICAL FIX: Stock/quantity fields - ensure both are present
+    // Stock/quantity fields
     quantity: stockValue,
     stock: stockValue,
     
@@ -470,9 +472,9 @@ const normalizeProductData = (product) => {
     onSale: product.onSale || false,
     freeShipping: product.freeShipping || false,
     
-    // Ratings
-    rating: Number(product.rating) || 0,
-    reviewsCount: Number(product.reviewsCount) || Number(product.reviews) || 0,
+    // ⭐ CRITICAL: Ratings - explicitly set these
+    rating: rating,
+    reviewsCount: reviewsCount,
     reviews: product.reviews || [],
     
     // Shipping
@@ -505,7 +507,9 @@ const normalizeProductData = (product) => {
     stock: normalized.stock,
     price: normalized.price,
     featured: normalized.featured,
-    isInStock: normalized.quantity > 0
+    isInStock: normalized.quantity > 0,
+    rating: normalized.rating,
+    reviewsCount: normalized.reviewsCount
   });
   
   return normalized;
@@ -541,7 +545,7 @@ const Home = () => {
   const featuredRef = useRef(null);
   const videoRef = useRef(null);
 
-  // Typing effect phrases with yellow-orange theme
+  // Typing effect phrases
   const typingPhrases = [
     'Premium Audio Experience',
     'Wireless Freedom',
@@ -647,7 +651,6 @@ const Home = () => {
         const normalizedProducts = (response.products || []).map(normalizeProductData);
         setFlashSaleProducts(normalizedProducts);
       } else {
-        // Fallback to products with discount
         console.log('⚠️ No flash sale products, fetching discounted products...');
         const fallbackResponse = await clientProductService.getProducts({ 
           limit: 10,
@@ -658,7 +661,6 @@ const Home = () => {
           const normalizedProducts = (fallbackResponse.products || []).map(normalizeProductData);
           setFlashSaleProducts(normalizedProducts);
         } else {
-          // Use latest products as last resort
           const latestResponse = await clientProductService.getProducts({ 
             limit: 10,
             sort: '-createdAt'
@@ -973,11 +975,9 @@ const Home = () => {
       <style>{fontStyles}</style>
       <style>{animationStyles}</style>
       
-      {/* Animated gradient overlay - changed to yellow-orange */}
+      {/* Animated gradient overlay */}
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-r from-yellow-600/5 via-orange-600/5 to-red-600/5 animate-gradient"></div>
       
-      {/* Top Bar - REMOVED */}
-
       {/* HERO SECTION */}
       <div 
         className="relative h-screen min-h-[800px] overflow-hidden"
@@ -1031,7 +1031,6 @@ const Home = () => {
                 <span className="block text-5xl text-gray-300 md:text-6xl lg:text-7xl">Pro</span>
               </h1>
               
-              {/* Typewriter with increased opacity - NO BACKGROUND COLOR */}
               <div className="h-20 mt-4 text-2xl font-bold md:text-3xl lg:text-4xl typewriter-bold">
                 <Typewriter
                   options={{
@@ -1171,7 +1170,7 @@ const Home = () => {
           {loadingFeatured ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {[1,2,3,4].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-lg h-64 sm:h-72 md:h-80 animate-pulse"></div>
+                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
               ))}
             </div>
           ) : featuredProducts.length > 0 ? (
@@ -1247,18 +1246,18 @@ const Home = () => {
           <div className="relative">
             <div 
               ref={featuredRef} 
-              className="flex gap-3 sm:gap-4 pb-4 overflow-x-auto scrollbar-hide"
+              className="flex gap-3 pb-4 overflow-x-auto sm:gap-4 scrollbar-hide"
               style={{ scrollBehavior: 'smooth' }}
             >
               {loadingFlashSale ? (
                 [...Array(4)].map((_, i) => (
-                  <div key={i} className="flex-shrink-0 w-36 sm:w-40 md:w-48 bg-gray-900 rounded-lg h-64 sm:h-72 md:h-80 animate-pulse"></div>
+                  <div key={i} className="flex-shrink-0 h-64 bg-gray-900 rounded-lg w-36 sm:w-40 md:w-48 sm:h-72 md:h-80 animate-pulse"></div>
                 ))
               ) : flashSaleProducts.length > 0 ? (
                 flashSaleProducts.slice(0, 8).map((product, index) => (
                   <div 
                     key={product._id || product.id || index} 
-                    className="flex-shrink-0 w-36 sm:w-40 md:w-48 cursor-pointer group"
+                    className="flex-shrink-0 cursor-pointer w-36 sm:w-40 md:w-48 group"
                     onClick={() => handleProductClick(product._id || product.id)}
                     data-aos="fade-left"
                     data-aos-duration="1000"
@@ -1328,7 +1327,7 @@ const Home = () => {
           {loadingTrending ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {[1,2,3,4].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-lg h-64 sm:h-72 md:h-80 animate-pulse"></div>
+                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
               ))}
             </div>
           ) : trendingProducts.length > 0 ? (
@@ -1388,7 +1387,7 @@ const Home = () => {
           {loadingJustArrived ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {[1,2,3,4].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-lg h-64 sm:h-72 md:h-80 animate-pulse"></div>
+                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
               ))}
             </div>
           ) : justArrivedProducts.length > 0 ? (
@@ -1448,20 +1447,20 @@ const Home = () => {
           {loadingCategories ? (
             <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 md:grid-cols-4">
               {[1,2,3,4].map((i) => (
-                <div key={i} className="bg-gray-900 rounded-lg h-64 sm:h-72 md:h-80 animate-pulse"></div>
+                <div key={i} className="h-64 bg-gray-900 rounded-lg sm:h-72 md:h-80 animate-pulse"></div>
               ))}
             </div>
           ) : displayCategories.length > 0 ? (
             <div className="relative">
               <div 
                 ref={categoryRef} 
-                className="flex gap-4 sm:gap-6 pb-8 overflow-x-auto scrollbar-hide"
+                className="flex gap-4 pb-8 overflow-x-auto sm:gap-6 scrollbar-hide"
                 style={{ scrollBehavior: 'smooth' }}
               >
                 {displayCategories.map((category, index) => (
                   <div 
                     key={category.id || index} 
-                    className="flex-shrink-0 cursor-pointer w-48 sm:w-56 md:w-64 lg:w-72 group"
+                    className="flex-shrink-0 w-48 cursor-pointer sm:w-56 md:w-64 lg:w-72 group"
                     onClick={() => navigate(category.link)}
                     onMouseEnter={() => setHoveredCategory(index)}
                     onMouseLeave={() => setHoveredCategory(null)}
@@ -1485,8 +1484,8 @@ const Home = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
                       
                       <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-                        <h3 className="text-base sm:text-lg font-semibold text-white">{category.name}</h3>
-                        <p className="text-xs sm:text-sm text-gray-300">{category.count} Products</p>
+                        <h3 className="text-base font-semibold text-white sm:text-lg">{category.name}</h3>
+                        <p className="text-xs text-gray-300 sm:text-sm">{category.count} Products</p>
                       </div>
                     </div>
                   </div>
@@ -1570,30 +1569,30 @@ const Home = () => {
             {testimonials.map((testimonial, index) => (
               <div 
                 key={index} 
-                className="p-4 sm:p-6 transition-all duration-500 rounded-lg bg-gray-900/50 hover:scale-105 hover:bg-gray-800/50"
+                className="p-4 transition-all duration-500 rounded-lg sm:p-6 bg-gray-900/50 hover:scale-105 hover:bg-gray-800/50"
                 data-aos="fade-up"
                 data-aos-duration="1000"
                 data-aos-delay={300 + (index * 150)}
                 data-aos-once="false"
               >
-                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                <div className="flex items-center gap-3 mb-3 sm:gap-4 sm:mb-4">
                   <img 
                     src={testimonial.image}
                     alt={testimonial.name}
-                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full"
+                    className="w-10 h-10 rounded-full sm:w-12 sm:h-12"
                   />
                   <div>
-                    <div className="font-medium text-white text-sm sm:text-base">{testimonial.name}</div>
+                    <div className="text-sm font-medium text-white sm:text-base">{testimonial.name}</div>
                     <div className="flex gap-1 mt-1">
                       {[...Array(5)].map((_, i) => (
                         i < testimonial.rating ? 
-                          <FaStar key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" /> :
-                          <FaRegStar key={i} className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                          <FaStar key={i} className="w-3 h-3 text-yellow-500 sm:w-4 sm:h-4" /> :
+                          <FaRegStar key={i} className="w-3 h-3 text-gray-600 sm:w-4 sm:h-4" />
                       ))}
                     </div>
                   </div>
                 </div>
-                <p className="text-xs sm:text-sm leading-relaxed text-gray-400">"{testimonial.text}"</p>
+                <p className="text-xs leading-relaxed text-gray-400 sm:text-sm">"{testimonial.text}"</p>
               </div>
             ))}
           </div>

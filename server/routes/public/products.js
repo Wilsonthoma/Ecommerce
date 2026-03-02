@@ -1,3 +1,4 @@
+// server/routes/public/products.js - FIXED with rating logging
 import express from 'express';
 import Product from '../../models/Product.js';
 
@@ -7,7 +8,6 @@ const router = express.Router();
 const validateProductQuery = (req, res, next) => {
   const { page = 1, limit = 20, minPrice, maxPrice } = req.query;
   
-  // Validate page
   const pageNum = parseInt(page);
   if (isNaN(pageNum) || pageNum < 1) {
     return res.status(400).json({
@@ -16,7 +16,6 @@ const validateProductQuery = (req, res, next) => {
     });
   }
   
-  // Validate limit
   const limitNum = parseInt(limit);
   if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
     return res.status(400).json({
@@ -25,7 +24,6 @@ const validateProductQuery = (req, res, next) => {
     });
   }
   
-  // Validate price range
   if (minPrice && (isNaN(minPrice) || parseFloat(minPrice) < 0)) {
     return res.status(400).json({
       success: false,
@@ -53,6 +51,9 @@ const validateProductQuery = (req, res, next) => {
 // Helper function to enhance product with calculated fields
 const enhanceProduct = (product) => {
   const productObj = { ...product };
+  
+  // Log rating for debugging
+  console.log(`📊 Product ${product.name} - Rating: ${product.rating}, Reviews: ${product.reviewsCount}`);
   
   // Calculate discount percentage from comparePrice
   if (product.comparePrice && product.comparePrice > product.price) {
@@ -135,26 +136,22 @@ router.get('/', validateProductQuery, async (req, res) => {
       onSale,
       vendor,
       minRating,
-      status = 'active' // Only show active products to public
+      status = 'active'
     } = req.query;
 
-    // Build query - only show active and visible products to public
     const query = { 
       status: 'active',
       visible: true 
     };
 
-    // Category filter
     if (category && category !== 'all' && category !== 'null' && category !== '') {
       query.category = category;
     }
 
-    // Subcategory filter
     if (subcategory && subcategory !== '' && subcategory !== 'null') {
       query.subcategory = subcategory;
     }
 
-    // Badge filters
     if (featured === 'true') {
       query.featured = true;
     }
@@ -165,7 +162,6 @@ router.get('/', validateProductQuery, async (req, res) => {
 
     if (isFlashSale === 'true') {
       query.isFlashSale = true;
-      // Optionally filter by flash sale end date
       query.$or = [
         { flashSaleEndDate: { $gt: new Date() } },
         { flashSaleEndDate: { $exists: false } }
@@ -176,19 +172,16 @@ router.get('/', validateProductQuery, async (req, res) => {
       query.isJustArrived = true;
     }
 
-    // Vendor filter
     if (vendor && vendor !== '' && vendor !== 'null') {
       query.vendor = vendor;
     }
 
-    // Price range filter
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = parseFloat(minPrice);
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
 
-    // Search filter (text search across multiple fields)
     if (search && search.trim() !== '') {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
@@ -203,7 +196,6 @@ router.get('/', validateProductQuery, async (req, res) => {
       ];
     }
 
-    // Stock filter - using actual logic, not virtual field
     if (inStock === 'true') {
       query.$or = [
         { trackQuantity: false },
@@ -216,20 +208,17 @@ router.get('/', validateProductQuery, async (req, res) => {
       query.allowOutOfStockPurchase = false;
     }
 
-    // On sale filter (has compare price greater than price)
     if (onSale === 'true') {
       query.comparePrice = { $gt: 0 };
       query.price = { $lt: '$comparePrice' };
     }
 
-    // Rating filter
     if (minRating && !isNaN(parseFloat(minRating))) {
       query.rating = { $gte: parseFloat(minRating) };
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Parse sort parameter
     let sortOption = {};
     if (sort) {
       const sortFields = sort.split(',');
@@ -244,7 +233,6 @@ router.get('/', validateProductQuery, async (req, res) => {
       sortOption = { createdAt: -1 };
     }
 
-    // Execute queries in parallel
     const [products, total] = await Promise.all([
       Product.find(query)
         .skip(skip)
@@ -255,7 +243,6 @@ router.get('/', validateProductQuery, async (req, res) => {
       Product.countDocuments(query)
     ]);
 
-    // Enhance each product with calculated fields
     const enhancedProducts = products.map(enhanceProduct);
 
     const totalPages = Math.ceil(total / parseInt(limit));
@@ -272,8 +259,7 @@ router.get('/', validateProductQuery, async (req, res) => {
     console.error('Error fetching products:', err);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to fetch products',
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      message: 'Failed to fetch products'
     });
   }
 });
@@ -290,10 +276,8 @@ router.get('/featured', async (req, res) => {
     })
       .limit(Math.min(parseInt(limit), 20))
       .sort('-createdAt')
-      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    // Enhance each product with calculated fields
     const enhancedProducts = featuredProducts.map(enhanceProduct);
 
     res.json({
@@ -322,10 +306,8 @@ router.get('/trending', async (req, res) => {
     })
       .limit(Math.min(parseInt(limit), 20))
       .sort('-createdAt')
-      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    // Enhance each product with calculated fields
     const enhancedProducts = trendingProducts.map(enhanceProduct);
 
     res.json({
@@ -358,10 +340,8 @@ router.get('/flash-sale', async (req, res) => {
     })
       .limit(Math.min(parseInt(limit), 20))
       .sort('-createdAt')
-      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isTrending isJustArrived flashSaleEndDate weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    // Enhance each product with calculated fields
     const enhancedProducts = flashSaleProducts.map(enhanceProduct);
 
     res.json({
@@ -390,10 +370,8 @@ router.get('/just-arrived', async (req, res) => {
     })
       .limit(Math.min(parseInt(limit), 20))
       .sort('-createdAt')
-      .select('name price comparePrice shortDescription images thumbnail category rating tags vendor featured isTrending isFlashSale weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
       .lean();
 
-    // Enhance each product with calculated fields
     const enhancedProducts = justArrivedProducts.map(enhanceProduct);
 
     res.json({
@@ -410,38 +388,7 @@ router.get('/just-arrived', async (req, res) => {
   }
 });
 
-// GET top selling products
-router.get('/top-selling', async (req, res) => {
-  try {
-    const { limit = 10 } = req.query;
-    
-    const topProducts = await Product.find({ 
-      status: 'active',
-      visible: true
-    })
-      .limit(Math.min(parseInt(limit), 20))
-      .sort('-totalSold -rating')
-      .select('name price comparePrice shortDescription images thumbnail category rating totalSold tags vendor featured isTrending isFlashSale isJustArrived weight dimensions requiresShipping freeShipping flatShippingRate estimatedDeliveryMin estimatedDeliveryMax')
-      .lean();
-
-    // Enhance each product with calculated fields
-    const enhancedProducts = topProducts.map(enhanceProduct);
-
-    res.json({
-      success: true,
-      count: enhancedProducts.length,
-      products: enhancedProducts
-    });
-  } catch (err) {
-    console.error('Error fetching top selling products:', err);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch top selling products'
-    });
-  }
-});
-
-// GET product by slug (for SEO-friendly URLs)
+// GET product by slug
 router.get('/slug/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
@@ -450,7 +397,7 @@ router.get('/slug/:slug', async (req, res) => {
       slug,
       status: 'active',
       visible: true 
-    }).select('-__v -createdBy').lean();
+    }).lean();
     
     if (!product) {
       return res.status(404).json({
@@ -459,10 +406,8 @@ router.get('/slug/:slug', async (req, res) => {
       });
     }
 
-    // Enhance product with calculated fields
     const enhancedProduct = enhanceProduct(product);
 
-    // Get related products (same category, exclude current product)
     const relatedProducts = await Product.find({
       _id: { $ne: product._id },
       category: product.category,
@@ -470,10 +415,8 @@ router.get('/slug/:slug', async (req, res) => {
       visible: true
     })
       .limit(4)
-      .select('name price comparePrice images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived')
       .lean();
 
-    // Enhance related products
     const enhancedRelated = relatedProducts.map(enhanceProduct);
 
     res.json({
@@ -483,7 +426,6 @@ router.get('/slug/:slug', async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching product by slug:', err);
-    
     res.status(500).json({
       success: false,
       message: 'Failed to fetch product details'
@@ -500,7 +442,7 @@ router.get('/:id', async (req, res) => {
       _id: id,
       status: 'active',
       visible: true 
-    }).select('-__v -createdBy').lean();
+    }).lean();
     
     if (!product) {
       return res.status(404).json({
@@ -509,10 +451,8 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // Enhance product with calculated fields
     const enhancedProduct = enhanceProduct(product);
 
-    // Get related products (same category, exclude current product)
     const relatedProducts = await Product.find({
       _id: { $ne: id },
       category: product.category,
@@ -520,10 +460,8 @@ router.get('/:id', async (req, res) => {
       visible: true
     })
       .limit(4)
-      .select('name price comparePrice images thumbnail category rating tags vendor isTrending isFlashSale isJustArrived')
       .lean();
 
-    // Enhance related products
     const enhancedRelated = relatedProducts.map(enhanceProduct);
 
     res.json({
@@ -576,72 +514,6 @@ router.get('/categories/all', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch categories'
-    });
-  }
-});
-
-// GET all vendors
-router.get('/vendors/all', async (req, res) => {
-  try {
-    const vendors = await Product.distinct('vendor', { 
-      vendor: { $exists: true, $ne: null, $ne: '' },
-      status: 'active',
-      visible: true 
-    });
-
-    res.json({
-      success: true,
-      vendors: vendors.filter(Boolean).sort()
-    });
-  } catch (err) {
-    console.error('Error fetching vendors:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch vendors'
-    });
-  }
-});
-
-// GET product filters data (min/max prices, etc)
-router.get('/filters/data', async (req, res) => {
-  try {
-    const [priceStats, categories, vendors] = await Promise.all([
-      Product.aggregate([
-        { $match: { status: 'active', visible: true } },
-        { $group: {
-          _id: null,
-          minPrice: { $min: '$price' },
-          maxPrice: { $max: '$price' }
-        }}
-      ]),
-      Product.aggregate([
-        { $match: { status: 'active', visible: true } },
-        { $group: {
-          _id: '$category',
-          count: { $sum: 1 }
-        }},
-        { $sort: { _id: 1 } }
-      ]),
-      Product.distinct('vendor', { 
-        vendor: { $exists: true, $ne: null, $ne: '' },
-        status: 'active',
-        visible: true 
-      })
-    ]);
-
-    res.json({
-      success: true,
-      filters: {
-        priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0 },
-        categories: categories.map(c => ({ name: c._id, count: c.count })),
-        vendors: vendors.filter(Boolean).sort()
-      }
-    });
-  } catch (err) {
-    console.error('Error fetching filter data:', err);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch filter data'
     });
   }
 });

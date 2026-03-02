@@ -1,4 +1,4 @@
-// src/pages/Checkout.jsx - COMPACT with Yellow-Orange Theme
+// src/pages/Checkout.jsx - COMPACT with Yellow-Orange Theme and Dashboard-style heading (TopBar removed)
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -29,7 +29,7 @@ import { IoFlashOutline } from 'react-icons/io5';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles - UPDATED with yellow-orange theme
+// Font styles - UPDATED with Dashboard-style heading
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -40,6 +40,36 @@ const fontStyles = `
   h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     letter-spacing: -0.02em;
+  }
+  
+  /* Section title styling from Dashboard (matching Cart page) */
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+      padding: 0.4rem 1.5rem;
+    }
   }
   
   .page-title {
@@ -53,7 +83,7 @@ const fontStyles = `
     background-clip: text;
   }
   
-  .section-title {
+  .section-title-small {
     font-weight: 700;
     font-size: clamp(0.9rem, 2vw, 1.1rem);
     letter-spacing: -0.02em;
@@ -798,32 +828,6 @@ const getFullImageUrl = (imagePath) => {
   return `${API_URL}/uploads/products/${imagePath}`;
 };
 
-// Top Bar Component - UPDATED colors
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-1.5 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          FIND STORE
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
-
 // Address Form Component with Location Selection - COMPACT
 const AddressForm = ({ address, setAddress, errors, setShippingFee }) => {
   const [availableTowns, setAvailableTowns] = useState([]);
@@ -901,7 +905,7 @@ const AddressForm = ({ address, setAddress, errors, setShippingFee }) => {
             value={address.email}
             onChange={(e) => setAddress({ ...address, email: e.target.value })}
             placeholder="john@example.com"
-            className="input-field w-full pl-7"
+            className="w-full input-field pl-7"
           />
         </div>
       </div>
@@ -991,7 +995,7 @@ const AddressForm = ({ address, setAddress, errors, setShippingFee }) => {
           value={address.postalCode}
           onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
           placeholder="00100"
-          className="input-field w-full"
+          className="w-full input-field"
         />
       </div>
     </div>
@@ -1028,7 +1032,7 @@ const OrderItem = ({ item }) => {
   
   return (
     <div className="flex gap-1.5 py-1.5 border-b border-gray-800 last:border-0">
-      <div className="relative flex-shrink-0 w-10 h-10 overflow-hidden rounded-lg bg-gray-800">
+      <div className="relative flex-shrink-0 w-10 h-10 overflow-hidden bg-gray-800 rounded-lg">
         <img
           src={getFullImageUrl(image)}
           alt={item.name}
@@ -1292,11 +1296,9 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <TopBar />
-
-      {/* Header Image - COMPACT */}
+      {/* Header Image - COMPACT - Updated heading style to match Cart/Dashboard */}
       <div 
-        className="relative w-full h-32 overflow-hidden sm:h-36 md:h-40"
+        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
         data-aos="fade-in"
         data-aos-duration="1500"
       >
@@ -1318,8 +1320,11 @@ const Checkout = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
             >
-              <h1 className="text-lg font-bold text-white sm:text-xl md:text-2xl">CHECKOUT</h1>
-              <p className="text-xs text-gray-300">
+              {/* Updated heading with Dashboard style (matching Cart page) */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">CHECKOUT</h1>
+              </div>
+              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 {isDirectCheckout ? 'Complete your purchase' : 'Complete your order'}
               </p>
             </div>
@@ -1376,7 +1381,7 @@ const Checkout = () => {
 
         <div className="flex flex-col gap-3 lg:flex-row">
           {/* Left Column - Forms */}
-          <div className="lg:w-2/3 space-y-3">
+          <div className="space-y-3 lg:w-2/3">
             {/* Step 1: Shipping Address */}
             {step === 1 && (
               <div 
@@ -1398,7 +1403,7 @@ const Checkout = () => {
 
                 {/* Saved Addresses - COMPACT */}
                 {showSavedAddresses && savedAddresses.length > 0 && (
-                  <div className="mb-2 space-y-1 max-h-28 overflow-y-auto custom-scrollbar">
+                  <div className="mb-2 space-y-1 overflow-y-auto max-h-28 custom-scrollbar">
                     {savedAddresses.map((saved) => (
                       <div
                         key={saved.id}
@@ -1493,7 +1498,7 @@ const Checkout = () => {
                 {/* Items Review - COMPACT */}
                 <div>
                   <h3 className="mb-1 text-xs font-medium text-yellow-500">Items</h3>
-                  <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
+                  <div className="space-y-1 overflow-y-auto max-h-32 custom-scrollbar">
                     {checkoutItems.map((item) => (
                       <OrderItem key={item.id} item={item} />
                     ))}
@@ -1516,7 +1521,7 @@ const Checkout = () => {
               </h2>
 
               {/* Items Preview - COMPACT */}
-              <div className="mb-2 space-y-1 max-h-32 overflow-y-auto text-xs custom-scrollbar">
+              <div className="mb-2 space-y-1 overflow-y-auto text-xs max-h-32 custom-scrollbar">
                 {checkoutItems.map((item) => {
                   const price = item.discountPrice || item.price || 0;
                   return (

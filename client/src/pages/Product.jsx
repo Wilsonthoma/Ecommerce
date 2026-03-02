@@ -1,4 +1,4 @@
-// src/pages/Product.jsx - COMPLETE FIXED with Yellow-Orange Theme
+// src/pages/Product.jsx - Only TopBar removed, section headings styled like Dashboard (smaller version)
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -40,7 +40,7 @@ import { useWishlist } from '../context/WishlistContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles with Yellow-Orange theme
+// Font styles with Yellow-Orange theme - Updated with Dashboard heading style
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -53,21 +53,71 @@ const fontStyles = `
     letter-spacing: -0.02em;
   }
   
+  /* Main title styling from Dashboard */
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 2rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+      padding: 0.4rem 1.5rem;
+    }
+  }
+  
+  /* Smaller section title for reviews, related products, etc. */
+  .section-title-small-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
+  .section-title-small {
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    padding: 0.3rem 1.5rem;
+    background: #111827;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title-small {
+      font-size: 1rem;
+      padding: 0.2rem 1rem;
+    }
+  }
+  
   .product-title {
     font-weight: 800;
     font-size: clamp(1.5rem, 4vw, 2rem);
     line-height: 1.2;
     letter-spacing: -0.03em;
-    background: linear-gradient(to right, #fff, #e5e5e5);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .section-header {
-    font-weight: 700;
-    font-size: clamp(1.2rem, 3vw, 1.4rem);
-    letter-spacing: -0.02em;
     background: linear-gradient(to right, #fff, #e5e5e5);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -284,32 +334,6 @@ const FALLBACK_IMAGE = 'https://images.pexels.com/photos/3780681/pexels-photo-37
 
 // Product header image
 const productHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
-
-// Top Bar Component - Updated colors
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-2 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          <span>FIND STORE</span>
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const Product = () => {
   const { id } = useParams();
@@ -783,7 +807,6 @@ const Product = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        <TopBar />
         <div className="container px-4 py-4 mx-auto max-w-7xl">
           <div className="animate-pulse">
             <div className="w-16 h-4 mb-4 bg-gray-800 rounded"></div>
@@ -826,8 +849,6 @@ const Product = () => {
       <style>{fontStyles}</style>
       <style>{animationStyles}</style>
       
-      <TopBar />
-
       {/* Product Header Image - Yellow-Orange gradient */}
       <div 
         className="relative w-full h-48 overflow-hidden sm:h-56 md:h-64"
@@ -856,10 +877,11 @@ const Product = () => {
               data-aos-delay="400"
               data-aos-once="false"
             >
-              <h1 className="text-2xl font-bold text-white sm:text-3xl md:text-4xl">
-                PRODUCT DETAILS
-              </h1>
-              <p className="mt-1 text-sm text-gray-300 sm:text-base">
+              {/* Main heading with Dashboard style */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">PRODUCT DETAILS</h1>
+              </div>
+              <p className="mt-2 text-sm text-gray-300 sm:text-base">
                 {product.name}
               </p>
             </div>
@@ -1104,7 +1126,10 @@ const Product = () => {
 
         {/* Reviews Section */}
         <div className="mt-8">
-          <h2 className="mb-3 text-base section-header">REVIEWS</h2>
+          {/* Smaller heading for Reviews */}
+          <div className="section-title-small-wrapper">
+            <h2 className="section-title-small">REVIEWS</h2>
+          </div>
           
           {/* Rating Summary */}
           <div className="p-3 mb-3 border border-gray-700 rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50">
@@ -1131,7 +1156,7 @@ const Product = () => {
               </div>
               
               <div className="w-20">
-                {/* ✅ OPTION 2: Show "Already Reviewed" message if user has reviewed */}
+                {/* Show "Already Reviewed" message if user has reviewed */}
                 {userHasReviewed ? (
                   <div className="text-xs text-yellow-500 text-center py-1.5 bg-yellow-500/10 rounded-full border border-yellow-500/30">
                     Already Reviewed
@@ -1228,7 +1253,10 @@ const Product = () => {
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-8">
-            <h2 className="mb-3 text-base section-header">YOU MAY ALSO LIKE</h2>
+            {/* Smaller heading for Related Products */}
+            <div className="section-title-small-wrapper">
+              <h2 className="section-title-small">YOU MAY ALSO LIKE</h2>
+            </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {relatedProducts.slice(0, 4).map((relatedProduct) => {
                 const relatedImage = relatedProduct.primaryImage || 

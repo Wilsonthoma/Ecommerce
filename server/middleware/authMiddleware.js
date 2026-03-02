@@ -385,7 +385,7 @@ export const verifyRefreshToken = (token) => {
 export default {
   protect,
   protectUser,
-  admin,                // ✅ ADDED: admin middleware
+  admin,                
   authorize,
   hasPermission,
   authenticateAdmin,

@@ -1,4 +1,4 @@
-// src/components/ProductCard.jsx - RESTYLED with hover-only icons, tiny badges, and thin gradient border
+// src/components/ProductCard.jsx - UPDATED with working stars
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiEye, FiHeart, FiCreditCard } from 'react-icons/fi';
@@ -6,301 +6,6 @@ import { AiFillStar } from 'react-icons/ai';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { toast } from 'react-toastify';
-
-// Font styles matching homepage EXACTLY
-const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-  
-  .product-card {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    position: relative;
-    background: #111827; /* gray-900 */
-    border: 1px solid #1F2937; /* gray-800 */
-    border-radius: 0.75rem;
-    overflow: hidden;
-    transition: all 0.3s ease;
-  }
-  
-  /* Thin yellow-orange gradient border on hover */
-  .product-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    padding: 1.5px; /* Thin border */
-    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    border-radius: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: 1;
-  }
-  
-  .product-card:hover::before {
-    opacity: 1;
-  }
-  
-  .product-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2);
-  }
-  
-  .product-card-title {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #FFFFFF;
-    line-height: 1.4;
-    margin-bottom: 0.2rem;
-    letter-spacing: -0.01em;
-    transition: color 0.2s ease;
-  }
-  
-  .product-card-title:hover {
-    color: #60A5FA;
-  }
-  
-  .product-card-price {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-    color: #FFFFFF;
-    letter-spacing: -0.02em;
-  }
-  
-  .product-card-price-discounted {
-    font-family: 'Inter', sans-serif;
-    font-weight: 700;
-    font-size: 1rem;
-    background: linear-gradient(135deg, #60A5FA, #C084FC);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .product-card-old-price {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.75rem;
-    color: #9CA3AF;
-    text-decoration: line-through;
-    margin-left: 0.2rem;
-  }
-  
-  .product-card-category {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #9CA3AF;
-  }
-  
-  /* EXTRA TINY BADGES - 50% smaller */
-  .badge-card {
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    line-height: 1.2;
-  }
-  
-  .badge-discount-card {
-    background: linear-gradient(135deg, #EF4444, #F59E0B);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
-  }
-  
-  .badge-featured-card {
-    background: linear-gradient(135deg, #3B82F6, #8B5CF6);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
-    display: inline-flex;
-    align-items: center;
-    gap: 0.1rem;
-  }
-  
-  .badge-trending-card {
-    background: linear-gradient(135deg, #8B5CF6, #EC4899);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(139, 92, 246, 0.3);
-  }
-  
-  .badge-flash-card {
-    background: linear-gradient(135deg, #F59E0B, #EF4444);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
-  }
-  
-  .badge-new-card {
-    background: linear-gradient(135deg, #10B981, #3B82F6);
-    color: white;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 0.5rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
-  }
-  
-  .stock-badge-card {
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
-    font-size: 0.5rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    backdrop-filter: blur(4px);
-  }
-  
-  .stock-badge-card.in-stock {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10B981;
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-  
-  .stock-badge-card.low-stock {
-    background: rgba(245, 158, 11, 0.15);
-    color: #F59E0B;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-  }
-  
-  .stock-badge-card.out-of-stock {
-    background: rgba(239, 68, 68, 0.15);
-    color: #EF4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .product-rating-count {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.55rem;
-    color: #6B7280;
-  }
-  
-  .product-save-text {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.55rem;
-    color: #10B981;
-    margin-top: 0.1rem;
-  }
-
-  /* Action buttons - hidden by default, show on hover */
-  .action-buttons {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  
-  .product-card:hover .action-buttons {
-    opacity: 1;
-  }
-  
-  .action-button {
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9999px;
-    transition: all 0.2s ease;
-    border: 1px solid rgba(75, 85, 99, 0.5);
-    background: rgba(17, 24, 39, 0.9);
-    backdrop-filter: blur(4px);
-  }
-  
-  .action-button:hover {
-    transform: scale(1.1);
-  }
-  
-  .action-button svg {
-    width: 14px;
-    height: 14px;
-  }
-  
-  .btn-buy-now {
-    background: linear-gradient(135deg, #10B981, #059669);
-    border: none;
-  }
-  
-  .btn-buy-now:hover {
-    background: linear-gradient(135deg, #059669, #047857);
-  }
-  
-  .btn-cart {
-    background: #3B82F6;
-    border: none;
-  }
-  
-  .btn-cart:hover {
-    background: #2563EB;
-  }
-  
-  .btn-wishlist:hover {
-    border-color: #EF4444;
-    background: rgba(239, 68, 68, 0.2);
-  }
-  
-  .btn-view:hover {
-    border-color: #3B82F6;
-    background: rgba(59, 130, 246, 0.2);
-  }
-  
-  /* Bottom gradient - completely blended with background */
-  .image-gradient {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 50%;
-    background: linear-gradient(to top, #111827, transparent);
-    pointer-events: none;
-    z-index: 1;
-  }
-  
-  /* Remove loading spinner */
-  .loading-spinner {
-    display: none;
-  }
-  
-  /* Tiny star icons */
-  .star-icon {
-    width: 12px;
-    height: 12px;
-  }
-`;
 
 // Backend URL
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -329,6 +34,15 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
     console.error('❌ ProductCard received null product');
     return null;
   }
+
+  // DEBUG: Log what we're receiving
+  console.log('🔍 ProductCard received:', {
+    id: product._id || product.id,
+    name: product.name,
+    rating: product.rating,
+    reviewsCount: product.reviewsCount,
+    price: product.price
+  });
 
   // Extract product data with fallbacks for all fields
   const productId = product._id || product.id;
@@ -399,6 +113,7 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
     return `KSh ${Math.round(price).toLocaleString()}`;
   };
 
+  // ✅ SIMPLE STARS RENDERING - Using inline styles only
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
@@ -406,18 +121,20 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
     
     for (let i = 0; i < 5; i++) {
       if (i < fullStars) {
-        stars.push(<AiFillStar key={i} className="star-icon text-yellow-400" />);
+        stars.push(
+          <span key={i} style={{ color: '#F59E0B', fontSize: '14px', marginRight: '2px' }}>★</span>
+        );
       } else if (i === fullStars && hasHalfStar) {
         stars.push(
-          <div key={i} className="relative">
-            <AiFillStar className="star-icon text-gray-600" />
-            <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
-              <AiFillStar className="star-icon text-yellow-400" />
-            </div>
-          </div>
+          <span key={i} style={{ position: 'relative', display: 'inline-block', width: '14px', height: '14px', marginRight: '2px' }}>
+            <span style={{ position: 'absolute', color: '#4B5563', fontSize: '14px' }}>★</span>
+            <span style={{ position: 'absolute', width: '50%', overflow: 'hidden', color: '#F59E0B', fontSize: '14px' }}>★</span>
+          </span>
         );
       } else {
-        stars.push(<AiFillStar key={i} className="star-icon text-gray-600" />);
+        stars.push(
+          <span key={i} style={{ color: '#4B5563', fontSize: '14px', marginRight: '2px' }}>★</span>
+        );
       }
     }
     return stars;
@@ -535,7 +252,6 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
     setIsBuying(true);
     
     try {
-      // Create direct checkout item
       const directCheckoutItem = {
         id: productId,
         productId: productId,
@@ -552,14 +268,12 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
         flatShippingRate: 0
       };
 
-      // Store in sessionStorage as backup
       sessionStorage.setItem('directCheckout', JSON.stringify({
         items: [directCheckoutItem],
         totalQuantity: 1,
         totalPrice: productPrice
       }));
 
-      // Navigate to checkout
       navigate('/checkout', { 
         state: { 
           directCheckout: true,
@@ -585,17 +299,277 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
   };
 
   return (
-    <>
-      <style>{fontStyles}</style>
-      <div className="product-card group">
-        {/* Thin yellow-orange gradient border appears on hover */}
+    <div className="relative group">
+      <style>{`
+        .product-card {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          position: relative;
+          background: #111827;
+          border: 1px solid #1F2937;
+          border-radius: 0.75rem;
+          overflow: hidden;
+          transition: all 0.3s ease;
+        }
         
+        .product-card::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          padding: 1.5px;
+          background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+          -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          border-radius: 0.75rem;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+          z-index: 1;
+        }
+        
+        .product-card:hover::before {
+          opacity: 1;
+        }
+        
+        .product-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.2);
+        }
+        
+        .product-card-title {
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          font-size: 0.9rem;
+          color: #FFFFFF;
+          line-height: 1.4;
+          margin-bottom: 0.2rem;
+          letter-spacing: -0.01em;
+          transition: color 0.2s ease;
+        }
+        
+        .product-card-title:hover {
+          color: #F59E0B;
+        }
+        
+        .product-card-price {
+          font-family: 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          color: #FFFFFF;
+          letter-spacing: -0.02em;
+        }
+        
+        .product-card-price-discounted {
+          font-family: 'Inter', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        .product-card-old-price {
+          font-family: 'Inter', sans-serif;
+          font-weight: 500;
+          font-size: 0.75rem;
+          color: #9CA3AF;
+          text-decoration: line-through;
+          margin-left: 0.2rem;
+        }
+        
+        .product-card-category {
+          font-family: 'Inter', sans-serif;
+          font-weight: 500;
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #9CA3AF;
+        }
+        
+        .badge-discount-card {
+          background: linear-gradient(135deg, #EF4444, #F59E0B);
+          color: white;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);
+        }
+        
+        .badge-featured-card {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          color: white;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.1rem;
+        }
+        
+        .badge-trending-card {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          color: white;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+        }
+        
+        .badge-flash-card {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          color: white;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+        }
+        
+        .badge-new-card {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          color: white;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          font-size: 0.5rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+          box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+        }
+        
+        .stock-badge-card {
+          font-family: 'Inter', sans-serif;
+          font-weight: 600;
+          font-size: 0.5rem;
+          padding: 0.1rem 0.4rem;
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          backdrop-filter: blur(4px);
+        }
+        
+        .stock-badge-card.in-stock {
+          background: rgba(16, 185, 129, 0.15);
+          color: #10B981;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        
+        .stock-badge-card.low-stock {
+          background: rgba(245, 158, 11, 0.15);
+          color: #F59E0B;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .stock-badge-card.out-of-stock {
+          background: rgba(239, 68, 68, 0.15);
+          color: #EF4444;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .product-rating-count {
+          font-family: 'Inter', sans-serif;
+          font-weight: 500;
+          font-size: 0.55rem;
+          color: #6B7280;
+        }
+        
+        .product-save-text {
+          font-family: 'Inter', sans-serif;
+          font-weight: 500;
+          font-size: 0.55rem;
+          color: #10B981;
+          margin-top: 0.1rem;
+        }
+        
+        .action-buttons {
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        
+        .product-card:hover .action-buttons {
+          opacity: 1;
+        }
+        
+        .action-button {
+          width: 24px;
+          height: 24px;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 9999px;
+          transition: all 0.2s ease;
+          border: 1px solid rgba(75, 85, 99, 0.5);
+          background: rgba(17, 24, 39, 0.9);
+          backdrop-filter: blur(4px);
+        }
+        
+        .action-button:hover {
+          transform: scale(1.1);
+        }
+        
+        .action-button svg {
+          width: 14px;
+          height: 14px;
+        }
+        
+        .btn-buy-now {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          border: none;
+        }
+        
+        .btn-buy-now:hover {
+          background: linear-gradient(135deg, #EF4444, #F59E0B);
+        }
+        
+        .btn-cart {
+          background: linear-gradient(135deg, #F59E0B, #EF4444);
+          border: none;
+        }
+        
+        .btn-cart:hover {
+          background: linear-gradient(135deg, #EF4444, #F59E0B);
+        }
+        
+        .btn-wishlist:hover {
+          border-color: #EF4444;
+          background: rgba(239, 68, 68, 0.2);
+        }
+        
+        .btn-view:hover {
+          border-color: #F59E0B;
+          background: rgba(245, 158, 11, 0.2);
+        }
+        
+        .image-gradient {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 50%;
+          background: linear-gradient(to top, #111827, transparent);
+          pointer-events: none;
+          z-index: 1;
+        }
+      `}</style>
+      
+      <div className="product-card group">
         <div className="relative flex flex-col h-full">
           {/* Image Container */}
           <div className="relative w-full overflow-hidden bg-gray-800 aspect-square">
-            {/* No loading spinner - removed */}
-            
-            {/* Product Image */}
             <img
               src={getImageUrl()}
               alt={productName}
@@ -608,10 +582,9 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
               loading="lazy"
             />
             
-            {/* Gradient Overlay - completely blended with background */}
             <div className="image-gradient"></div>
             
-            {/* Top Badges - EXTRA TINY */}
+            {/* Top Badges */}
             <div className="absolute z-10 flex flex-wrap gap-1 top-2 left-2">
               {hasDiscount && (
                 <span className="badge-discount-card">
@@ -640,7 +613,7 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
               )}
             </div>
             
-            {/* Stock Status - EXTRA TINY */}
+            {/* Stock Status */}
             <div className="absolute z-10 bottom-2 left-2">
               <span className={`stock-badge-card ${stockStatus}`}>
                 {productStock > 10 ? 'In Stock' : 
@@ -649,9 +622,8 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
               </span>
             </div>
             
-            {/* Action Buttons - Hidden by default, show on hover */}
+            {/* Action Buttons */}
             <div className="action-buttons absolute z-30 flex gap-1.5 bottom-2 right-2">
-              {/* Wishlist Button */}
               {isLoggedIn && (
                 <button
                   onClick={handleWishlistToggle}
@@ -664,7 +636,6 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
                 </button>
               )}
               
-              {/* View Details Button */}
               <button
                 onClick={handleViewDetails}
                 className="action-button btn-view"
@@ -673,7 +644,6 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
                 <FiEye className="text-white" />
               </button>
               
-              {/* Buy Now Button */}
               {!hideBuyNow && isInStock && (
                 <button
                   onClick={handleBuyNow}
@@ -689,7 +659,6 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
                 </button>
               )}
               
-              {/* Add to Cart Button */}
               {isInStock && (
                 <button
                   onClick={handleAddToCart}
@@ -707,9 +676,8 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
             </div>
           </div>
           
-          {/* Product Info - Clickable to product page */}
+          {/* Product Info */}
           <div className="flex-1 p-2 bg-gray-900 cursor-pointer" onClick={handleViewDetails}>
-            {/* Category */}
             {productCategory && (
               <div className="mb-0.5">
                 <span className="product-card-category">
@@ -718,14 +686,13 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
               </div>
             )}
             
-            {/* Product Name */}
-            <h3 className="product-card-title line-clamp-2 hover:text-blue-500">
+            <h3 className="product-card-title line-clamp-2 hover:text-yellow-500">
               {productName}
             </h3>
             
-            {/* Rating */}
+            {/* Rating - Using simple spans with inline styles */}
             <div className="flex items-center gap-1 mt-0.5 mb-1">
-              <div className="flex">
+              <div className="flex items-center">
                 {renderStars(productRating)}
               </div>
               <span className="product-rating-count">
@@ -760,7 +727,7 @@ const ProductCard = ({ product, hideBuyNow = false }) => {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

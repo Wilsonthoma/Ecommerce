@@ -1,4 +1,4 @@
-// src/pages/Cart.jsx - COMPACT with Yellow-Orange Theme
+// src/pages/Cart.jsx - Only TopBar removed, heading styled like Dashboard
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -23,7 +23,7 @@ import { FiMapPin } from 'react-icons/fi';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
-// Font styles - UPDATED with yellow-orange theme
+// Font styles - Updated with Dashboard heading style
 const fontStyles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
   
@@ -36,13 +36,34 @@ const fontStyles = `
     letter-spacing: -0.02em;
   }
   
+  /* Section title styling from Dashboard */
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
   .section-title {
     font-weight: 800;
-    font-size: clamp(1.5rem, 4vw, 2.2rem);
+    font-size: 2rem;
     line-height: 1.2;
     text-transform: uppercase;
     color: white;
-    margin-bottom: 0;
+    margin: 0;
+    padding: 0.5rem 2rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1.5rem;
+      padding: 0.4rem 1.5rem;
+    }
   }
   
   .glow-text {
@@ -114,32 +135,6 @@ const cartHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5
 
 // Gradient for header - UPDATED to yellow-orange
 const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
-
-// Top Bar Component - UPDATED colors
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-2 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          FIND STORE
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -265,10 +260,9 @@ const Cart = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        <TopBar />
         <div className="container px-4 py-6 mx-auto max-w-7xl">
           <div className="animate-pulse">
-            <div className="w-36 h-6 mb-6 bg-gray-800 rounded"></div>
+            <div className="h-6 mb-6 bg-gray-800 rounded w-36"></div>
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <div className="p-3 bg-gray-900 border border-gray-800 rounded-xl">
@@ -290,7 +284,6 @@ const Cart = () => {
   if (cart.items.length === 0) {
     return (
       <div className="min-h-screen bg-black">
-        <TopBar />
         <div className="container px-4 py-10 mx-auto">
           <div 
             className="max-w-md mx-auto text-center"
@@ -324,11 +317,10 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <TopBar />
 
       {/* Cart Header Image - COMPACT */}
       <div 
-        className="relative w-full h-36 overflow-hidden sm:h-44 md:h-48"
+        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
         data-aos="fade-in"
         data-aos-duration="1500"
       >
@@ -350,10 +342,11 @@ const Cart = () => {
               data-aos="fade-right"
               data-aos-duration="1200"
             >
-              <h1 className="text-xl font-bold text-white sm:text-2xl md:text-3xl">
-                SHOPPING CART
-              </h1>
-              <p className="text-xs text-gray-300 sm:text-sm">
+              {/* Updated heading with Dashboard style */}
+              <div className="section-title-wrapper">
+                <h1 className="section-title">SHOPPING CART</h1>
+              </div>
+              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
                 {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
               </p>
             </div>
@@ -591,7 +584,7 @@ const Cart = () => {
           <div className="relative w-4/5 max-w-4xl">
             <button
               onClick={closeLightbox}
-              className="absolute p-2 transition-all rounded-full shadow-lg -right-2 -top-12 bg-gray-900 border border-gray-700 hover:border-yellow-500/50 group sm:-right-12 sm:-top-12"
+              className="absolute p-2 transition-all bg-gray-900 border border-gray-700 rounded-full shadow-lg -right-2 -top-12 hover:border-yellow-500/50 group sm:-right-12 sm:-top-12"
             >
               <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full opacity-0 group-hover:opacity-50 blur transition-opacity"></div>
               <X className="relative w-5 h-5 text-gray-400 transition-colors group-hover:text-white" />
@@ -601,13 +594,13 @@ const Cart = () => {
               <>
                 <button
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gray-900 border border-gray-700 hover:border-yellow-500/50 group"
+                  className="absolute left-0 z-10 p-2 transition-all -translate-x-12 -translate-y-1/2 bg-gray-900 border border-gray-700 rounded-full shadow-lg top-1/2 hover:border-yellow-500/50 group"
                 >
                   <ChevronLeft className="w-5 h-5 text-gray-400 transition-colors group-hover:text-yellow-500" />
                 </button>
                 <button
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 rounded-full shadow-lg top-1/2 bg-gray-900 border border-gray-700 hover:border-yellow-500/50 group"
+                  className="absolute right-0 z-10 p-2 transition-all translate-x-12 -translate-y-1/2 bg-gray-900 border border-gray-700 rounded-full shadow-lg top-1/2 hover:border-yellow-500/50 group"
                 >
                   <ChevronRightIcon className="w-5 h-5 text-gray-400 transition-colors group-hover:text-yellow-500" />
                 </button>

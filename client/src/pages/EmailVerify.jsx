@@ -1,4 +1,4 @@
-// src/pages/EmailVerify.jsx - UPDATED with full-page background, centered card, and no scrolling
+// src/pages/EmailVerify.jsx - UPDATED with consistent yellow/orange theme matching Login page
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
@@ -22,7 +22,7 @@ const fontStyles = `
   }
   
   .glow-text {
-    text-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    text-shadow: 0 0 30px rgba(234, 179, 8, 0.5);
   }
 `;
 
@@ -64,8 +64,8 @@ const animationStyles = `
 // Background image
 const emailVerifyBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Gradient for bottom transition - indigo/blue/cyan
-const bottomGradient = "from-indigo-600/20 via-blue-600/20 to-cyan-600/20";
+// Gradient for bottom transition - yellow/orange/red (matching Login page)
+const bottomGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 // Top Bar Component (matching homepage)
 const TopBar = () => {
@@ -270,28 +270,28 @@ const EmailVerify = () => {
         />
         {/* Dark overlay for better text visibility */}
         <div className="absolute inset-0 bg-black/60"></div>
-        {/* Bottom gradient - indigo/blue/cyan */}
+        {/* Bottom gradient - yellow/orange/red (matching Login page) */}
         <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
         {/* Final black gradient at the very bottom */}
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
       </div>
 
-      {/* Animated Glow Orbs - positioned on top of background */}
-      <div className="absolute rounded-full w-96 h-96 bg-indigo-600/30 blur-3xl -top-48 -left-48 animate-pulse"></div>
-      <div className="absolute delay-1000 rounded-full w-96 h-96 bg-blue-600/30 blur-3xl -bottom-48 -right-48 animate-pulse"></div>
+      {/* Animated Glow Orbs - positioned on top of background - updated to yellow/orange */}
+      <div className="absolute rounded-full w-96 h-96 bg-yellow-600/30 blur-3xl -top-48 -left-48 animate-pulse"></div>
+      <div className="absolute delay-1000 rounded-full w-96 h-96 bg-orange-600/30 blur-3xl -bottom-48 -right-48 animate-pulse"></div>
 
       {/* Top Bar - with semi-transparent background */}
       <div className="absolute top-0 left-0 right-0 z-20">
         <TopBar />
       </div>
 
-      {/* Logo with glow - positioned absolutely */}
+      {/* Logo with glow - positioned absolutely - updated to yellow */}
       <div 
         onClick={() => navigate("/")} 
         className="absolute z-30 cursor-pointer left-5 sm:left-20 top-20 group"
       >
         <div className="relative">
-          <div className="absolute transition-opacity rounded-full opacity-0 -inset-2 bg-gradient-to-r from-indigo-600 to-blue-600 group-hover:opacity-30 blur-xl"></div>
+          <div className="absolute transition-opacity rounded-full opacity-0 -inset-2 bg-gradient-to-r from-yellow-600 to-orange-600 group-hover:opacity-30 blur-xl"></div>
           <img 
             src={assets.logo} 
             alt="Logo" 
@@ -300,22 +300,32 @@ const EmailVerify = () => {
         </div>
       </div>
 
+      {/* Back button - matching Login page style */}
+      <div className="absolute z-30 top-4 right-4">
+        <button 
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white transition-all border border-gray-700 rounded-full bg-black/50 backdrop-blur-sm hover:border-yellow-500/50"
+        >
+          <span className="text-yellow-500">←</span> Back to Home
+        </button>
+      </div>
+
       {/* Centered Verification Card - No scrolling */}
       <div className="absolute inset-0 z-10 flex items-center justify-center">
         <div className="w-full max-w-md px-4">
           {/* Verification Card */}
           <div className="relative card-3d">
-            {/* Glow Effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-2xl opacity-30 blur-xl"></div>
+            {/* Glow Effect - updated to yellow/orange */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl opacity-30 blur-xl"></div>
             
             <div className="relative p-6 border border-gray-800 rounded-2xl bg-gray-900/95 backdrop-blur-sm sm:p-8 card-3d-content">
-              {/* Icon */}
+              {/* Icon - updated to yellow/orange gradient */}
               <div className="flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600">
+                  <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
                     <FiMail className="w-8 h-8 text-white" />
                   </div>
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full opacity-50 blur-xl"></div>
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full opacity-50 blur-xl"></div>
                 </div>
               </div>
 
@@ -327,7 +337,7 @@ const EmailVerify = () => {
               </p>
 
               <form onSubmit={onSubmitHandler}>
-                {/* OTP Inputs */}
+                {/* OTP Inputs - updated focus ring to yellow */}
                 <div
                   className="flex justify-center mb-8 space-x-2 sm:space-x-3"
                   onPaste={handlePaste}
@@ -341,21 +351,21 @@ const EmailVerify = () => {
                       ref={(el) => (inputRefs.current[index] = el)}
                       onInput={(e) => handleInput(e, index)}
                       onKeyDown={(e) => handleKeyDown(e, index)}
-                      className="h-12 text-lg font-semibold text-center text-white transition-all border border-gray-700 rounded-lg shadow-sm outline-none w-11 sm:w-12 sm:h-14 sm:text-xl bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50"
+                      className="h-12 text-lg font-semibold text-center text-white transition-all border border-gray-700 rounded-lg shadow-sm outline-none w-11 sm:w-12 sm:h-14 sm:text-xl bg-gray-800/95 backdrop-blur-sm focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50"
                       disabled={isLoading}
                       autoFocus={index === 0}
                     />
                   ))}
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit Button - updated to yellow/orange gradient matching Login page */}
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="group relative w-full py-3 font-medium text-white transition-all rounded-full overflow-hidden sm:py-3.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-indigo-600 to-blue-600 blur-xl group-hover:opacity-100"></span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
+                  <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
                   <span className="relative flex items-center justify-center gap-2">
                     {isLoading ? (
                       <>
@@ -372,7 +382,7 @@ const EmailVerify = () => {
                 </button>
               </form>
 
-              {/* Resend Section */}
+              {/* Resend Section - updated to yellow */}
               <div className="mt-4 text-sm text-center">
                 {resendTimer > 0 ? (
                   <span className="text-gray-500">
@@ -382,17 +392,17 @@ const EmailVerify = () => {
                   <button
                     onClick={handleResendOtp}
                     disabled={isLoading}
-                    className="text-indigo-500 transition-colors hover:text-indigo-400 hover:underline disabled:opacity-50"
+                    className="text-yellow-500 transition-colors hover:text-yellow-400 hover:underline disabled:opacity-50"
                   >
                     Didn't receive the code? Resend
                   </button>
                 )}
               </div>
 
-              {/* Security Note */}
-              <div className="flex items-center gap-2 p-3 mt-4 text-xs border rounded-lg bg-indigo-600/10 border-indigo-600/20">
-                <BsLightningCharge className="w-4 h-4 text-indigo-500" />
-                <span className="text-indigo-400">
+              {/* Security Note - updated to yellow theme */}
+              <div className="flex items-center gap-2 p-3 mt-4 text-xs border rounded-lg bg-yellow-600/10 border-yellow-600/20">
+                <BsLightningCharge className="w-4 h-4 text-yellow-500" />
+                <span className="text-yellow-400">
                   Never share your verification code
                 </span>
               </div>

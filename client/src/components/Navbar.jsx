@@ -1,4 +1,4 @@
-// src/components/Navbar.jsx - UPDATED with yellow-orange theme and fixed mobile menu
+// src/components/Navbar.jsx - UPDATED with yellow-orange theme, static top header
 import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -110,6 +110,38 @@ const getCategoryIcon = (categoryName) => {
   if (name.includes('gaming') || name.includes('game') || name.includes('console')) return "🎮";
   return "📦";
 };
+
+// Section title style from Dashboard (for headings)
+const sectionTitleStyles = `
+  .section-title-wrapper {
+    position: relative;
+    display: inline-block;
+    padding: 2px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
+    margin-bottom: 1rem;
+  }
+  
+  .section-title {
+    font-weight: 800;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: white;
+    margin: 0;
+    padding: 0.3rem 1.5rem;
+    background: #111827;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  
+  @media (max-width: 768px) {
+    .section-title {
+      font-size: 1rem;
+      padding: 0.2rem 1rem;
+    }
+  }
+`;
 
 const Navbar = memo(() => {
   const navigate = useNavigate();
@@ -420,6 +452,7 @@ const Navbar = memo(() => {
   return (
     <>
       <style>{animationStyles}</style>
+      <style>{sectionTitleStyles}</style>
       
       {/* ========== STATIC TOP BAR WITH ALL QUICK LINKS ========== */}
       <div className="relative border-b border-gray-800 bg-gradient-to-r from-gray-900 via-black to-gray-900">
@@ -454,7 +487,7 @@ const Navbar = memo(() => {
               </button>
             </div>
 
-            {/* RIGHT SIDE - Contact & Social */}
+            {/* RIGHT SIDE - Contact & Social - Updated with yellow-orange hover effects */}
             <div className="flex items-center gap-3 sm:gap-5">
               <a 
                 href="tel:0700KWEƬU" 
@@ -465,12 +498,32 @@ const Navbar = memo(() => {
                 <span className="sm:hidden">Support</span>
               </a>
               
-              {/* Social Links - Updated colors */}
+              {/* Social Links - Updated with yellow-orange hover */}
               <div className="items-center hidden gap-3 lg:flex">
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaFacebookF className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaTwitter className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaInstagram className="w-3.5 h-3.5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-yellow-500/10"><FaYoutube className="w-3.5 h-3.5" /></a>
+                <a 
+                  href="#" 
+                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
+                >
+                  <FaFacebookF className="w-3.5 h-3.5" />
+                </a>
+                <a 
+                  href="#" 
+                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
+                >
+                  <FaTwitter className="w-3.5 h-3.5" />
+                </a>
+                <a 
+                  href="#" 
+                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
+                >
+                  <FaInstagram className="w-3.5 h-3.5" />
+                </a>
+                <a 
+                  href="#" 
+                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
+                >
+                  <FaYoutube className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
           </div>
@@ -582,7 +635,7 @@ const Navbar = memo(() => {
               {/* Mobile Search Button */}
               <button
                 onClick={toggleMobileSearch}
-                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-yellow-500/10"
+                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20"
               >
                 <FiSearch className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
@@ -591,7 +644,7 @@ const Navbar = memo(() => {
               {isLoggedIn ? (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.WISHLIST)}
-                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-yellow-500/10 group"
+                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 group"
                 >
                   <div className="relative">
                     <FiHeart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
@@ -606,7 +659,7 @@ const Navbar = memo(() => {
               ) : (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.LOGIN)}
-                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-yellow-500/10 group"
+                  className="relative flex-col items-center hidden p-2 text-gray-400 transition-all rounded-full sm:flex hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 group"
                   title="Login to use wishlist"
                 >
                   <FiHeart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
@@ -617,7 +670,7 @@ const Navbar = memo(() => {
               {/* CART - Always visible */}
               <button
                 onClick={() => navigate(API_ENDPOINTS.CART)}
-                className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-yellow-500/10"
+                className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20"
               >
                 <div className="relative">
                   <FiShoppingCart className="w-5 h-5 transition-transform sm:w-5 sm:h-5 lg:w-6 lg:h-6 group-hover:scale-110" />
@@ -634,7 +687,7 @@ const Navbar = memo(() => {
               <div className="relative" ref={accountDropdownRef}>
                 <button
                   onClick={toggleAccountDropdown}
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-gray-400 rounded-full hover:text-white hover:bg-yellow-500/10 transition-all group"
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-gray-400 rounded-full hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 transition-all group"
                 >
                   <div className="relative">
                     {isLoggedIn && user?.avatar && !avatarError ? (
@@ -738,7 +791,7 @@ const Navbar = memo(() => {
                                   navigate(item.path);
                                   setAccountDropdownOpen(false);
                                 }}
-                                className="flex items-center w-full gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-all group"
+                                className="flex items-center w-full gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 transition-all group"
                               >
                                 <span className="text-gray-500 transition-colors group-hover:text-yellow-500">{item.icon}</span>
                                 <span className="flex-1 text-left">{item.label}</span>
@@ -801,7 +854,7 @@ const Navbar = memo(() => {
               <button
                 data-menu-toggle
                 onClick={toggleMobileMenu}
-                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-yellow-500/10"
+                className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20"
               >
                 {mobileMenuOpen ? (
                   <FiX className="w-6 h-6" />
@@ -937,7 +990,7 @@ const Navbar = memo(() => {
                         navigate(API_ENDPOINTS.DASHBOARD);
                         setMobileMenuOpen(false);
                       }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                     >
                       <FiHome className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                       <span className="flex-1 text-left">Dashboard</span>
@@ -949,7 +1002,7 @@ const Navbar = memo(() => {
                         navigate(API_ENDPOINTS.ORDERS);
                         setMobileMenuOpen(false);
                       }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                     >
                       <FiPackage className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                       <span className="flex-1 text-left">My Orders</span>
@@ -970,7 +1023,7 @@ const Navbar = memo(() => {
                       navigate(API_ENDPOINTS.TRACK_ORDER);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                   >
                     <FiTruck className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Track Order</span>
@@ -981,7 +1034,7 @@ const Navbar = memo(() => {
                       navigate(API_ENDPOINTS.DEALS);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                   >
                     <BsLightningCharge className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Hot Deals</span>
@@ -992,7 +1045,7 @@ const Navbar = memo(() => {
                       navigate(API_ENDPOINTS.HELP);
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-white/5 group"
+                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                   >
                     <FiHelpCircle className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
                     <span className="flex-1 text-left">Help Center</span>
@@ -1009,7 +1062,7 @@ const Navbar = memo(() => {
                 <div className="space-y-2">
                   <a 
                     href="tel:0700KWEƬU" 
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5 group"
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <FiPhone className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
@@ -1017,7 +1070,7 @@ const Navbar = memo(() => {
                   </a>
                   <a 
                     href="mailto:support@kwetushop.com" 
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5 group"
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <FiMail className="w-4 h-4 transition-colors group-hover:text-yellow-500" />

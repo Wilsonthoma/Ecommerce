@@ -1,4 +1,4 @@
-// src/components/LoadingSpinner.jsx - IMPROVED with yellow-orange theme and proper functionality
+// src/components/LoadingSpinner.jsx - IMPROVED with yellow-orange theme (no glow)
 import React, { useEffect, useState } from 'react';
 import { assets } from '../assets/assets'; // Import your assets
 
@@ -13,20 +13,20 @@ style.textContent = `
     animation: spin-slow 3s linear infinite;
   }
   
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.2; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(1.1); }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
   }
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+  .animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
   }
   
-  @keyframes logo-pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
-  .animate-logo-pulse {
-    animation: logo-pulse 2s ease-in-out infinite;
+  .animate-bounce {
+    animation: bounce 1s ease-in-out infinite;
   }
 `;
 document.head.appendChild(style);
@@ -74,16 +74,19 @@ const LoadingSpinner = ({
 
   // Determine container classes
   const containerClasses = fullScreen 
-    ? `fixed inset-0 z-50 flex items-center justify-center ${overlay ? 'bg-black/80 backdrop-blur-sm' : 'bg-black'}`
+    ? `fixed inset-0 z-50 flex items-center justify-center ${overlay ? 'bg-black/80' : 'bg-black'}`
     : "flex items-center justify-center py-12 w-full";
 
   return (
     <div className={containerClasses}>
       <div className="text-center">
         <div className="relative inline-block">
+          {/* Spinning ring - Simple border with yellow-orange gradient */}
+          <div className={`${selectedSize.container} rounded-full border-2 border-gray-700 border-t-yellow-500 animate-spin`}></div>
+          
           {/* Logo in the center (optional) */}
           {showLogo && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center animate-logo-pulse">
+            <div className="absolute inset-0 flex items-center justify-center">
               <img 
                 src={assets.logo} 
                 alt="KwetuShop" 
@@ -91,20 +94,6 @@ const LoadingSpinner = ({
               />
             </div>
           )}
-          
-          {/* Spinning ring - Yellow-Orange gradient */}
-          <div className={`${selectedSize.container} ${selectedSize.border} border-gray-700 rounded-full border-t-transparent relative`}
-               style={{
-                 background: 'linear-gradient(135deg, #F59E0B, #EF4444)',
-                 WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                 WebkitMaskComposite: 'xor',
-                 maskComposite: 'exclude',
-                 padding: '2px'
-               }}>
-          </div>
-          
-          {/* Glow effect - Yellow-Orange */}
-          <div className={`absolute inset-0 ${selectedSize.container} rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl opacity-20 animate-pulse-glow`}></div>
         </div>
         
         {/* Message */}
@@ -136,16 +125,12 @@ export const AppPreloader = () => {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
       <div className="w-full max-w-md px-6 text-center">
         <div className="relative inline-block mb-8">
-          {/* Main logo */}
+          {/* Main logo with pulse animation */}
           <img 
             src={assets.logo} 
             alt="KwetuShop" 
-            className="relative z-10 object-contain w-24 h-24 animate-logo-pulse"
+            className="relative z-10 object-contain w-24 h-24 animate-pulse"
           />
-          
-          {/* Glow rings - Yellow-Orange */}
-          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl opacity-30 animate-ping"></div>
-          <div className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-2xl opacity-20"></div>
         </div>
         
         <h2 className="mb-2 text-3xl font-bold text-white">KwetuShop</h2>
@@ -154,7 +139,7 @@ export const AppPreloader = () => {
         {/* Progress bar */}
         <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
           <div 
-            className="h-full transition-all duration-300 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600"
+            className="h-full transition-all duration-300 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
@@ -167,7 +152,7 @@ export const AppPreloader = () => {
 // Page transition loader
 export const PageLoader = () => {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
       <div className="text-center">
         <div className="relative inline-block">
           <img 
@@ -175,7 +160,6 @@ export const PageLoader = () => {
             alt="KwetuShop" 
             className="relative z-10 object-contain w-16 h-16 animate-bounce"
           />
-          <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl opacity-20 animate-pulse-glow"></div>
         </div>
         <p className="mt-4 text-sm text-gray-400">Loading page...</p>
       </div>
@@ -202,7 +186,6 @@ export const ContentLoader = ({ message = "Loading content...", size = "md" }) =
             alt="KwetuShop" 
             className={`relative z-10 object-contain ${selectedSize.logo} animate-spin-slow`}
           />
-          <div className={`absolute inset-0 ${selectedSize.container} rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl opacity-20 animate-pulse-glow`}></div>
         </div>
         <p className={`mt-3 text-gray-400 ${selectedSize.text}`}>{message}</p>
       </div>

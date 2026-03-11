@@ -1,4 +1,4 @@
-// src/components/Footer.jsx - CENTERED LOGO with decorative lines
+// src/components/Footer.jsx - CENTERED LOGO with optimized links and reduced spacing
 import React from "react";
 import { assets } from "../assets/assets";
 
@@ -24,43 +24,51 @@ const Footer = () => {
 
   return (
     <footer className="bg-black border-t border-gray-800">
-      <div className="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
+      <div className="px-4 py-6 mx-auto max-w-7xl sm:px-6 lg:px-8">
         
         {/* Centered Logo with decorative lines */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-3">
           {/* Left line */}
-          <div className="w-12 h-px bg-gradient-to-r from-transparent via-yellow-600 to-yellow-500 sm:w-24 md:w-32"></div>
+          <div className="w-12 h-px bg-gradient-to-r from-transparent via-yellow-600 to-yellow-500 sm:w-20 md:w-24"></div>
           
           {/* Logo */}
           <img 
             src={assets.logo} 
             alt="KwetuShop" 
-            className="w-auto h-8 px-3 sm:h-10 sm:px-4"
+            className="w-auto h-8 px-2 sm:h-9 sm:px-3"
           />
           
           {/* Right line */}
-          <div className="w-12 h-px bg-gradient-to-l from-transparent via-yellow-600 to-yellow-500 sm:w-24 md:w-32"></div>
+          <div className="w-12 h-px bg-gradient-to-l from-transparent via-yellow-600 to-yellow-500 sm:w-20 md:w-24"></div>
         </div>
 
-        {/* Media Contact - Centered */}
-        <div className="mb-8 text-center">
-          <div className="text-sm text-gray-400">
-            Media Contact: <a href="mailto:support@kwetushop.ke" className="text-gray-300 transition-colors hover:text-yellow-500">hello.ab@kwetushop.ke</a>
-          </div>
+        {/* Quick Links - Consolidated and spaced closer */}
+        <div className="flex flex-wrap items-center justify-center mb-3 text-xs text-gray-400 gap-x-2 gap-y-1">
+          <a href="/about" className="transition-colors hover:text-yellow-500">About</a>
+          <span className="text-gray-700">•</span>
+          <a href="/blog" className="transition-colors hover:text-yellow-500">Blog</a>
+          <span className="text-gray-700">•</span>
+          <a href="/address-book" className="transition-colors hover:text-yellow-500">Address Book</a>
+          <span className="text-gray-700">•</span>
+          <a href="/contact" className="transition-colors hover:text-yellow-500">Contact</a>
+          <span className="text-gray-700">•</span>
+          <a href="/privacy" className="transition-colors hover:text-yellow-500">Privacy</a>
+          <span className="text-gray-700">•</span>
+          <a href="/terms" className="transition-colors hover:text-yellow-500">Terms</a>
+          <span className="text-gray-700">•</span>
+          <a href="/returns" className="transition-colors hover:text-yellow-500">Returns</a>
+          <span className="text-gray-700">•</span>
+          <a href="/shipping" className="transition-colors hover:text-yellow-500">Shipping</a>
+          <span className="text-gray-700">•</span>
+          <a href="/faq" className="transition-colors hover:text-yellow-500">FAQ</a>
+          <span className="text-gray-700">•</span>
+          <a href="/help" className="transition-colors hover:text-yellow-500">Help</a>
         </div>
 
-        {/* Bottom Bar - Centered */}
-        <div className="pt-6 mt-4 text-center border-t border-gray-800">
-          {/* Legal Links - Centered */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-3 text-xs text-gray-400">
-            <a href="/privacy" className="transition-colors hover:text-white">Privacy Policy</a>
-            <span className="text-gray-700">•</span>
-            <a href="/terms" className="transition-colors hover:text-white">Terms of Use</a>
-          </div>
-
-          {/* Copyright - Centered */}
+        {/* Bottom Bar - Copyright only */}
+        <div className="pt-3 mt-1 text-center border-t border-gray-800">
           <div className="text-xs text-gray-400">
-            Copyright © {currentYear} KwetuShop Corporation. All Rights Reserved.
+            Copyright © {currentYear} KwetuShop. All Rights Reserved.
           </div>
         </div>
       </div>

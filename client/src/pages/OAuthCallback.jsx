@@ -1,13 +1,15 @@
-// src/pages/OAuthCallback.jsx - COMPLETE FIXED VERSION with LoadingSpinner
-import React, { useEffect, useRef } from 'react';
+// src/pages/OAuthCallback.jsx - Fixed with proper navigation
+import React, { useEffect, useRef, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import clientApi from '../services/client/api';
-import LoadingSpinner from '../components/LoadingSpinner';
+import { AppContext } from '../context/AppContext';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 const OAuthCallback = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshUserData, getUserData } = useContext(AppContext);
   const toastShown = useRef(false);
 
   useEffect(() => {
@@ -22,7 +24,7 @@ const OAuthCallback = () => {
 
       if (error) {
         toast.error('Authentication failed. Please try again.');
-        navigate('/login');
+        navigate('/login', { replace: true });
         return;
       }
 
@@ -30,35 +32,49 @@ const OAuthCallback = () => {
         toastShown.current = true;
         
         try {
+          // Save token to both storage locations
           localStorage.setItem('token', token);
+          sessionStorage.setItem('token', token);
           clientApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
-          toast.success(
-            source === 'google' 
-              ? 'Logged in successfully with Google! 🎉' 
-              : 'Logged in successfully! 🎉'
-          );
-
-          const redirectTo = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
-          sessionStorage.removeItem('redirectAfterLogin');
+          // Fetch user data immediately
+          const user = await getUserData();
           
-          console.log('📍 Redirecting to:', redirectTo);
+          if (user?.success || user?.user) {
+            const userData = user.user || user;
+            
+            // Save user data
+            localStorage.setItem('user', JSON.stringify(userData));
+            sessionStorage.setItem('user', JSON.stringify(userData));
+            
+            // Single toast message
+            toast.success(source === 'google' ? 'Welcome! Logged in with Google 🎉' : 'Welcome back! 🎉');
+            
+            // Get the redirect URL
+            const redirectTo = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+            sessionStorage.removeItem('redirectAfterLogin');
+            
+            console.log('📍 Navigating to:', redirectTo);
+            
+            // Use React Router navigation - this will update the URL properly
+            navigate(redirectTo, { replace: true });
+            
+          } else {
+            throw new Error('Failed to fetch user data');
+          }
           
-          setTimeout(() => {
-            window.location.href = redirectTo;
-          }, 100);
         } catch (err) {
           console.error('Failed to process login:', err);
           toast.error('Login successful but failed to redirect');
-          window.location.href = '/dashboard';
+          navigate('/dashboard', { replace: true });
         }
       } else {
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     };
 
     handleCallback();
-  }, [location, navigate]);
+  }, [location, navigate, getUserData]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-black">

@@ -1,6 +1,7 @@
-// server/routes/public/products.js - FIXED with rating logging
 import express from 'express';
+import mongoose from 'mongoose';
 import Product from '../../models/Product.js';
+import Category from '../../models/Category.js';
 
 const router = express.Router();
 
@@ -48,12 +49,25 @@ const validateProductQuery = (req, res, next) => {
   next();
 };
 
+// Category validation middleware
+const validateCategory = async (req, res, next) => {
+  const { category } = req.query;
+  if (category && category !== 'all' && category !== 'null' && category !== '') {
+    const validCategories = ['Smartphones', 'Laptops', 'Tablets', 'Cameras', 'Headphones', 'Speakers'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category',
+        validCategories: validCategories
+      });
+    }
+  }
+  next();
+};
+
 // Helper function to enhance product with calculated fields
 const enhanceProduct = (product) => {
   const productObj = { ...product };
-  
-  // Log rating for debugging
-  console.log(`📊 Product ${product.name} - Rating: ${product.rating}, Reviews: ${product.reviewsCount}`);
   
   // Calculate discount percentage from comparePrice
   if (product.comparePrice && product.comparePrice > product.price) {
@@ -113,11 +127,17 @@ const enhanceProduct = (product) => {
     productObj.shippingText = 'Shipping calculated at checkout';
   }
   
+  // Add frontend-friendly fields
+  productObj.isFeatured = product.featured;
+  productObj.stock = product.quantity;
+  productObj.image = productObj.primaryImage;
+  productObj.hasImages = product.images && product.images.length > 0;
+  
   return productObj;
 };
 
 // GET all products with comprehensive filtering
-router.get('/', validateProductQuery, async (req, res) => {
+router.get('/', validateProductQuery, validateCategory, async (req, res) => {
   try {
     const {
       page = 1,
@@ -144,6 +164,7 @@ router.get('/', validateProductQuery, async (req, res) => {
       visible: true 
     };
 
+    // Category filter (only 6 electronics categories)
     if (category && category !== 'all' && category !== 'null' && category !== '') {
       query.category = category;
     }
@@ -486,11 +507,17 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET all categories with counts
+// GET all categories with counts (using Product aggregation)
 router.get('/categories/all', async (req, res) => {
   try {
+    const validCategories = ['Smartphones', 'Laptops', 'Tablets', 'Cameras', 'Headphones', 'Speakers'];
+    
     const categories = await Product.aggregate([
-      { $match: { status: 'active', visible: true } },
+      { $match: { 
+        status: 'active', 
+        visible: true,
+        category: { $in: validCategories }
+      }},
       { $group: {
         _id: '$category',
         count: { $sum: 1 },
@@ -501,6 +528,7 @@ router.get('/categories/all', async (req, res) => {
 
     const formattedCategories = categories.map(cat => ({
       name: cat._id,
+      slug: cat._id.toLowerCase().replace(/\s+/g, '-'),
       count: cat.count,
       subcategories: cat.subcategories.filter(Boolean).sort()
     }));

@@ -1,4 +1,4 @@
-// src/components/Logo.jsx - IMPROVED with larger sizes
+// src/components/Logo.jsx - IMPROVED with yellow-orange theme and better accessibility
 import React from 'react';
 import { assets } from '../assets/assets';
 import { useNavigate } from 'react-router-dom';
@@ -7,41 +7,48 @@ const Logo = ({
   size = "md", 
   showText = true, 
   clickable = true,
+  showGradient = false,  // NEW: Optional gradient effect
   className = ""
 }) => {
   const navigate = useNavigate();
 
-  // Size configurations - INCREASED ALL SIZES
+  // Size configurations
   const sizes = {
     sm: {
-      container: "w-12 h-12",      // Increased from w-8 h-8
-      logo: "w-8 h-8",             // Increased from w-5 h-5
-      text: "text-xl",              // Increased from text-lg
+      container: "w-12 h-12",
+      logo: "w-8 h-8",
+      text: "text-xl",
+      gap: "gap-2",
     },
     md: {
-      container: "w-16 h-16",       // Increased from w-12 h-12
-      logo: "w-12 h-12",            // Increased from w-8 h-8
-      text: "text-2xl",             // Increased from text-2xl (same)
+      container: "w-16 h-16",
+      logo: "w-12 h-12",
+      text: "text-2xl",
+      gap: "gap-3",
     },
     lg: {
-      container: "w-24 h-24",       // Increased from w-16 h-16
-      logo: "w-20 h-20",            // Increased from w-10 h-10
-      text: "text-3xl",             // Increased from text-3xl (same)
+      container: "w-24 h-24",
+      logo: "w-20 h-20",
+      text: "text-3xl",
+      gap: "gap-4",
     },
     xl: {
-      container: "w-32 h-32",       // Increased from w-24 h-24
-      logo: "w-28 h-28",            // Increased from w-16 h-16
-      text: "text-5xl",             // Increased from text-4xl
+      container: "w-32 h-32",
+      logo: "w-28 h-28",
+      text: "text-5xl",
+      gap: "gap-5",
     },
-    xxl: {                          // NEW: Extra large size
+    xxl: {
       container: "w-40 h-40",
       logo: "w-36 h-36",
       text: "text-6xl",
+      gap: "gap-6",
     },
-    hero: {                          // NEW: Hero section size
+    hero: {
       container: "w-48 h-48",
       logo: "w-44 h-44",
       text: "text-7xl",
+      gap: "gap-8",
     }
   };
 
@@ -53,16 +60,35 @@ const Logo = ({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (clickable && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      navigate('/');
+    }
+  };
+
   return (
     <div 
-      className={`flex items-center gap-4 ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`}
+      className={`
+        flex items-center 
+        ${selectedSize.gap} 
+        ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity group' : ''} 
+        ${className}
+      `}
       onClick={handleClick}
       role={clickable ? 'button' : 'presentation'}
       tabIndex={clickable ? 0 : -1}
-      onKeyDown={clickable ? (e) => e.key === 'Enter' && navigate('/') : undefined}
+      onKeyDown={handleKeyDown}
     >
-      {/* Logo container */}
-      <div className={`${selectedSize.container} flex items-center justify-center`}>
+      {/* Logo container with optional gradient background */}
+      <div className={`
+        ${selectedSize.container} 
+        flex items-center justify-center
+        ${showGradient ? 'rounded-full bg-gradient-to-r from-yellow-600/20 to-orange-600/20 p-1' : ''}
+      `}>
+        {showGradient && (
+          <div className="absolute inset-0 transition-opacity rounded-full opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 group-hover:opacity-30 blur-xl"></div>
+        )}
         <img 
           src={assets.logo} 
           alt="KwetuShop" 
@@ -71,7 +97,11 @@ const Logo = ({
       </div>
       
       {showText && (
-        <span className={`font-bold ${selectedSize.text} text-white`}>
+        <span className={`
+          font-bold ${selectedSize.text} 
+          ${showGradient ? 'text-gradient-yellow-orange' : 'text-white'}
+          group-hover:glow-text transition-all
+        `}>
           KwetuShop
         </span>
       )}
@@ -79,34 +109,51 @@ const Logo = ({
   );
 };
 
-// Compact logo for navbar (medium size with no text)
+// ==================== PRESET LOGO VARIANTS ====================
+
+// Compact logo for navbar (no text)
 export const NavbarLogo = () => {
   return <Logo size="md" showText={false} clickable={true} />;
 };
 
-// Logo with text for navbar (medium size)
+// Navbar logo with text
 export const NavbarLogoWithText = () => {
   return <Logo size="md" showText={true} clickable={true} />;
 };
 
-// Full logo for footer (large size)
+// Footer logo
 export const FooterLogo = () => {
   return <Logo size="lg" showText={true} clickable={false} />;
 };
 
-// Mobile logo (smaller with text)
+// Mobile menu logo
 export const MobileLogo = () => {
   return <Logo size="sm" showText={true} clickable={true} />;
 };
 
-// Hero section logo (extra large)
+// Hero section logo
 export const HeroLogo = () => {
-  return <Logo size="hero" showText={true} clickable={false} />;
+  return <Logo size="hero" showText={true} clickable={false} showGradient={true} />;
 };
 
-// Dashboard logo (large with text)
+// Dashboard logo
 export const DashboardLogo = () => {
   return <Logo size="lg" showText={true} clickable={true} />;
+};
+
+// Login page logo (centered, no click)
+export const LoginLogo = () => {
+  return <Logo size="md" showText={true} clickable={false} className="justify-center" />;
+};
+
+// Checkout logo (compact with gradient)
+export const CheckoutLogo = () => {
+  return <Logo size="sm" showText={true} clickable={true} showGradient={true} />;
+};
+
+// Auth pages logo (no text, centered)
+export const AuthLogo = () => {
+  return <Logo size="lg" showText={false} clickable={true} showGradient={true} />;
 };
 
 export default Logo;

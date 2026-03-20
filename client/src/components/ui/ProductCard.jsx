@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiEye, FiHeart, FiCreditCard } from 'react-icons/fi';
 import { AiFillStar } from 'react-icons/ai';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
+import { useCart } from '../../context/CartContext';
+import { useWishlist } from '../../context/WishlistContext';
 import { toast } from 'react-toastify';
 
 // Backend URL

@@ -1,200 +1,109 @@
-// src/pages/Settings.jsx - COMPLETE with Yellow-Orange Theme, LoadingSpinner, and Algorithm Tracking
-import React, { useState, useEffect } from 'react';
+// src/pages/Settings.jsx - Complete Real Implementation
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FiUser, 
-  FiMail, 
   FiLock, 
   FiBell, 
   FiGlobe, 
-  FiShield,
   FiCreditCard,
   FiMapPin,
-  FiSmartphone,
-  FiMoon,
-  FiSun,
-  FiChevronRight,
   FiSave,
   FiLogOut,
   FiEye,
   FiEyeOff,
-  FiCheck,
-  FiX,
-  FiHome,
-  FiSettings as FiSettingsIcon
+  FiChevronRight,
+  FiShoppingBag,
+  FiHeart,
+  FiStar,
+  FiMessageSquare,
+  FiShield,
+  FiMoon,
+  FiSun,
+  FiMonitor,
+  FiMail,
+  FiPhone,
+  FiAlertCircle
 } from 'react-icons/fi';
-import { BsArrowRight, BsShieldLock } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import LoadingSpinner, { ContentLoader } from '../components/LoadingSpinner';
-
-// Font styles - Yellow-Orange theme
-const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-  
-  * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  
-  /* Section title styling */
-  .section-title-wrapper {
-    position: relative;
-    display: inline-block;
-    padding: 2px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
-    margin-bottom: 1rem;
-  }
-  
-  .section-title {
-    font-weight: 800;
-    font-size: 2rem;
-    line-height: 1.2;
-    text-transform: uppercase;
-    color: white;
-    margin: 0;
-    padding: 0.5rem 2rem;
-    background: #111827;
-    border-radius: 10px;
-    display: inline-block;
-  }
-  
-  @media (max-width: 768px) {
-    .section-title {
-      font-size: 1.5rem;
-      padding: 0.4rem 1.5rem;
-    }
-  }
-  
-  .settings-card {
-    background: rgba(17, 24, 39, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(245, 158, 11, 0.1);
-    transition: all 0.3s ease;
-  }
-  
-  .settings-card:hover {
-    border-color: rgba(245, 158, 11, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.2);
-  }
-  
-  .glow-text {
-    text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
-  }
-`;
-
-// Animation styles
-const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
-  }
-`;
-
-// Gradient for header
-const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
+import LoadingSpinner, { ContentLoader } from '../components/ui/LoadingSpinner';
+import TopBar from '../components/ui/TopBar';
+import PageHeader from '../components/layout/PageHeader';
+import { AppContext } from '../context/AppContext';
+import { clientSettingsService } from '../services/client/settings';
 
 // Header image
 const settingsHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
 
-// Top Bar Component
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-2 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          FIND STORE
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const Settings = () => {
   const navigate = useNavigate();
+  const { userData, refreshUserData, logout } = useContext(AppContext);
   
-  // States
+  // Loading states
   const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
   
-  // Settings states
+  // Profile settings
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+254 712 345 678'
-  });
-  
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: false,
-    push: true,
-    promotions: true,
-    orderUpdates: true
-  });
-  
-  const [security, setSecurity] = useState({
-    twoFactor: false,
-    sessionTimeout: true,
-    showPassword: false
-  });
-  
-  const [preferences, setPreferences] = useState({
-    language: 'English',
-    currency: 'KES',
-    theme: 'dark',
+    name: '',
+    email: '',
+    phone: '',
+    bio: '',
+    language: 'en',
     timezone: 'Africa/Nairobi'
   });
   
+  // Notification settings
+  const [notifications, setNotifications] = useState({
+    email: {
+      orderUpdates: true,
+      promotions: false,
+      newsletter: false,
+      accountAlerts: true
+    },
+    sms: {
+      orderUpdates: false,
+      deliveryAlerts: true
+    },
+    push: {
+      enabled: false,
+      orderUpdates: true
+    }
+  });
+  
+  // Display settings
+  const [display, setDisplay] = useState({
+    theme: 'dark',
+    compactView: false,
+    itemsPerPage: 24,
+    currency: 'KES',
+    showPricesWithTax: false
+  });
+  
+  // Privacy settings
+  const [privacy, setPrivacy] = useState({
+    profileVisibility: 'public',
+    showEmail: false,
+    showPhone: false,
+    showOrderHistory: true,
+    allowDataCollection: true
+  });
+  
+  // Password change
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Algorithm performance states (internal only)
-  const [loadTime, setLoadTime] = useState(null);
-  const [cacheStats, setCacheStats] = useState({
-    totalRequests: 0,
-    cacheHits: 0
-  });
+  // Delete account
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Initialize AOS
   useEffect(() => {
@@ -207,49 +116,141 @@ const Settings = () => {
     });
   }, []);
 
-  // Inject styles
+  // Load settings from API
   useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = fontStyles + animationStyles;
-    document.head.appendChild(style);
-    
-    // Simulate loading
     const loadSettings = async () => {
-      const startTime = performance.now();
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const endTime = performance.now();
-      setLoadTime((endTime - startTime).toFixed(0));
-      
-      setCacheStats(prev => ({
-        totalRequests: prev.totalRequests + 1,
-        cacheHits: 0
-      }));
-      
-      console.log(`⚡ Settings loaded in ${(endTime - startTime).toFixed(0)}ms`);
-      
-      setLoading(false);
-      setInitialLoad(false);
+      try {
+        setLoading(true);
+        
+        // Load profile data from userData
+        if (userData) {
+          setProfile({
+            name: userData.name || '',
+            email: userData.email || '',
+            phone: userData.phone || '',
+            bio: userData.bio || '',
+            language: userData.language || 'en',
+            timezone: userData.timezone || 'Africa/Nairobi'
+          });
+        }
+        
+        // Load settings from API
+        const response = await clientSettingsService.getAllSettings();
+        
+        if (response.success && response.settings) {
+          const settings = response.settings;
+          
+          if (settings.profile) {
+            setProfile(prev => ({ ...prev, ...settings.profile }));
+          }
+          
+          if (settings.notifications) {
+            setNotifications(prev => ({ ...prev, ...settings.notifications }));
+          }
+          
+          if (settings.display) {
+            setDisplay(prev => ({ ...prev, ...settings.display }));
+          }
+          
+          if (settings.privacy) {
+            setPrivacy(prev => ({ ...prev, ...settings.privacy }));
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        toast.error('Failed to load settings');
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadSettings();
-    
-    return () => {
-      document.head.removeChild(style);
-    };
-  }, []);
+  }, [userData]);
 
-  const handleSaveProfile = () => {
+  // Save profile settings
+  const handleSaveProfile = async () => {
     setSaving(true);
-    setTimeout(() => {
-      toast.success('Profile updated successfully!');
+    try {
+      const response = await clientSettingsService.updateProfileSettings({
+        displayName: profile.name,
+        bio: profile.bio,
+        phoneNumber: profile.phone,
+        language: profile.language,
+        timezone: profile.timezone
+      });
+      
+      if (response.success) {
+        toast.success('Profile updated successfully!');
+        await refreshUserData();
+      } else {
+        toast.error(response.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
       setSaving(false);
-    }, 1000);
+    }
   };
 
-  const handleChangePassword = () => {
+  // Save notification settings
+  const handleSaveNotifications = async () => {
+    setSaving(true);
+    try {
+      const response = await clientSettingsService.updateNotificationSettings(notifications);
+      
+      if (response.success) {
+        toast.success('Notification preferences saved!');
+      } else {
+        toast.error(response.message || 'Failed to save notification settings');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to save notification settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save display settings
+  const handleSaveDisplay = async () => {
+    setSaving(true);
+    try {
+      const response = await clientSettingsService.updateDisplaySettings(display);
+      
+      if (response.success) {
+        toast.success('Display preferences saved!');
+        // Apply theme change
+        applyTheme(display.theme);
+      } else {
+        toast.error(response.message || 'Failed to save display settings');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to save display settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Save privacy settings
+  const handleSavePrivacy = async () => {
+    setSaving(true);
+    try {
+      const response = await clientSettingsService.updatePrivacySettings(privacy);
+      
+      if (response.success) {
+        toast.success('Privacy settings saved!');
+      } else {
+        toast.error(response.message || 'Failed to save privacy settings');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to save privacy settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Change password
+  const handleChangePassword = async () => {
     if (newPassword !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -260,83 +261,90 @@ const Settings = () => {
     }
     
     setSaving(true);
-    setTimeout(() => {
-      toast.success('Password changed successfully!');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+    try {
+      const response = await clientSettingsService.changePassword({
+        currentPassword,
+        newPassword
+      });
+      
+      if (response.success) {
+        toast.success('Password changed successfully!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        toast.error(response.message || 'Failed to change password');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to change password');
+    } finally {
       setSaving(false);
-    }, 1000);
+    }
   };
 
-  const handleSaveNotifications = () => {
-    setSaving(true);
-    setTimeout(() => {
-      toast.success('Notification preferences saved!');
-      setSaving(false);
-    }, 800);
+  // Delete account
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm');
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const response = await clientSettingsService.deleteAccount(deletePassword);
+      
+      if (response.success) {
+        toast.success('Account deleted successfully');
+        await logout();
+        navigate('/');
+      } else {
+        toast.error(response.message || 'Failed to delete account');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete account');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
+      setDeletePassword('');
+    }
   };
 
-  const handleSavePreferences = () => {
-    setSaving(true);
-    setTimeout(() => {
-      toast.success('Preferences saved!');
-      setSaving(false);
-    }, 800);
+  // Apply theme
+  const applyTheme = (theme) => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System theme
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    toast.success('Logged out successfully!');
-    navigate('/login');
-  };
+  // Tab configuration
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: FiUser },
+    { id: 'notifications', label: 'Notifications', icon: FiBell },
+    { id: 'display', label: 'Display', icon: FiGlobe },
+    { id: 'privacy', label: 'Privacy', icon: FiShield },
+    { id: 'security', label: 'Security', icon: FiLock }
+  ];
 
   // Loading state
-  if (loading && initialLoad) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        <style>{fontStyles}</style>
-        <style>{animationStyles}</style>
-        
         <TopBar />
-
-        {/* Header Image */}
-        <div 
-          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-          data-aos="fade-in"
-          data-aos-duration="1500"
-        >
-          <div className="absolute inset-0">
-            <img 
-              src={settingsHeaderImage}
-              alt="Settings"
-              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-          </div>
-          
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full px-4 mx-auto max-w-7xl">
-              <div 
-                className="max-w-2xl"
-                data-aos="fade-right"
-                data-aos-duration="1200"
-              >
-                <div className="section-title-wrapper">
-                  <h1 className="section-title">SETTINGS</h1>
-                </div>
-                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
-                  Loading your settings...
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Loading Spinner */}
+        <PageHeader 
+          title="SETTINGS" 
+          subtitle="Loading your settings..."
+          image={settingsHeaderImage}
+        />
         <div className="flex justify-center py-12">
           <ContentLoader message="Loading settings..." />
         </div>
@@ -346,47 +354,13 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <style>{fontStyles}</style>
-      <style>{animationStyles}</style>
-
       <TopBar />
+      <PageHeader 
+        title="SETTINGS" 
+        subtitle="Manage your account preferences"
+        image={settingsHeaderImage}
+      />
 
-      {/* Header Image */}
-      <div 
-        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-        data-aos="fade-in"
-        data-aos-duration="1500"
-      >
-        <div className="absolute inset-0">
-          <img 
-            src={settingsHeaderImage}
-            alt="Settings"
-            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-        </div>
-        
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full px-4 mx-auto max-w-7xl">
-            <div 
-              className="max-w-2xl"
-              data-aos="fade-right"
-              data-aos-duration="1200"
-            >
-              <div className="section-title-wrapper">
-                <h1 className="section-title">SETTINGS</h1>
-              </div>
-              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
-                Manage your account preferences
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 mb-6 text-xs">
@@ -397,43 +371,33 @@ const Settings = () => {
           <span className="font-medium text-white">Settings</span>
         </nav>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           {/* Sidebar Navigation */}
           <div className="space-y-4">
-            <div className="p-4 settings-card rounded-xl">
-              <h3 className="mb-3 text-sm font-semibold text-white">Quick Links</h3>
+            <div className="p-4 border border-gray-800 settings-card rounded-xl bg-gray-900/50">
+              <h3 className="mb-3 text-sm font-semibold text-white">Settings</h3>
               <div className="space-y-1">
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiUser className="w-3.5 h-3.5" />
-                  Profile Settings
-                </button>
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiBell className="w-3.5 h-3.5" />
-                  Notifications
-                </button>
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiLock className="w-3.5 h-3.5" />
-                  Security
-                </button>
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiGlobe className="w-3.5 h-3.5" />
-                  Preferences
-                </button>
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiCreditCard className="w-3.5 h-3.5" />
-                  Payment Methods
-                </button>
-                <button className="flex items-center w-full gap-2 px-3 py-2 text-xs text-left text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/5">
-                  <FiMapPin className="w-3.5 h-3.5" />
-                  Addresses
-                </button>
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center w-full gap-3 px-3 py-2.5 text-sm rounded-lg transition-all ${
+                      activeTab === tab.id
+                        ? 'bg-gradient-to-r from-yellow-600/20 to-orange-600/20 text-yellow-500 border border-yellow-500/30'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <tab.icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Logout Button */}
             <button
-              onClick={handleLogout}
-              className="flex items-center justify-center w-full gap-2 p-3 text-xs font-medium text-red-500 transition-colors border border-red-500/20 rounded-xl hover:bg-red-500/10 settings-card"
+              onClick={logout}
+              className="flex items-center justify-center w-full gap-2 p-3 text-xs font-medium text-red-500 transition-colors border border-red-500/20 rounded-xl hover:bg-red-500/10"
             >
               <FiLogOut className="w-4 h-4" />
               Logout
@@ -441,233 +405,309 @@ const Settings = () => {
           </div>
 
           {/* Main Settings Area */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="lg:col-span-3">
             {/* Profile Settings */}
-            <div className="p-6 settings-card rounded-xl" data-aos="fade-up">
-              <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
-                <FiUser className="text-yellow-500" />
-                Profile Information
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Full Name</label>
-                  <input
-                    type="text"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Email Address</label>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                </div>
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FiSave className="w-3 h-3" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Change Password */}
-            <div className="p-6 settings-card rounded-xl" data-aos="fade-up" data-aos-delay="100">
-              <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
-                <FiLock className="text-yellow-500" />
-                Change Password
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Current Password</label>
-                  <div className="relative">
-                    <input
-                      type={security.showPassword ? 'text' : 'password'}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                    />
-                    <button
-                      onClick={() => setSecurity({ ...security, showPassword: !security.showPassword })}
-                      className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white"
+            {activeTab === 'profile' && (
+              <div className="space-y-6">
+                <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up">
+                  <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                    <FiUser className="text-yellow-500" />
+                    Profile Information
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Full Name</label>
+                      <input 
+                        type="text" 
+                        value={profile.name} 
+                        onChange={(e) => setProfile({ ...profile, name: e.target.value })} 
+                        className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Email Address</label>
+                      <input 
+                        type="email" 
+                        value={profile.email} 
+                        disabled
+                        className="w-full px-3 py-2 text-sm text-gray-400 border border-gray-700 rounded-lg cursor-not-allowed bg-gray-800/50" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Phone Number</label>
+                      <input 
+                        type="tel" 
+                        value={profile.phone} 
+                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })} 
+                        className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Bio</label>
+                      <textarea 
+                        value={profile.bio} 
+                        onChange={(e) => setProfile({ ...profile, bio: e.target.value })} 
+                        rows="3"
+                        className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
+                        placeholder="Tell us a little about yourself..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block mb-1 text-xs text-gray-400">Language</label>
+                        <select 
+                          value={profile.language} 
+                          onChange={(e) => setProfile({ ...profile, language: e.target.value })}
+                          className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
+                        >
+                          <option value="en">English</option>
+                          <option value="sw">Swahili</option>
+                          <option value="fr">French</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block mb-1 text-xs text-gray-400">Timezone</label>
+                        <select 
+                          value={profile.timezone} 
+                          onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
+                          className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
+                        >
+                          <option value="Africa/Nairobi">Nairobi (EAT)</option>
+                          <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                          <option value="UTC">UTC</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={handleSaveProfile} 
+                      disabled={saving} 
+                      className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
                     >
-                      {security.showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                      {saving ? <><div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>Saving...</> : <><FiSave className="w-3 h-3" />Save Changes</>}
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">New Password</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Confirm New Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                </div>
-                <button
-                  onClick={handleChangePassword}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
-                >
-                  {saving ? 'Updating...' : 'Update Password'}
-                </button>
               </div>
-            </div>
+            )}
 
-            {/* Notifications */}
-            <div className="p-6 settings-card rounded-xl" data-aos="fade-up" data-aos-delay="200">
-              <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
-                <FiBell className="text-yellow-500" />
-                Notification Preferences
-              </h3>
-              <div className="space-y-3">
-                <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
-                  <span className="text-sm text-white">Email Notifications</span>
-                  <input
-                    type="checkbox"
-                    checked={notifications.email}
-                    onChange={(e) => setNotifications({ ...notifications, email: e.target.checked })}
-                    className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
-                  <span className="text-sm text-white">SMS Notifications</span>
-                  <input
-                    type="checkbox"
-                    checked={notifications.sms}
-                    onChange={(e) => setNotifications({ ...notifications, sms: e.target.checked })}
-                    className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
-                  <span className="text-sm text-white">Push Notifications</span>
-                  <input
-                    type="checkbox"
-                    checked={notifications.push}
-                    onChange={(e) => setNotifications({ ...notifications, push: e.target.checked })}
-                    className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
-                  />
-                </label>
-                <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
-                  <span className="text-sm text-white">Promotional Emails</span>
-                  <input
-                    type="checkbox"
-                    checked={notifications.promotions}
-                    onChange={(e) => setNotifications({ ...notifications, promotions: e.target.checked })}
-                    className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
-                  />
-                </label>
-                <button
-                  onClick={handleSaveNotifications}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 mt-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save Preferences'}
-                </button>
-              </div>
-            </div>
+            {/* Notification Settings */}
+            {activeTab === 'notifications' && (
+              <div className="space-y-6">
+                <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up">
+                  <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                    <FiBell className="text-yellow-500" />
+                    Email Notifications
+                  </h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Order Updates</span>
+                      <input type="checkbox" checked={notifications.email.orderUpdates} onChange={(e) => setNotifications({ ...notifications, email: { ...notifications.email, orderUpdates: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Promotions & Offers</span>
+                      <input type="checkbox" checked={notifications.email.promotions} onChange={(e) => setNotifications({ ...notifications, email: { ...notifications.email, promotions: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Newsletter</span>
+                      <input type="checkbox" checked={notifications.email.newsletter} onChange={(e) => setNotifications({ ...notifications, email: { ...notifications.email, newsletter: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Account Alerts</span>
+                      <input type="checkbox" checked={notifications.email.accountAlerts} onChange={(e) => setNotifications({ ...notifications, email: { ...notifications.email, accountAlerts: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                  </div>
+                </div>
 
-            {/* Preferences */}
-            <div className="p-6 settings-card rounded-xl" data-aos="fade-up" data-aos-delay="300">
-              <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
-                <FiGlobe className="text-yellow-500" />
-                Regional Settings
-              </h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Language</label>
-                  <select
-                    value={preferences.language}
-                    onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
-                  >
-                    <option value="English">English</option>
-                    <option value="Swahili">Swahili</option>
-                    <option value="French">French</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Currency</label>
-                  <select
-                    value={preferences.currency}
-                    onChange={(e) => setPreferences({ ...preferences, currency: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
-                  >
-                    <option value="KES">KES - Kenyan Shilling</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Theme</label>
-                  <select
-                    value={preferences.theme}
-                    onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
-                  >
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                    <option value="system">System</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block mb-1 text-xs text-gray-400">Timezone</label>
-                  <select
-                    value={preferences.timezone}
-                    onChange={(e) => setPreferences({ ...preferences, timezone: e.target.value })}
-                    className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
-                  >
-                    <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
-                    <option value="Africa/Johannesburg">Africa/Johannesburg (SAST)</option>
-                    <option value="Europe/London">Europe/London (GMT)</option>
-                  </select>
+                <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up" data-aos-delay="100">
+                  <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                    <FiPhone className="text-yellow-500" />
+                    SMS Notifications
+                  </h3>
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Order Updates</span>
+                      <input type="checkbox" checked={notifications.sms.orderUpdates} onChange={(e) => setNotifications({ ...notifications, sms: { ...notifications.sms, orderUpdates: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                    <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                      <span className="text-sm text-white">Delivery Alerts</span>
+                      <input type="checkbox" checked={notifications.sms.deliveryAlerts} onChange={(e) => setNotifications({ ...notifications, sms: { ...notifications.sms, deliveryAlerts: e.target.checked } })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                    </label>
+                  </div>
+                  <button onClick={handleSaveNotifications} disabled={saving} className="flex items-center gap-2 px-4 py-2 mt-4 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 disabled:opacity-50">
+                    {saving ? 'Saving...' : 'Save Preferences'}
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={handleSavePreferences}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 mt-4 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Settings'}
+            )}
+
+            {/* Display Settings */}
+            {activeTab === 'display' && (
+              <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up">
+                <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                  <FiGlobe className="text-yellow-500" />
+                  Display Preferences
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-1 text-xs text-gray-400">Theme</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button onClick={() => setDisplay({ ...display, theme: 'dark' })} className={`flex items-center justify-center gap-2 p-2 text-sm rounded-lg border transition-all ${display.theme === 'dark' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <FiMoon className="w-4 h-4" /> Dark
+                      </button>
+                      <button onClick={() => setDisplay({ ...display, theme: 'light' })} className={`flex items-center justify-center gap-2 p-2 text-sm rounded-lg border transition-all ${display.theme === 'light' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <FiSun className="w-4 h-4" /> Light
+                      </button>
+                      <button onClick={() => setDisplay({ ...display, theme: 'system' })} className={`flex items-center justify-center gap-2 p-2 text-sm rounded-lg border transition-all ${display.theme === 'system' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-gray-700 text-gray-400 hover:border-gray-600'}`}>
+                        <FiMonitor className="w-4 h-4" /> System
+                      </button>
+                    </div>
+                  </div>
+                  <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                    <span className="text-sm text-white">Compact View</span>
+                    <input type="checkbox" checked={display.compactView} onChange={(e) => setDisplay({ ...display, compactView: e.target.checked })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                  </label>
+                  <div>
+                    <label className="block mb-1 text-xs text-gray-400">Items Per Page</label>
+                    <select value={display.itemsPerPage} onChange={(e) => setDisplay({ ...display, itemsPerPage: parseInt(e.target.value) })} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50">
+                      <option value={12}>12 items</option>
+                      <option value={24}>24 items</option>
+                      <option value={48}>48 items</option>
+                      <option value={96}>96 items</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-xs text-gray-400">Currency</label>
+                    <select value={display.currency} onChange={(e) => setDisplay({ ...display, currency: e.target.value })} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50">
+                      <option value="KES">KES - Kenyan Shilling</option>
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                    </select>
+                  </div>
+                  <button onClick={handleSaveDisplay} disabled={saving} className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 disabled:opacity-50">
+                    {saving ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Privacy Settings */}
+            {activeTab === 'privacy' && (
+              <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up">
+                <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                  <FiShield className="text-yellow-500" />
+                  Privacy Settings
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-1 text-xs text-gray-400">Profile Visibility</label>
+                    <select value={privacy.profileVisibility} onChange={(e) => setPrivacy({ ...privacy, profileVisibility: e.target.value })} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50">
+                      <option value="public">Public - Everyone can see</option>
+                      <option value="contacts">Contacts - Only logged in users</option>
+                      <option value="private">Private - Only me</option>
+                    </select>
+                  </div>
+                  <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                    <span className="text-sm text-white">Show Email on Profile</span>
+                    <input type="checkbox" checked={privacy.showEmail} onChange={(e) => setPrivacy({ ...privacy, showEmail: e.target.checked })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                  </label>
+                  <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                    <span className="text-sm text-white">Show Phone on Profile</span>
+                    <input type="checkbox" checked={privacy.showPhone} onChange={(e) => setPrivacy({ ...privacy, showPhone: e.target.checked })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                  </label>
+                  <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                    <span className="text-sm text-white">Show Order History</span>
+                    <input type="checkbox" checked={privacy.showOrderHistory} onChange={(e) => setPrivacy({ ...privacy, showOrderHistory: e.target.checked })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                  </label>
+                  <label className="flex items-center justify-between p-3 border border-gray-700 rounded-lg cursor-pointer bg-gray-800/50">
+                    <span className="text-sm text-white">Allow Data Collection</span>
+                    <input type="checkbox" checked={privacy.allowDataCollection} onChange={(e) => setPrivacy({ ...privacy, allowDataCollection: e.target.checked })} className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded" />
+                  </label>
+                  <button onClick={handleSavePrivacy} disabled={saving} className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 disabled:opacity-50">
+                    {saving ? 'Saving...' : 'Save Privacy Settings'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Security Settings */}
+            {activeTab === 'security' && (
+              <div className="space-y-6">
+                <div className="p-6 border border-gray-800 settings-card rounded-xl bg-gray-900/50" data-aos="fade-up">
+                  <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                    <FiLock className="text-yellow-500" />
+                    Change Password
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Current Password</label>
+                      <div className="relative">
+                        <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50" />
+                        <button onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white">
+                          {showCurrentPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">New Password</label>
+                      <div className="relative">
+                        <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50" />
+                        <button onClick={() => setShowNewPassword(!showNewPassword)} className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white">
+                          {showNewPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-xs text-gray-400">Confirm New Password</label>
+                      <div className="relative">
+                        <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50" />
+                        <button onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white">
+                          {showConfirmPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <button onClick={handleChangePassword} disabled={saving} className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 disabled:opacity-50">
+                      {saving ? 'Updating...' : 'Update Password'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 border settings-card rounded-xl bg-gray-900/50 border-red-500/20" data-aos="fade-up" data-aos-delay="100">
+                  <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-red-500">
+                    <FiAlertCircle className="text-red-500" />
+                    Danger Zone
+                  </h3>
+                  <p className="mb-4 text-sm text-gray-400">Once you delete your account, there is no going back. Please be certain.</p>
+                  <button onClick={() => setShowDeleteModal(true)} className="px-4 py-2 text-xs font-medium text-red-500 transition-all border rounded-lg border-red-500/50 hover:bg-red-500/10">
+                    Delete Account
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 backdrop-blur-md">
+          <div className="relative w-full max-w-md p-6 border border-gray-800 rounded-2xl bg-gray-900/95">
+            <h3 className="mb-2 text-lg font-bold text-red-500">Delete Account</h3>
+            <p className="mb-4 text-sm text-gray-400">This action cannot be undone. This will permanently delete your account and remove all your data.</p>
+            <div className="mb-4">
+              <label className="block mb-1 text-xs text-gray-400">Enter your password to confirm</label>
+              <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-red-500/50" placeholder="Your password" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={handleDeleteAccount} disabled={deleting} className="flex-1 px-4 py-2 text-xs font-medium text-white transition-all bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
+                {deleting ? 'Deleting...' : 'Yes, Delete My Account'}
+              </button>
+              <button onClick={() => { setShowDeleteModal(false); setDeletePassword(''); }} className="flex-1 px-4 py-2 text-xs font-medium text-gray-400 transition-all border border-gray-700 rounded-lg hover:text-white">
+                Cancel
               </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

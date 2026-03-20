@@ -1,4 +1,4 @@
-// src/pages/Profile.jsx - COMPLETE with Yellow-Orange Theme, LoadingSpinner, and Algorithm Tracking
+// src/pages/Profile.jsx - Using reusable components
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -11,139 +11,20 @@ import {
   FiHeart,
   FiStar,
   FiPackage,
-  FiCreditCard,
   FiEdit2,
   FiCamera,
   FiCheckCircle,
-  FiShield,
-  FiChevronRight,
-  FiHome
+  FiChevronRight
 } from 'react-icons/fi';
-import { BsArrowRight } from 'react-icons/bs';
 import { toast } from 'react-toastify';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import LoadingSpinner, { ContentLoader } from '../components/LoadingSpinner';
-
-// Font styles - Yellow-Orange theme
-const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-  
-  * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  
-  /* Section title styling */
-  .section-title-wrapper {
-    position: relative;
-    display: inline-block;
-    padding: 2px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
-    margin-bottom: 1rem;
-  }
-  
-  .section-title {
-    font-weight: 800;
-    font-size: 2rem;
-    line-height: 1.2;
-    text-transform: uppercase;
-    color: white;
-    margin: 0;
-    padding: 0.5rem 2rem;
-    background: #111827;
-    border-radius: 10px;
-    display: inline-block;
-  }
-  
-  @media (max-width: 768px) {
-    .section-title {
-      font-size: 1.5rem;
-      padding: 0.4rem 1.5rem;
-    }
-  }
-  
-  .profile-card {
-    background: rgba(17, 24, 39, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(245, 158, 11, 0.1);
-    transition: all 0.3s ease;
-  }
-  
-  .profile-card:hover {
-    border-color: rgba(245, 158, 11, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.2);
-  }
-  
-  .glow-text {
-    text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
-  }
-`;
-
-// Animation styles
-const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
-  }
-`;
-
-// Gradient for header
-const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
+import LoadingSpinner, { ContentLoader } from '../components/ui/LoadingSpinner';
+import TopBar from '../components/ui/TopBar';
+import PageHeader from '../components/layout/PageHeader';
 
 // Header image
 const profileHeaderImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
-
-// Top Bar Component
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-2 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          FIND STORE
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -171,13 +52,6 @@ const Profile = () => {
     reviews: 8,
     savedItems: 32
   });
-  
-  // Algorithm performance states (internal only)
-  const [loadTime, setLoadTime] = useState(null);
-  const [cacheStats, setCacheStats] = useState({
-    totalRequests: 0,
-    cacheHits: 0
-  });
 
   // Initialize AOS
   useEffect(() => {
@@ -190,38 +64,12 @@ const Profile = () => {
     });
   }, []);
 
-  // Inject styles
+  // Load data
   useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = fontStyles + animationStyles;
-    document.head.appendChild(style);
-    
-    // Simulate loading
-    const loadProfile = async () => {
-      const startTime = performance.now();
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const endTime = performance.now();
-      setLoadTime((endTime - startTime).toFixed(0));
-      
-      setCacheStats(prev => ({
-        totalRequests: prev.totalRequests + 1,
-        cacheHits: 0
-      }));
-      
-      console.log(`⚡ Profile loaded in ${(endTime - startTime).toFixed(0)}ms`);
-      
+    setTimeout(() => {
       setLoading(false);
       setInitialLoad(false);
-    };
-    
-    loadProfile();
-    
-    return () => {
-      document.head.removeChild(style);
-    };
+    }, 800);
   }, []);
 
   const handleSaveProfile = () => {
@@ -233,47 +81,12 @@ const Profile = () => {
   if (loading && initialLoad) {
     return (
       <div className="min-h-screen bg-black">
-        <style>{fontStyles}</style>
-        <style>{animationStyles}</style>
-        
         <TopBar />
-
-        {/* Header Image */}
-        <div 
-          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-          data-aos="fade-in"
-          data-aos-duration="1500"
-        >
-          <div className="absolute inset-0">
-            <img 
-              src={profileHeaderImage}
-              alt="Profile"
-              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-          </div>
-          
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full px-4 mx-auto max-w-7xl">
-              <div 
-                className="max-w-2xl"
-                data-aos="fade-right"
-                data-aos-duration="1200"
-              >
-                <div className="section-title-wrapper">
-                  <h1 className="section-title">MY PROFILE</h1>
-                </div>
-                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
-                  Loading your profile...
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Loading Spinner */}
+        <PageHeader 
+          title="MY PROFILE" 
+          subtitle="Loading your profile..."
+          image={profileHeaderImage}
+        />
         <div className="flex justify-center py-12">
           <ContentLoader message="Loading profile..." />
         </div>
@@ -283,47 +96,13 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <style>{fontStyles}</style>
-      <style>{animationStyles}</style>
-
       <TopBar />
+      <PageHeader 
+        title="MY PROFILE" 
+        subtitle="Manage your personal information"
+        image={profileHeaderImage}
+      />
 
-      {/* Header Image */}
-      <div 
-        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-        data-aos="fade-in"
-        data-aos-duration="1500"
-      >
-        <div className="absolute inset-0">
-          <img 
-            src={profileHeaderImage}
-            alt="Profile"
-            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-        </div>
-        
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full px-4 mx-auto max-w-7xl">
-            <div 
-              className="max-w-2xl"
-              data-aos="fade-right"
-              data-aos-duration="1200"
-            >
-              <div className="section-title-wrapper">
-                <h1 className="section-title">MY PROFILE</h1>
-              </div>
-              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
-                Manage your personal information
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className="container px-4 py-8 mx-auto max-w-7xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 mb-6 text-xs">
@@ -394,7 +173,7 @@ const Profile = () => {
                 <h3 className="text-lg font-semibold text-white">Personal Information</h3>
                 <button
                   onClick={() => setEditing(!editing)}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white transition-all rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white transition-all rounded-full bg-gradient-to-r from-yellow-600 to-orange-600"
                 >
                   <FiEdit2 className="w-3 h-3" />
                   {editing ? 'Cancel' : 'Edit'}
@@ -409,7 +188,7 @@ const Profile = () => {
                       type="text"
                       value={profile.name}
                       onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
                     />
                   ) : (
                     <p className="text-sm text-white">{profile.name}</p>
@@ -421,9 +200,7 @@ const Profile = () => {
                   <p className="flex items-center gap-2 text-sm text-white">
                     <FiMail className="text-gray-500" />
                     {profile.email}
-                    <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-500 bg-green-500/10 rounded-full">
-                      Verified
-                    </span>
+                    <span className="px-1.5 py-0.5 text-[10px] font-medium text-green-500 bg-green-500/10 rounded-full">Verified</span>
                   </p>
                 </div>
 
@@ -434,7 +211,7 @@ const Profile = () => {
                       type="tel"
                       value={profile.phone}
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
                     />
                   ) : (
                     <p className="flex items-center gap-2 text-sm text-white">
@@ -451,7 +228,7 @@ const Profile = () => {
                       type="text"
                       value={profile.location}
                       onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
                     />
                   ) : (
                     <p className="flex items-center gap-2 text-sm text-white">
@@ -468,7 +245,7 @@ const Profile = () => {
                       value={profile.bio}
                       onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
                       rows="3"
-                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
+                      className="w-full px-3 py-2 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
                     />
                   ) : (
                     <p className="text-sm text-gray-400">{profile.bio}</p>
@@ -490,7 +267,7 @@ const Profile = () => {
                 {editing && (
                   <button
                     onClick={handleSaveProfile}
-                    className="px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+                    className="px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600"
                   >
                     Save Changes
                   </button>
@@ -512,9 +289,7 @@ const Profile = () => {
                       <p className="text-[10px] text-gray-400">Placed on Jan 15, 2024</p>
                     </div>
                   </div>
-                  <span className="px-2 py-1 text-[10px] font-medium text-green-500 bg-green-500/10 rounded-full">
-                    Delivered
-                  </span>
+                  <span className="px-2 py-1 text-[10px] font-medium text-green-500 bg-green-500/10 rounded-full">Delivered</span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 border border-gray-700 rounded-lg bg-gray-800/50">

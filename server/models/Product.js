@@ -72,20 +72,59 @@ const productSchema = new mongoose.Schema({
     default: false
   },
 
-  // Categorization
+  // ✅ 6 MAIN ELECTRONICS CATEGORIES
   category: {
     type: String,
     required: [true, 'Category is required'],
     enum: [
-      'electronics', 'clothing', 'jewelry',
-      'food', 'footwear', 'fabric',
-      'home', 'beauty', 'other'
+      'Smartphones',
+      'Laptops',
+      'Tablets',
+      'Cameras',
+      'Headphones',
+      'Speakers'
     ]
   },
 
   subcategory: {
     type: String,
-    trim: true
+    trim: true,
+    validate: {
+      validator: function(value) {
+        if (!value) return true;
+        
+        const validSubcategories = {
+          'Smartphones': [
+            'Android Phones', 'iPhones', 'Foldable Phones', 'Gaming Phones',
+            'Budget Smartphones', 'Premium Smartphones'
+          ],
+          'Laptops': [
+            'Gaming Laptops', 'Business Laptops', 'Ultrabooks', '2-in-1 Laptops',
+            'Student Laptops', 'Workstation Laptops', 'Chromebooks'
+          ],
+          'Tablets': [
+            'iPad', 'Android Tablets', 'Windows Tablets', 'Kids Tablets',
+            'Drawing Tablets', 'E-Readers'
+          ],
+          'Cameras': [
+            'DSLR Cameras', 'Mirrorless Cameras', 'Point & Shoot', 'Action Cameras',
+            'Professional Cameras', 'Camera Lenses', 'Camera Accessories'
+          ],
+          'Headphones': [
+            'Wireless Headphones', 'Wired Headphones', 'Noise Cancelling', 'Earbuds',
+            'Over-Ear', 'On-Ear', 'Sports Headphones', 'Gaming Headsets'
+          ],
+          'Speakers': [
+            'Bluetooth Speakers', 'Smart Speakers', 'Home Theater Systems', 'Portable Speakers',
+            'Soundbars', 'Studio Monitors', 'Party Speakers', 'Outdoor Speakers'
+          ]
+        };
+        
+        const validForCategory = validSubcategories[this.category] || [];
+        return validForCategory.includes(value);
+      },
+      message: props => `${props.value} is not a valid subcategory for ${this.category}`
+    }
   },
 
   // Tags & Vendor
@@ -135,10 +174,10 @@ const productSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    publicId: String // For cloud storage
+    publicId: String
   }],
 
-  thumbnail: String, // Kept for backward compatibility
+  thumbnail: String,
 
   // Status & Visibility
   status: {
@@ -173,7 +212,7 @@ const productSchema = new mongoose.Schema({
     trim: true
   },
 
-  // ✅ SHIPPING FIELDS (Simplified to match ProductForm)
+  // Shipping Fields
   requiresShipping: {
     type: Boolean,
     default: true
@@ -263,7 +302,7 @@ const productSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// ✅ VIRTUAL: Discount percentage (from comparePrice)
+// Virtuals
 productSchema.virtual('discountPercentage').get(function() {
   if (this.comparePrice && this.comparePrice > this.price) {
     return Math.round(((this.comparePrice - this.price) / this.comparePrice) * 100);
@@ -271,66 +310,50 @@ productSchema.virtual('discountPercentage').get(function() {
   return 0;
 });
 
-// ✅ VIRTUAL: In stock
 productSchema.virtual('inStock').get(function() {
   if (!this.trackQuantity) return true;
   if (this.allowOutOfStockPurchase) return true;
   return this.quantity > 0;
 });
 
-// ✅ VIRTUAL: Low stock
-productSchema.virtual('lowStock').get(function() {
-  return this.trackQuantity && 
-         this.quantity <= this.lowStockThreshold && 
-         this.quantity > 0;
-});
-
-// ✅ VIRTUAL: Out of stock
-productSchema.virtual('outOfStock').get(function() {
-  return this.trackQuantity && 
-         this.quantity === 0 && 
-         !this.allowOutOfStockPurchase;
-});
-
-// ✅ VIRTUAL: Primary image
 productSchema.virtual('primaryImage').get(function() {
   const primary = this.images.find(img => img.isPrimary);
   return primary ? primary.url : (this.images[0]?.url || null);
 });
 
-// ✅ VIRTUAL: Is on sale (from comparePrice)
 productSchema.virtual('isOnSale').get(function() {
   return this.discountPercentage > 0;
 });
 
-// ✅ VIRTUAL: Discounted price
-productSchema.virtual('discountedPrice').get(function() {
-  return this.price; // Sale price is the price field
-});
-
-// ✅ VIRTUAL: Estimated delivery range
-productSchema.virtual('estimatedDeliveryRange').get(function() {
-  if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
-    return `${this.estimatedDeliveryMin}-${this.estimatedDeliveryMax} days`;
-  }
-  return null;
-});
-
-// ✅ VIRTUAL: Shipping rate
-productSchema.virtual('shippingRate').get(function() {
-  if (this.freeShipping) return 0;
-  if (this.flatShippingRate) return this.flatShippingRate;
-  return null;
-});
-
-// ✅ VIRTUAL: Has active flash sale
 productSchema.virtual('hasActiveFlashSale').get(function() {
   if (!this.isFlashSale) return false;
   if (!this.flashSaleEndDate) return true;
   return new Date() < new Date(this.flashSaleEndDate);
 });
 
-// ✅ PRE-SAVE: Update status based on stock
+// ✅ ADDED: Frontend-friendly virtuals
+productSchema.virtual('isFeatured').get(function() {
+  return this.featured;
+});
+
+productSchema.virtual('stock').get(function() {
+  return this.quantity;
+});
+
+productSchema.virtual('image').get(function() {
+  const primary = this.images.find(img => img.isPrimary);
+  return primary ? primary.url : (this.images[0]?.url || this.thumbnail || null);
+});
+
+productSchema.virtual('hasImages').get(function() {
+  return this.images && this.images.length > 0;
+});
+
+productSchema.virtual('imageUrls').get(function() {
+  return this.images ? this.images.map(img => img.url) : [];
+});
+
+// Pre-save hooks
 productSchema.pre('save', function(next) {
   if (this.trackQuantity) {
     if (this.quantity === 0 && !this.allowOutOfStockPurchase) {
@@ -342,7 +365,6 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// ✅ PRE-SAVE: Generate slug from name if not provided
 productSchema.pre('save', function(next) {
   if (this.name && !this.slug) {
     this.slug = this.name
@@ -355,33 +377,20 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// ✅ PRE-SAVE: Validate estimated delivery
-productSchema.pre('save', function(next) {
-  if (this.estimatedDeliveryMin && this.estimatedDeliveryMax) {
-    if (this.estimatedDeliveryMin > this.estimatedDeliveryMax) {
-      next(new Error('Minimum delivery days cannot exceed maximum delivery days'));
-    }
-  }
-  next();
-});
-
-// ✅ PRE-SAVE: Ensure only one primary image
 productSchema.pre('save', function(next) {
   if (this.images && this.images.length > 0) {
     const primaryCount = this.images.filter(img => img.isPrimary).length;
     if (primaryCount > 1) {
-      // Set all to false, then set first as primary
       this.images.forEach(img => img.isPrimary = false);
       this.images[0].isPrimary = true;
     } else if (primaryCount === 0 && this.images.length > 0) {
-      // Set first as primary if none is primary
       this.images[0].isPrimary = true;
     }
   }
   next();
 });
 
-// ✅ INDEXES for performance
+// Indexes
 productSchema.index({ name: 'text', description: 'text', tags: 'text' });
 productSchema.index({ category: 1, subcategory: 1 });
 productSchema.index({ status: 1 });

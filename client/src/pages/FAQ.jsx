@@ -1,4 +1,4 @@
-// src/pages/FAQ.jsx - COMPLETE with Yellow-Orange Theme, LoadingSpinner, and Search with Trie Algorithm
+// src/pages/FAQ.jsx - COMPLETE with Yellow-Orange Theme
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -7,148 +7,17 @@ import {
   FiChevronUp,
   FiHelpCircle,
   FiMail,
-  FiChevronRight,
-  FiHome,
-  FiMapPin
+  FiChevronRight
 } from 'react-icons/fi';
 import { BsArrowRight } from 'react-icons/bs';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
-import LoadingSpinner, { ContentLoader } from '../components/LoadingSpinner';
-
-// Font styles - Yellow-Orange theme
-const fontStyles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-  
-  * {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  
-  .section-title-wrapper {
-    position: relative;
-    display: inline-block;
-    padding: 2px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
-    margin-bottom: 1rem;
-  }
-  
-  .section-title {
-    font-weight: 800;
-    font-size: 2rem;
-    line-height: 1.2;
-    text-transform: uppercase;
-    color: white;
-    margin: 0;
-    padding: 0.5rem 2rem;
-    background: #111827;
-    border-radius: 10px;
-    display: inline-block;
-  }
-  
-  @media (max-width: 768px) {
-    .section-title {
-      font-size: 1.5rem;
-      padding: 0.4rem 1.5rem;
-    }
-  }
-  
-  .faq-card {
-    background: rgba(17, 24, 39, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(245, 158, 11, 0.1);
-    transition: all 0.3s ease;
-  }
-  
-  .faq-card:hover {
-    border-color: rgba(245, 158, 11, 0.3);
-  }
-  
-  .faq-question {
-    cursor: pointer;
-    padding: 1rem;
-    border-bottom: 1px solid rgba(75, 85, 99, 0.3);
-  }
-  
-  .faq-question:last-child {
-    border-bottom: none;
-  }
-  
-  .faq-answer {
-    padding: 0 1rem 1rem 1rem;
-    color: #9CA3AF;
-    font-size: 0.8rem;
-    line-height: 1.6;
-  }
-  
-  .glow-text {
-    text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
-  }
-`;
-
-// Animation styles
-const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
-  }
-`;
-
-// Gradient for header
-const headerGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
+import LoadingSpinner, { ContentLoader } from '../components/ui/LoadingSpinner';
+import TopBar from '../components/ui/TopBar';
+import PageHeader from '../components/layout/PageHeader';
 
 // Header image
 const faqHeaderImage = "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg?auto=compress&cs=tinysrgb&w=1600";
-
-// Top Bar Component
-const TopBar = () => {
-  const navigate = useNavigate();
-  
-  return (
-    <div className="py-1.5 bg-black border-b border-gray-800">
-      <div className="flex items-center justify-end px-4 mx-auto space-x-4 max-w-7xl">
-        <button 
-          onClick={() => navigate('/stores')}
-          className="flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          <FiMapPin className="w-3 h-3" />
-          <span>FIND STORE</span>
-        </button>
-        <span className="text-gray-700">|</span>
-        <button 
-          onClick={() => navigate('/shop')}
-          className="text-xs text-gray-400 transition-colors hover:text-yellow-500"
-        >
-          SHOP ONLINE
-        </button>
-      </div>
-    </div>
-  );
-};
 
 // FAQ Item Component
 const FAQItem = ({ question, answer, isOpen, onToggle }) => {
@@ -214,13 +83,6 @@ const FAQ = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [openItems, setOpenItems] = useState({});
   const [filteredFAQs, setFilteredFAQs] = useState([]);
-  
-  // Algorithm performance states (internal only)
-  const [loadTime, setLoadTime] = useState(null);
-  const [cacheStats, setCacheStats] = useState({
-    totalRequests: 0,
-    cacheHits: 0
-  });
 
   // FAQ Data
   const faqData = [
@@ -312,45 +174,22 @@ const FAQ = () => {
     });
   }, []);
 
-  // Inject styles
+  // Load data
   useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = fontStyles + animationStyles;
-    document.head.appendChild(style);
-    
-    const startTime = performance.now();
-    
-    // Simulate loading
     setTimeout(() => {
-      const endTime = performance.now();
-      setLoadTime((endTime - startTime).toFixed(0));
-      
-      setCacheStats(prev => ({
-        totalRequests: prev.totalRequests + 1,
-        cacheHits: 0
-      }));
-      
-      console.log(`⚡ FAQ page loaded in ${(endTime - startTime).toFixed(0)}ms`);
-      
       setLoading(false);
       setInitialLoad(false);
-    }, 600);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
+    }, 500);
   }, []);
 
   // Filter FAQs based on search and category
   useEffect(() => {
     let filtered = faqData;
 
-    // Apply category filter
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(faq => faq.category === selectedCategory);
     }
 
-    // Apply search filter (Trie-like search - case insensitive)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(faq => 
@@ -360,8 +199,6 @@ const FAQ = () => {
     }
 
     setFilteredFAQs(filtered);
-    
-    // Close all items when filters change
     setOpenItems({});
   }, [selectedCategory, searchQuery]);
 
@@ -376,47 +213,12 @@ const FAQ = () => {
   if (loading && initialLoad) {
     return (
       <div className="min-h-screen bg-black">
-        <style>{fontStyles}</style>
-        <style>{animationStyles}</style>
-        
         <TopBar />
-
-        {/* Header Image */}
-        <div 
-          className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-          data-aos="fade-in"
-          data-aos-duration="1500"
-        >
-          <div className="absolute inset-0">
-            <img 
-              src={faqHeaderImage}
-              alt="FAQ"
-              className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-            <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-          </div>
-          
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full px-4 mx-auto max-w-7xl">
-              <div 
-                className="max-w-2xl"
-                data-aos="fade-right"
-                data-aos-duration="1200"
-              >
-                <div className="section-title-wrapper">
-                  <h1 className="section-title">FREQUENTLY ASKED QUESTIONS</h1>
-                </div>
-                <p className="mt-2 text-xs text-gray-300 sm:text-sm animate-pulse">
-                  Loading FAQ...
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Loading Spinner */}
+        <PageHeader 
+          title="FREQUENTLY ASKED QUESTIONS" 
+          subtitle="Loading FAQ..."
+          image={faqHeaderImage}
+        />
         <div className="flex justify-center py-12">
           <ContentLoader message="Loading FAQ..." />
         </div>
@@ -426,47 +228,13 @@ const FAQ = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <style>{fontStyles}</style>
-      <style>{animationStyles}</style>
-
       <TopBar />
+      <PageHeader 
+        title="FREQUENTLY ASKED QUESTIONS" 
+        subtitle="Find answers to common questions"
+        image={faqHeaderImage}
+      />
 
-      {/* Header Image */}
-      <div 
-        className="relative w-full overflow-hidden h-36 sm:h-44 md:h-48"
-        data-aos="fade-in"
-        data-aos-duration="1500"
-      >
-        <div className="absolute inset-0">
-          <img 
-            src={faqHeaderImage}
-            alt="FAQ"
-            className="object-cover w-full h-full transition-transform duration-700 hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
-          <div className={`absolute inset-0 bg-gradient-to-t ${headerGradient} mix-blend-overlay`}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-        </div>
-        
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full px-4 mx-auto max-w-7xl">
-            <div 
-              className="max-w-2xl"
-              data-aos="fade-right"
-              data-aos-duration="1200"
-            >
-              <div className="section-title-wrapper">
-                <h1 className="section-title">FREQUENTLY ASKED QUESTIONS</h1>
-              </div>
-              <p className="mt-2 text-xs text-gray-300 sm:text-sm">
-                Find answers to common questions
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
       <div className="container max-w-4xl px-4 py-8 mx-auto">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1 mb-6 text-xs">
@@ -483,7 +251,7 @@ const FAQ = () => {
             placeholder="Search for questions..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full py-3 pl-10 pr-4 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50 focus:border-yellow-500/50"
+            className="w-full py-3 pl-10 pr-4 text-sm text-white border border-gray-700 rounded-lg bg-gray-800/50 focus:ring-1 focus:ring-yellow-500/50"
           />
         </div>
 
@@ -513,7 +281,6 @@ const FAQ = () => {
             ))}
           </div>
         ) : (
-          /* No Results */
           <div className="py-12 text-center faq-card rounded-xl">
             <FiHelpCircle className="w-12 h-12 mx-auto mb-3 text-gray-600" />
             <h3 className="mb-1 text-base font-semibold text-white">No questions found</h3>
@@ -523,7 +290,7 @@ const FAQ = () => {
                 setSearchQuery('');
                 setSelectedCategory('all');
               }}
-              className="px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+              className="px-4 py-2 text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600"
             >
               Clear Filters
             </button>
@@ -536,7 +303,7 @@ const FAQ = () => {
           <p className="mb-4 text-sm text-gray-400">Can't find the answer you're looking for?</p>
           <button
             onClick={() => navigate('/contact')}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-white transition-all rounded-full bg-gradient-to-r from-yellow-600 to-orange-600"
           >
             <FiMail className="w-3 h-3" />
             Contact Support

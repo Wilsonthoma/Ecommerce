@@ -1,4 +1,4 @@
-// client/src/context/WishlistContext.jsx - UPDATED with performance tracking and caching
+// client/src/context/WishlistContext.jsx - COMPLETE FIXED VERSION
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { clientProductService } from '../services/client/products';
@@ -26,6 +26,7 @@ export const WishlistProvider = ({ children }) => {
   const [fromCache, setFromCache] = useState(false);
   
   const pendingRequests = useRef(new Map());
+  const initialLoadDone = useRef(false);
 
   // Load wishlist from localStorage on mount
   useEffect(() => {
@@ -56,18 +57,28 @@ export const WishlistProvider = ({ children }) => {
       const savedWishlist = localStorage.getItem('wishlist');
       if (savedWishlist) {
         const parsed = JSON.parse(savedWishlist);
-        setWishlist(parsed);
-        setWishlistCount(parsed.length);
-        fetchWishlistProducts(parsed);
+        // Filter out invalid IDs
+        const validIds = parsed.filter(id => id && typeof id === 'string' && id.length > 0);
+        setWishlist(validIds);
+        setWishlistCount(validIds.length);
+        if (validIds.length > 0) {
+          fetchWishlistProducts(validIds);
+        } else {
+          setWishlistItems([]);
+          setLoading(false);
+        }
       } else {
         setWishlist([]);
         setWishlistCount(0);
         setWishlistItems([]);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Error loading wishlist:', error);
       setWishlist([]);
       setWishlistCount(0);
+      setWishlistItems([]);
+      setLoading(false);
     }
   };
 
@@ -75,15 +86,19 @@ export const WishlistProvider = ({ children }) => {
   const fetchWishlistProducts = useCallback(async (wishlistIds) => {
     if (!wishlistIds || wishlistIds.length === 0) {
       setWishlistItems([]);
+      setLoading(false);
       return;
     }
 
     setLoading(true);
-    const cacheKey = `wishlist_products_${wishlistIds.sort().join('_')}`;
+    
+    // Create cache key from sorted IDs for consistency
+    const sortedIds = [...wishlistIds].sort();
+    const cacheKey = `wishlist_products_${sortedIds.join('_')}`;
     
     // Check cache first
     const cached = wishlistCache.get(cacheKey);
-    if (cached) {
+    if (cached && cached.length > 0) {
       console.log('✅ Wishlist products cache hit');
       setWishlistItems(cached);
       setFromCache(true);
@@ -95,39 +110,77 @@ export const WishlistProvider = ({ children }) => {
       console.log(`📤 Fetching ${wishlistIds.length} wishlist products...`);
       const startTime = performance.now();
       
-      // Batch fetch using dedupe
-      const response = await dedupeRequest('fetchWishlistProducts', () => 
-        clientProductService.getProductsByIds(wishlistIds)
-      );
-      
-      const endTime = performance.now();
-      console.log(`⚡ Wishlist products fetched in ${(endTime - startTime).toFixed(0)}ms`);
-      
-      if (response?.success) {
-        const products = response.products || [];
-        setWishlistItems(products);
-        // Cache for 5 minutes
-        wishlistCache.put(cacheKey, products);
-        setFromCache(false);
-      } else {
+      // Check if service method exists
+      if (typeof clientProductService.getProductsByIds !== 'function') {
+        console.warn('getProductsByIds not available, fetching individually');
         // Fallback: fetch one by one
-        const productPromises = wishlistIds.map(id => 
-          clientProductService.getProduct(id).catch(err => {
-            console.error(`Error fetching product ${id}:`, err);
-            return null;
-          })
+        const products = [];
+        const invalidIds = [];
+        
+        for (const id of wishlistIds) {
+          try {
+            const response = await clientProductService.getProduct(id);
+            if (response.success && response.product) {
+              products.push(response.product);
+            } else {
+              invalidIds.push(id);
+            }
+          } catch (error) {
+            console.error(`Error fetching product ${id}:`, error);
+            invalidIds.push(id);
+          }
+        }
+        
+        // Remove invalid IDs from wishlist
+        if (invalidIds.length > 0 && !initialLoadDone.current) {
+          const updatedWishlist = wishlistIds.filter(id => !invalidIds.includes(id));
+          localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+          setWishlist(updatedWishlist);
+          setWishlistCount(updatedWishlist.length);
+          console.log(`Removed ${invalidIds.length} invalid products from wishlist`);
+        }
+        
+        setWishlistItems(products);
+        if (products.length > 0) {
+          wishlistCache.put(cacheKey, products);
+        }
+      } else {
+        // Use batch fetch
+        const response = await dedupeRequest('fetchWishlistProducts', () => 
+          clientProductService.getProductsByIds(wishlistIds)
         );
-
-        const results = await Promise.all(productPromises);
-        const validProducts = results
-          .filter(result => result && result.success && result.product)
-          .map(result => result.product);
-
-        setWishlistItems(validProducts);
-        wishlistCache.put(cacheKey, validProducts);
+        
+        const endTime = performance.now();
+        console.log(`⚡ Wishlist products fetched in ${(endTime - startTime).toFixed(0)}ms`);
+        
+        if (response?.success) {
+          const products = response.products || [];
+          
+          // Check if any products failed to load
+          const failedIds = response.failedIds || [];
+          if (failedIds.length > 0 && !initialLoadDone.current) {
+            const updatedWishlist = wishlistIds.filter(id => !failedIds.includes(id));
+            localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+            setWishlist(updatedWishlist);
+            setWishlistCount(updatedWishlist.length);
+            console.log(`Removed ${failedIds.length} invalid products from wishlist`);
+          }
+          
+          setWishlistItems(products);
+          // Cache for 5 minutes
+          if (products.length > 0) {
+            wishlistCache.put(cacheKey, products);
+          }
+          setFromCache(false);
+        } else {
+          setWishlistItems([]);
+        }
       }
+      
+      initialLoadDone.current = true;
     } catch (error) {
       console.error('Error fetching wishlist products:', error);
+      setWishlistItems([]);
     } finally {
       setLoading(false);
     }
@@ -155,12 +208,18 @@ export const WishlistProvider = ({ children }) => {
     localStorage.setItem('wishlist', JSON.stringify(newWishlist));
 
     // Add to wishlistItems if we have the product data
-    setWishlistItems(prev => [...prev, product]);
+    setWishlistItems(prev => {
+      // Check if product already exists in items
+      if (prev.some(item => (item._id || item.id) === productId)) {
+        return prev;
+      }
+      return [...prev, product];
+    });
 
     const endTime = performance.now();
     console.log(`⚡ Add to wishlist completed in ${(endTime - startTime).toFixed(0)}ms`);
     
-    // Clear cache
+    // Clear related caches
     wishlistCache.clear();
     
     toast.success('Added to wishlist');
@@ -180,7 +239,7 @@ export const WishlistProvider = ({ children }) => {
     const endTime = performance.now();
     console.log(`⚡ Remove from wishlist completed in ${(endTime - startTime).toFixed(0)}ms`);
     
-    // Clear cache
+    // Clear related caches
     wishlistCache.clear();
     
     toast.success('Removed from wishlist');
@@ -203,7 +262,7 @@ export const WishlistProvider = ({ children }) => {
     const cacheKey = `check_${productId}`;
     const cached = wishlistCache.get(cacheKey);
     
-    if (cached !== null) {
+    if (cached !== undefined && cached !== null) {
       return cached;
     }
     
@@ -214,7 +273,9 @@ export const WishlistProvider = ({ children }) => {
 
   // Check multiple items at once
   const areInWishlist = useCallback((productIds) => {
-    const cacheKey = `check_multiple_${productIds.sort().join('_')}`;
+    if (!productIds || !productIds.length) return [];
+    
+    const cacheKey = `check_multiple_${[...productIds].sort().join('_')}`;
     const cached = wishlistCache.get(cacheKey);
     
     if (cached) {
@@ -250,9 +311,13 @@ export const WishlistProvider = ({ children }) => {
 
   // Refresh wishlist (fetch latest product data)
   const refreshWishlist = useCallback(() => {
-    const cacheKey = `wishlist_products_${wishlist.sort().join('_')}`;
-    wishlistCache.put(cacheKey, null); // Clear specific cache
-    fetchWishlistProducts(wishlist);
+    if (wishlist.length > 0) {
+      const cacheKey = `wishlist_products_${[...wishlist].sort().join('_')}`;
+      wishlistCache.put(cacheKey, null); // Clear specific cache
+      fetchWishlistProducts(wishlist);
+    } else {
+      setWishlistItems([]);
+    }
   }, [wishlist, fetchWishlistProducts]);
 
   // Get wishlist statistics
@@ -261,11 +326,23 @@ export const WishlistProvider = ({ children }) => {
     const totalValue = wishlistItems.reduce((sum, item) => sum + (item.price || 0), 0);
     const averagePrice = totalItems > 0 ? totalValue / totalItems : 0;
     
+    // Count categories
+    const categories = {};
+    wishlistItems.forEach(item => {
+      const cat = item.category;
+      if (cat) {
+        categories[cat] = (categories[cat] || 0) + 1;
+      }
+    });
+    
     return {
       totalItems,
       totalValue,
       averagePrice,
-      categories: [...new Set(wishlistItems.map(item => item.category).filter(Boolean))].length
+      categoryCount: Object.keys(categories).length,
+      categories: categories,
+      mostExpensive: totalItems > 0 ? Math.max(...wishlistItems.map(i => i.price || 0)) : 0,
+      leastExpensive: totalItems > 0 ? Math.min(...wishlistItems.map(i => i.price || 0)) : 0
     };
   }, [wishlistItems]);
 

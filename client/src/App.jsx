@@ -11,7 +11,7 @@ import { AppContextProvider } from "./context/AppContext.jsx";
 import { CartProvider } from "./context/CartContext.jsx";
 import { WishlistProvider } from "./context/WishlistContext.jsx";
 
-// 📄 Page Components (Direct imports, no lazy loading)
+// 📄 Page Components
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -100,7 +100,7 @@ const App = () => {
                       </p>
                       <a 
                         href="/" 
-                        className="inline-block px-6 py-3 text-white transition-all bg-gradient-to-r from-indigo-600 to-blue-600 rounded-full hover:from-indigo-700 hover:to-blue-700 hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
+                        className="inline-block px-6 py-3 text-white transition-all rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 hover:shadow-lg hover:shadow-yellow-500/25"
                       >
                         Go Back Home
                       </a>

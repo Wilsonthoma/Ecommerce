@@ -1,147 +1,43 @@
-// src/components/Navbar.jsx - UPDATED with yellow-orange theme, static top header, search bar styling fixed
-import React, { useContext, useState, useRef, useEffect, useCallback, memo, useMemo } from "react";
+// src/components/Navbar.jsx - Refactored with reusable components
+import React, { useContext, useState, useRef, useEffect, useCallback, memo } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import clientApi from "../services/client/api"; // ✅ Use clientApi instead of axios
+import clientApi from "../services/client/api";
 import { toast } from "react-toastify";
 import {
-  FiHome,
-  FiUser,
   FiSearch,
   FiShoppingCart,
   FiHeart,
-  FiMapPin,
-  FiGrid,
-  FiChevronDown,
-  FiChevronRight,
-  FiLogIn,
-  FiPackage,
   FiMenu,
   FiX,
-  FiLogOut,
-  FiHelpCircle,
-  FiPhone,
-  FiMail,
-  FiShield,
-  FiClock,
-  FiTruck,
-  FiSettings,
-  FiCreditCard,
-  FiMap,
-  FiAward,
 } from "react-icons/fi";
-import { 
-  BsLightningCharge,
-  BsArrowRight,
-  BsGraphUp,
-} from "react-icons/bs";
-import { MdVerified, MdWarning } from "react-icons/md";
-import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube } from "react-icons/fa";
-import { IoFlashOutline } from "react-icons/io5";
+import { BsLightningCharge } from "react-icons/bs";
 
-// ==================== CONSTANTS ====================
+// Import navbar components
+import TopBar from "./navbar/TopBar";
+import DesktopSearch from "./navbar/DesktopSearch";
+import UserMenu from "./navbar/UserMenu";
+import VerificationBanner from "./navbar/VerificationBanner";
+import VerificationModal from "./navbar/VerificationModal";
+import MobileMenu from "./navbar/MobileMenu";
+
+// Constants
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const API_ENDPOINTS = {
-  CATEGORIES: '/categories', // ✅ Correct endpoint (backend is at /api/categories)
-  SEARCH: '/shop?search=',
   CART: '/cart',
   WISHLIST: '/wishlist',
-  ORDERS: '/orders',
-  DASHBOARD: '/dashboard',
   LOGIN: '/login',
-  REGISTER: '/register',
-  VERIFY_EMAIL: '/verify-email',
+  DASHBOARD: '/dashboard',
+  ORDERS: '/orders',
+  SETTINGS: '/settings',
   TRACK_ORDER: '/track-order',
   DEALS: '/deals',
   HELP: '/help',
-  ABOUT: '/about',
-  PROFILE: '/profile',
-  SETTINGS: '/settings',
-  ADDRESS_BOOK: '/address-book',
-  PAYMENT_METHODS: '/payment-methods',
+  SHOP: '/shop'
 };
-
-// Backend URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-// Animation styles as constants - UPDATED with yellow-orange theme
-const animationStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.2s ease-out;
-  }
-  
-  .animate-slideUp {
-    animation: slideUp 0.3s ease-out;
-  }
-  
-  .glow-text {
-    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
-  }
-`;
-
-// Category icons mapping
-const getCategoryIcon = (categoryName) => {
-  const name = categoryName?.toLowerCase() || '';
-  if (name.includes('smartphone') || name.includes('phone') || name.includes('mobile')) return "📱";
-  if (name.includes('laptop') || name.includes('computer') || name.includes('notebook')) return "💻";
-  if (name.includes('audio') || name.includes('headphone') || name.includes('earphone')) return "🎧";
-  if (name.includes('camera') || name.includes('photo') || name.includes('video')) return "📷";
-  if (name.includes('wearable') || name.includes('watch') || name.includes('fitness')) return "⌚";
-  if (name.includes('tablet') || name.includes('ipad')) return "📱";
-  if (name.includes('accessory') || name.includes('charger') || name.includes('case')) return "🔌";
-  if (name.includes('gaming') || name.includes('game') || name.includes('console')) return "🎮";
-  return "📦";
-};
-
-// Section title style from Dashboard (for headings)
-const sectionTitleStyles = `
-  .section-title-wrapper {
-    position: relative;
-    display: inline-block;
-    padding: 2px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #F59E0B, #EF4444, #F59E0B);
-    margin-bottom: 1rem;
-  }
-  
-  .section-title {
-    font-weight: 800;
-    font-size: 1.2rem;
-    line-height: 1.2;
-    text-transform: uppercase;
-    color: white;
-    margin: 0;
-    padding: 0.3rem 1.5rem;
-    background: #111827;
-    border-radius: 10px;
-    display: inline-block;
-  }
-  
-  @media (max-width: 768px) {
-    .section-title {
-      font-size: 1rem;
-      padding: 0.2rem 1rem;
-    }
-  }
-`;
 
 const Navbar = memo(() => {
   const navigate = useNavigate();
@@ -155,36 +51,24 @@ const Navbar = memo(() => {
   const { cart } = useCart();
   const { wishlistCount } = useWishlist();
 
-  // ==================== STATE ====================
+  // State
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
-  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [avatarError, setAvatarError] = useState(false);
-  
-  // Email verification
+  const [verifyLoading, setVerifyLoading] = useState(false);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [verifyOtp, setVerifyOtp] = useState(["", "", "", "", "", ""]);
-  const [verifyLoading, setVerifyLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
   const [showVerificationBanner, setShowVerificationBanner] = useState(
     localStorage.getItem("hideVerificationBanner") !== "true"
   );
-  
-  // Refs
-  const accountDropdownRef = useRef(null);
-  const categoryDropdownRef = useRef(null);
-  const mobileMenuRef = useRef(null);
-  const otpInputRefs = useRef([]);
 
-  // ==================== CURRENT YEAR ====================
+  // Current year
   const currentYear = new Date().getFullYear();
 
-  // ==================== GET FULL IMAGE URL ====================
+  // Get full image URL
   const getFullImageUrl = (imagePath) => {
     if (!imagePath) return null;
     if (imagePath.startsWith('http')) return imagePath;
@@ -193,70 +77,7 @@ const Navbar = memo(() => {
     return `${API_URL}/uploads/${imagePath}`;
   };
 
-  // ==================== FETCH CATEGORIES FROM BACKEND ====================
-  const fetchCategories = useCallback(async () => {
-    setCategoriesLoading(true);
-    try {
-      // ✅ Correct endpoint - clientApi adds /api prefix
-      console.log('📤 Fetching categories from:', API_ENDPOINTS.CATEGORIES);
-      const response = await clientApi.get(API_ENDPOINTS.CATEGORIES);
-      
-      console.log('📥 Categories response:', response.data);
-      
-      // Handle response structure based on your backend
-      let categoriesData = [];
-      
-      // Your backend returns: { success: true, categories: [...] }
-      if (response.data && response.data.success && response.data.categories) {
-        categoriesData = response.data.categories;
-        console.log('✅ Found categories in response.data.categories');
-      } else if (response.data && Array.isArray(response.data)) {
-        categoriesData = response.data;
-        console.log('✅ Found categories as array');
-      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
-        categoriesData = response.data.data;
-        console.log('✅ Found categories in response.data.data');
-      }
-      
-      console.log('📊 Processed categories count:', categoriesData.length);
-      
-      // Format categories for display
-      const formattedCategories = categoriesData.map(cat => ({
-        id: cat._id || cat.id || cat.name,
-        slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, '-'),
-        name: cat.name || 'Unnamed Category',
-        count: cat.count || cat.productCount || 0,
-        icon: getCategoryIcon(cat.name)
-      }));
-      
-      console.log('✅ Formatted categories:', formattedCategories.length);
-      setCategories(formattedCategories);
-    } catch (error) {
-      console.error("❌ Failed to fetch categories:", error.message);
-      console.error("Error details:", error);
-      
-      // Fallback categories if API fails
-      setCategories([
-        { id: "1", slug: "smartphones", name: "Smartphones", count: 245, icon: "📱" },
-        { id: "2", slug: "laptops", name: "Laptops", count: 189, icon: "💻" },
-        { id: "3", slug: "audio", name: "Audio", count: 320, icon: "🎧" },
-        { id: "4", slug: "cameras", name: "Cameras", count: 98, icon: "📷" },
-        { id: "5", slug: "wearables", name: "Wearables", count: 156, icon: "⌚" },
-        { id: "6", slug: "tablets", name: "Tablets", count: 112, icon: "📱" },
-        { id: "7", slug: "accessories", name: "Accessories", count: 432, icon: "🔌" },
-        { id: "8", slug: "gaming", name: "Gaming", count: 87, icon: "🎮" },
-      ]);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  }, []);
-
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  // ==================== CART COUNT ====================
+  // Cart count
   useEffect(() => {
     if (cart) {
       const quantity = cart.totalQuantity ||
@@ -265,23 +86,7 @@ const Navbar = memo(() => {
     }
   }, [cart]);
 
-  // ==================== CLICK OUTSIDE ====================
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (accountDropdownRef.current && !accountDropdownRef.current.contains(e.target)) 
-        setAccountDropdownOpen(false);
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) 
-        setCategoryDropdownOpen(false);
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target) && 
-          !e.target.closest("[data-menu-toggle]")) 
-        setMobileMenuOpen(false);
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // ==================== TIMERS ====================
+  // Timers
   useEffect(() => {
     if (resendTimer > 0) {
       const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
@@ -293,41 +98,10 @@ const Navbar = memo(() => {
     localStorage.setItem("hideVerificationBanner", (!showVerificationBanner).toString());
   }, [showVerificationBanner]);
 
-  // ==================== HANDLERS ====================
-  const toggleAccountDropdown = useCallback(() => {
-    setAccountDropdownOpen(prev => !prev);
-    setCategoryDropdownOpen(false);
-  }, []);
-
-  const toggleCategoryDropdown = useCallback(() => {
-    setCategoryDropdownOpen(prev => !prev);
-    setAccountDropdownOpen(false);
-  }, []);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
-    setMobileSearchVisible(false);
-  }, []);
-
-  const toggleMobileSearch = useCallback(() => {
-    setMobileSearchVisible(prev => !prev);
-  }, []);
-
-  const handleLogout = useCallback(async () => {
-    try {
-      await contextLogout();
-      setCartCount(0);
-      setAccountDropdownOpen(false);
-      setMobileMenuOpen(false);
-      toast.success("✅ Logged out successfully!");
-    } catch (error) {
-      toast.error("❌ Logout failed. Please try again.");
-    }
-  }, [contextLogout]);
-
+  // Handlers
   const handleSearch = useCallback(() => {
     if (searchQuery.trim()) {
-      navigate(`${API_ENDPOINTS.SEARCH}${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`${API_ENDPOINTS.SHOP}?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery("");
       setMobileMenuOpen(false);
       setMobileSearchVisible(false);
@@ -338,58 +112,37 @@ const Navbar = memo(() => {
     if (e.key === "Enter") handleSearch();
   }, [handleSearch]);
 
-  // ==================== EMAIL VERIFICATION ====================
+  const handleLogout = useCallback(async () => {
+    try {
+      await contextLogout();
+      setCartCount(0);
+      toast.success("✅ Logged out successfully!");
+    } catch (error) {
+      toast.error("❌ Logout failed. Please try again.");
+    }
+  }, [contextLogout]);
+
   const handleSendVerification = useCallback(async () => {
     setVerifyLoading(true);
     try {
       const response = await clientApi.post('/auth/send-verify-otp', {});
-      
       if (response.data.success) {
         toast.success("📧 Verification code sent!");
         setIsVerifyModalOpen(true);
         setResendTimer(60);
-        if (process.env.NODE_ENV === 'development' && response.data.otp) {
-          console.log("🔐 [DEV] OTP:", response.data.otp);
-        }
       }
     } catch (error) {
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please login again.");
-        setTimeout(() => navigate(API_ENDPOINTS.LOGIN), 2000);
-      } else {
-        toast.error(error.response?.data?.message || "Failed to send code");
-      }
+      toast.error(error.response?.data?.message || "Failed to send code");
     } finally {
       setVerifyLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   const handleVerifyOtpChange = useCallback((index, value) => {
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...verifyOtp];
     newOtp[index] = value;
     setVerifyOtp(newOtp);
-    if (value && index < 5) otpInputRefs.current[index + 1]?.focus();
-  }, [verifyOtp]);
-
-  const handleVerifyOtpKeyDown = useCallback((index, e) => {
-    if (e.key === "Backspace" && !verifyOtp[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  }, [verifyOtp]);
-
-  const handleVerifyOtpPaste = useCallback((e) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").trim();
-    if (!/^\d+$/.test(pasted)) {
-      toast.error("Only numbers allowed");
-      return;
-    }
-    const digits = pasted.slice(0, 6).split("");
-    const newOtp = [...verifyOtp];
-    digits.forEach((digit, i) => { if (i < 6) newOtp[i] = digit; });
-    setVerifyOtp(newOtp);
-    otpInputRefs.current[Math.min(digits.length, 5)]?.focus();
   }, [verifyOtp]);
 
   const handleVerifyEmail = useCallback(async (e) => {
@@ -403,7 +156,6 @@ const Navbar = memo(() => {
     setVerifyLoading(true);
     try {
       const response = await clientApi.post('/auth/verify-email', { otp: otpString });
-
       if (response.data.success) {
         toast.success("✅ Email verified successfully!");
         setIsVerifyModalOpen(false);
@@ -414,7 +166,6 @@ const Navbar = memo(() => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid OTP");
       setVerifyOtp(["", "", "", "", "", ""]);
-      otpInputRefs.current[0]?.focus();
     } finally {
       setVerifyLoading(false);
     }
@@ -440,148 +191,30 @@ const Navbar = memo(() => {
     }
   }, [resendTimer]);
 
-  // ==================== MEMOIZED MENU ITEMS ====================
-  const userMenuItems = useMemo(() => [
-    { label: "Dashboard", path: API_ENDPOINTS.DASHBOARD, icon: <FiHome className="w-4 h-4" /> },
-    { label: "My Orders", path: API_ENDPOINTS.ORDERS, icon: <FiPackage className="w-4 h-4" />, badge: 0 },
-    { label: "Wishlist", path: API_ENDPOINTS.WISHLIST, icon: <FiHeart className="w-4 h-4" />, badge: wishlistCount },
-    { label: "Settings", path: API_ENDPOINTS.SETTINGS, icon: <FiSettings className="w-4 h-4" /> },
-  ], [wishlistCount]);
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev);
+    setMobileSearchVisible(false);
+  }, []);
 
-  // ==================== RENDER ====================
+  const toggleMobileSearch = useCallback(() => {
+    setMobileSearchVisible(prev => !prev);
+  }, []);
+
   return (
     <>
-      <style>{animationStyles}</style>
-      <style>{sectionTitleStyles}</style>
-      
-      {/* ========== STATIC TOP BAR WITH ALL QUICK LINKS ========== */}
-      <div className="relative border-b border-gray-800 bg-gradient-to-r from-gray-900 via-black to-gray-900">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-red-600/10"></div>
-        <div className="relative px-3 mx-auto max-w-7xl sm:px-4 lg:px-6">
-          <div className="flex items-center justify-between h-9 sm:h-10 text-[11px] sm:text-xs">
-            {/* LEFT SIDE - Quick Links */}
-            <div className="flex items-center gap-4 sm:gap-6">
-              <button 
-                onClick={() => navigate(API_ENDPOINTS.TRACK_ORDER)}
-                className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
-              >
-                <FiTruck className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
-                <span className="hidden xs:inline group-hover:glow-text">Track Order</span>
-                <span className="xs:hidden">Track</span>
-              </button>
-              
-              <button 
-                onClick={() => navigate(API_ENDPOINTS.DEALS)}
-                className="hidden sm:flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
-              >
-                <BsLightningCharge className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
-                <span className="group-hover:glow-text">Hot Deals</span>
-              </button>
+      {/* Top Bar */}
+      <TopBar onNavigate={navigate} />
 
-              <button 
-                onClick={() => navigate(API_ENDPOINTS.HELP)}
-                className="hidden md:flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
-              >
-                <FiHelpCircle className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
-                <span className="group-hover:glow-text">Help Center</span>
-              </button>
-            </div>
-
-            {/* RIGHT SIDE - Contact & Social - Updated with yellow-orange hover effects */}
-            <div className="flex items-center gap-3 sm:gap-5">
-              <a 
-                href="tel:0700KWEƬU" 
-                className="flex items-center gap-1.5 text-gray-400 hover:text-white transition-all group"
-              >
-                <FiPhone className="w-3.5 h-3.5 group-hover:text-yellow-500 transition-colors" />
-                <span className="hidden sm:inline group-hover:glow-text">0700 KWEƬU</span>
-                <span className="sm:hidden">Support</span>
-              </a>
-              
-              {/* Social Links - Updated with yellow-orange hover */}
-              <div className="items-center hidden gap-3 lg:flex">
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
-                >
-                  <FaFacebookF className="w-3.5 h-3.5" />
-                </a>
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
-                >
-                  <FaTwitter className="w-3.5 h-3.5" />
-                </a>
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
-                >
-                  <FaInstagram className="w-3.5 h-3.5" />
-                </a>
-                <a 
-                  href="#" 
-                  className="text-gray-400 hover:text-white transition-all p-1.5 rounded-full hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 hover:border-yellow-500/50 border border-transparent"
-                >
-                  <FaYoutube className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========== EMAIL VERIFICATION BANNER - Updated colors ========== */}
+      {/* Email Verification Banner */}
       {isLoggedIn && user && !user.isAccountVerified && showVerificationBanner && (
-        <div className="relative border-b border-yellow-500/20 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-transparent"></div>
-          <div className="relative max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3">
-            <div className="flex flex-col items-start justify-between gap-2 xs:flex-row xs:items-center xs:gap-3">
-              <div className="flex items-start w-full gap-2 xs:items-center sm:gap-3 xs:w-auto">
-                <div className="flex items-center justify-center flex-shrink-0 w-6 h-6 border rounded-full sm:w-7 sm:h-7 bg-yellow-600/20 border-yellow-500/30">
-                  <IoFlashOutline className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-500" />
-                </div>
-                <div className="flex-1 text-xs xs:flex-none sm:text-sm">
-                  <span className="font-medium text-yellow-500 glow-text">Verify your email</span>
-                  <span className="hidden sm:inline text-gray-400 ml-1.5">
-                    to unlock all features
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center w-full gap-2 xs:w-auto">
-                <button
-                  onClick={handleSendVerification}
-                  disabled={verifyLoading}
-                  className="group relative flex-1 xs:flex-none px-3 sm:px-4 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                  <span className="absolute inset-0 transition-opacity opacity-50 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
-                  <span className="relative flex items-center justify-center gap-1.5">
-                    {verifyLoading ? (
-                      <>
-                        <FiClock className="w-3 h-3 animate-spin" />
-                        <span>Sending...</span>
-                      </>
-                    ) : (
-                      <>
-                        <BsLightningCharge className="w-3 h-3" />
-                        <span>Verify Now</span>
-                      </>
-                    )}
-                  </span>
-                </button>
-                <button
-                  onClick={() => setShowVerificationBanner(false)}
-                  className="p-1.5 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                >
-                  <FiX className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <VerificationBanner
+          onVerify={handleSendVerification}
+          onClose={() => setShowVerificationBanner(false)}
+          verifyLoading={verifyLoading}
+        />
       )}
 
-      {/* ========== STICKY MAIN NAVBAR ========== */}
+      {/* Main Navbar */}
       <nav className="sticky top-0 z-50 border-b border-gray-800 bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-600/10 via-orange-600/10 to-transparent"></div>
         <div className="relative px-3 mx-auto max-w-7xl sm:px-4 lg:px-6">
@@ -590,46 +223,23 @@ const Navbar = memo(() => {
             <div 
               onClick={() => navigate("/")} 
               className="flex items-center flex-shrink-0 cursor-pointer group"
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === 'Enter' && navigate("/")}
             >
-              <div className="relative">
-                {/* Removed glow effect from logo */}
-                <img 
-                  src={assets.logo} 
-                  alt="KwetuShop" 
-                  className="relative w-auto h-8 transition-transform sm:h-9 lg:h-10" 
-                />
-              </div>
+              <img 
+                src={assets.logo} 
+                alt="KwetuShop" 
+                className="relative w-auto h-8 transition-transform sm:h-9 lg:h-10" 
+              />
             </div>
 
-            {/* Desktop Search Bar - WITHOUT Categories Dropdown - FIXED styling */}
-            <div className="flex-1 hidden max-w-3xl mx-6 lg:flex">
-              <div className="relative flex items-center w-full overflow-hidden transition-all duration-300 border-2 rounded-full group bg-gradient-to-br from-gray-800 to-gray-900 border-yellow-500/50">
-                {/* Search Input - Removed focus-within glow, added simple yellow border */}
-                <input
-                  type="text"
-                  placeholder="Search products, brands & categories..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 py-2.5 px-4 text-gray-300 placeholder-gray-600 bg-transparent focus:outline-none"
-                />
-                <button
-                  onClick={handleSearch}
-                  className="group relative px-6 py-2.5 text-white font-medium transition-all overflow-hidden"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                  <span className="relative flex items-center gap-2">
-                    <FiSearch className="w-5 h-5" />
-                    <span className="hidden xl:inline">Search</span>
-                  </span>
-                </button>
-              </div>
-            </div>
+            {/* Desktop Search */}
+            <DesktopSearch
+              searchQuery={searchQuery}
+              onSearchChange={(e) => setSearchQuery(e.target.value)}
+              onSearchSubmit={handleSearch}
+              onKeyDown={handleKeyDown}
+            />
 
-            {/* Right Side Actions - Updated colors */}
+            {/* Right Side Actions */}
             <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
               {/* Mobile Search Button */}
               <button
@@ -639,7 +249,7 @@ const Navbar = memo(() => {
                 <FiSearch className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
 
-              {/* WISHLIST - Conditional based on login */}
+              {/* Wishlist */}
               {isLoggedIn ? (
                 <button
                   onClick={() => navigate(API_ENDPOINTS.WISHLIST)}
@@ -666,7 +276,7 @@ const Navbar = memo(() => {
                 </button>
               )}
 
-              {/* CART - Always visible */}
+              {/* Cart */}
               <button
                 onClick={() => navigate(API_ENDPOINTS.CART)}
                 className="relative flex items-center gap-1 px-2 py-2 text-gray-400 transition-all rounded-full group sm:gap-2 sm:px-3 hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20"
@@ -682,172 +292,18 @@ const Navbar = memo(() => {
                 <span className="hidden text-sm font-medium lg:block group-hover:glow-text">Cart</span>
               </button>
 
-              {/* USER ACCOUNT - Combined login/register button */}
-              <div className="relative" ref={accountDropdownRef}>
-                <button
-                  onClick={toggleAccountDropdown}
-                  className="flex items-center gap-1.5 px-2 sm:px-3 py-2 text-gray-400 rounded-full hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20 transition-all group"
-                >
-                  <div className="relative">
-                    {isLoggedIn && user?.avatar && !avatarError ? (
-                      <img
-                        src={getFullImageUrl(user.avatar)}
-                        alt={user.name}
-                        className="object-cover w-5 h-5 rounded-full sm:w-5 sm:h-5 lg:w-6 lg:h-6"
-                        onError={() => setAvatarError(true)}
-                      />
-                    ) : (
-                      <FiUser className="w-5 h-5 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-                    )}
-                    {isLoggedIn && user && !user.isAccountVerified && (
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-500 border-2 border-gray-900 rounded-full animate-pulse"></span>
-                    )}
-                  </div>
-                  <span className="hidden text-sm font-medium lg:inline group-hover:glow-text">
-                    {isLoggedIn ? (user?.name?.split(" ")[0] || "Account") : "Account"}
-                  </span>
-                  <FiChevronDown className={`hidden lg:block w-4 h-4 transition-transform ${accountDropdownOpen ? "rotate-180 text-yellow-500" : ""}`} />
-                </button>
-
-                {/* Account Dropdown - Updated colors */}
-                {accountDropdownOpen && (
-                  <div className="absolute right-0 z-50 w-64 py-2 mt-2 border border-gray-800 shadow-2xl bg-gradient-to-br from-gray-900 to-black top-full rounded-2xl animate-fadeIn backdrop-blur-lg">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl opacity-20 blur-xl"></div>
-                    
-                    <div className="relative">
-                      {isLoggedIn ? (
-                        <>
-                          {/* Logged In User View */}
-                          <div className="px-4 py-3 border-b border-gray-800 bg-gradient-to-r from-gray-800/50 to-gray-900/50">
-                            <div className="flex items-center gap-3">
-                              <div className="relative">
-                                {user?.avatar && !avatarError ? (
-                                  <img
-                                    src={getFullImageUrl(user.avatar)}
-                                    alt={user.name}
-                                    className="object-cover w-10 h-10 rounded-full"
-                                    onError={() => setAvatarError(true)}
-                                  />
-                                ) : (
-                                  <div className="flex items-center justify-center w-10 h-10 font-semibold text-white rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
-                                    {user?.name?.charAt(0) || <FiUser className="w-5 h-5" />}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-white truncate">{user?.name}</p>
-                                <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                                {user?.isAccountVerified ? (
-                                  <span className="inline-flex items-center gap-1 text-xs text-green-500 mt-0.5">
-                                    <MdVerified className="w-3 h-3" />
-                                    Verified
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-xs text-yellow-500 mt-0.5">
-                                    <MdWarning className="w-3 h-3" />
-                                    Not Verified
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Verification Prompt */}
-                          {!user.isAccountVerified && (
-                            <div className="p-3 mx-3 my-2 border rounded-xl bg-yellow-600/10 border-yellow-600/20">
-                              <div className="flex items-start gap-2">
-                                <FiShield className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-xs font-medium text-yellow-500">Verify your email</p>
-                                  <p className="text-xs text-gray-400 mt-0.5 mb-2">
-                                    Unlock all features
-                                  </p>
-                                  <button
-                                    onClick={() => {
-                                      handleSendVerification();
-                                      setAccountDropdownOpen(false);
-                                    }}
-                                    disabled={verifyLoading}
-                                    className="group relative w-full px-3 py-1.5 text-xs font-medium text-white transition-all rounded-full overflow-hidden"
-                                  >
-                                    <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                                    <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
-                                    <span className="relative">
-                                      {verifyLoading ? "Sending..." : "Verify Now"}
-                                    </span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Account Menu Items */}
-                          <div className="py-1">
-                            {userMenuItems.map((item) => (
-                              <button
-                                key={item.label}
-                                onClick={() => {
-                                  navigate(item.path);
-                                  setAccountDropdownOpen(false);
-                                }}
-                                className="flex items-center w-full gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 transition-all group"
-                              >
-                                <span className="text-gray-500 transition-colors group-hover:text-yellow-500">{item.icon}</span>
-                                <span className="flex-1 text-left">{item.label}</span>
-                                {item.badge > 0 && (
-                                  <span className="px-1.5 py-0.5 text-xs font-medium text-white bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)]">
-                                    {item.badge}
-                                  </span>
-                                )}
-                                <FiChevronRight className="w-4 h-4 text-gray-600 transition-colors group-hover:text-yellow-500" />
-                              </button>
-                            ))}
-                          </div>
-
-                          {/* Logout */}
-                          <div className="pt-1 mt-1 border-t border-gray-800">
-                            <button
-                              onClick={handleLogout}
-                              className="flex items-center w-full gap-3 px-4 py-2.5 text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                            >
-                              <FiLogOut className="w-4 h-4" />
-                              <span className="flex-1 text-left">Logout</span>
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        /* Not Logged In View */
-                        <div className="p-4">
-                          <div className="mb-4 text-center">
-                            <p className="text-sm font-medium text-white">Welcome to KwetuShop!</p>
-                            <p className="mt-1 text-xs text-gray-400">Sign in to access your account</p>
-                          </div>
-                          
-                          {/* Single Combined Login Button */}
-                          <button
-                            onClick={() => {
-                              navigate(API_ENDPOINTS.LOGIN);
-                              setAccountDropdownOpen(false);
-                            }}
-                            className="relative w-full px-4 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
-                          >
-                            <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                            <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
-                            <span className="relative flex items-center justify-center gap-2">
-                              <FiLogIn className="w-4 h-4" />
-                              Sign In / Register
-                            </span>
-                          </button>
-                          
-                          <p className="mt-3 text-xs text-center text-gray-500">
-                            New here? Sign in to create an account
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* User Menu */}
+              <UserMenu
+                isLoggedIn={isLoggedIn}
+                user={user}
+                wishlistCount={wishlistCount}
+                avatarError={avatarError}
+                getFullImageUrl={getFullImageUrl}
+                onNavigate={navigate}
+                onLogout={handleLogout}
+                onVerify={handleSendVerification}
+                verifyLoading={verifyLoading}
+              />
 
               {/* Mobile Menu Toggle */}
               <button
@@ -855,11 +311,7 @@ const Navbar = memo(() => {
                 onClick={toggleMobileMenu}
                 className="p-2 text-gray-400 transition-all rounded-full lg:hidden hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/20 hover:to-orange-600/20"
               >
-                {mobileMenuOpen ? (
-                  <FiX className="w-6 h-6" />
-                ) : (
-                  <FiMenu className="w-6 h-6" />
-                )}
+                {mobileMenuOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
               </button>
             </div>
           </div>
@@ -892,349 +344,38 @@ const Navbar = memo(() => {
         </div>
       </nav>
 
-      {/* ========== SIMPLIFIED MOBILE MENU - FIXED HEIGHT ========== */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-80 backdrop-blur-md" 
-            onClick={toggleMobileMenu} 
-          />
-          
-          {/* Mobile drawer - Fixed height with flex column layout - max 3/4 of screen height */}
-          <div
-            ref={mobileMenuRef}
-            className="absolute top-0 right-0 bg-gradient-to-b from-gray-900 to-black shadow-2xl rounded-l-2xl border-l border-gray-800
-                       w-64 max-w-[80vw] max-h-[75vh] flex flex-col"
-            style={{ top: '12.5vh' }} /* Center vertically at 1/8 from top */
-          >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-l-2xl opacity-20 blur-xl"></div>
-            
-            {/* Header - Fixed at top */}
-            <div className="relative flex-shrink-0 p-4 border-b border-gray-800 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-tl-2xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    {isLoggedIn && user?.avatar && !avatarError ? (
-                      <img
-                        src={getFullImageUrl(user.avatar)}
-                        alt={user.name}
-                        className="object-cover w-10 h-10 rounded-full"
-                        onError={() => setAvatarError(true)}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center w-10 h-10 text-sm rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
-                        {isLoggedIn ? (
-                          <span className="font-bold text-white">
-                            {user?.name?.charAt(0) || <FiUser className="w-5 h-5" />}
-                          </span>
-                        ) : (
-                          <FiUser className="w-5 h-5 text-white" />
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    {isLoggedIn ? (
-                      <>
-                        <p className="font-semibold text-white">{user?.name?.split(" ")[0] || "User"}</p>
-                        <p className="text-xs text-gray-400 truncate max-w-[120px]">{user?.email}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-semibold text-white">Welcome!</p>
-                        <p className="text-xs text-gray-400">Sign in for faster checkout</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={toggleMobileMenu}
-                  className="p-2 text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/10"
-                >
-                  <FiX className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        isLoggedIn={isLoggedIn}
+        user={user}
+        searchQuery={searchQuery}
+        onSearchChange={(e) => setSearchQuery(e.target.value)}
+        onSearchSubmit={handleSearch}
+        onKeyDown={handleKeyDown}
+        onNavigate={navigate}
+        onLogout={handleLogout}
+        currentYear={currentYear}
+        avatarError={avatarError}
+        getFullImageUrl={getFullImageUrl}
+      />
 
-            {/* Scrollable Content Area - Takes remaining space */}
-            <div className="relative flex-1 overflow-y-auto">
-              {/* Mobile Search */}
-              <div className="p-3 border-b border-gray-800">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    className="w-full py-2 pr-3 text-sm text-gray-300 border border-gray-700 rounded-lg bg-gray-800/50 pl-9 focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50"
-                  />
-                  <FiSearch className="absolute w-4 h-4 text-gray-500 -translate-y-1/2 left-3 top-1/2" />
-                </div>
-              </div>
-
-              {/* Account Section - Only Dashboard and Orders */}
-              {isLoggedIn && (
-                <div className="p-3 border-b border-gray-800">
-                  <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                    <FiUser className="w-4 h-4 text-yellow-500" />
-                    My Account
-                  </h3>
-                  <div className="space-y-1">
-                    {/* Dashboard */}
-                    <button
-                      onClick={() => {
-                        navigate(API_ENDPOINTS.DASHBOARD);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                    >
-                      <FiHome className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                      <span className="flex-1 text-left">Dashboard</span>
-                    </button>
-
-                    {/* My Orders */}
-                    <button
-                      onClick={() => {
-                        navigate(API_ENDPOINTS.ORDERS);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                    >
-                      <FiPackage className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                      <span className="flex-1 text-left">My Orders</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Links */}
-              <div className="p-3 border-b border-gray-800">
-                <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiTruck className="w-4 h-4 text-yellow-500" />
-                  Quick Links
-                </h3>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      navigate(API_ENDPOINTS.TRACK_ORDER);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                  >
-                    <FiTruck className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                    <span className="flex-1 text-left">Track Order</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      navigate(API_ENDPOINTS.DEALS);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                  >
-                    <BsLightningCharge className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                    <span className="flex-1 text-left">Hot Deals</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      navigate(API_ENDPOINTS.HELP);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-400 transition-all rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                  >
-                    <FiHelpCircle className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                    <span className="flex-1 text-left">Help Center</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Support */}
-              <div className="p-3">
-                <h3 className="flex items-center gap-2 mb-2 text-sm font-semibold text-white">
-                  <FiPhone className="w-4 h-4 text-yellow-500" />
-                  Support
-                </h3>
-                <div className="space-y-2">
-                  <a 
-                    href="tel:0700KWEƬU" 
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <FiPhone className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                    <span className="font-medium">0700 KWEƬU</span>
-                  </a>
-                  <a 
-                    href="mailto:support@kwetushop.com" 
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-gradient-to-r hover:from-yellow-600/10 hover:to-orange-600/10 group"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <FiMail className="w-4 h-4 transition-colors group-hover:text-yellow-500" />
-                    <span className="truncate">support@kwetushop.com</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer - Fixed at bottom */}
-            {isLoggedIn && (
-              <div className="relative flex-shrink-0 p-3 bg-gray-900 border-t border-gray-800">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center w-full gap-3 px-3 py-2 text-sm text-red-500 transition-all rounded-lg hover:text-red-400 hover:bg-red-500/10"
-                >
-                  <FiLogOut className="w-4 h-4" />
-                  <span className="flex-1 text-left">Logout</span>
-                </button>
-              </div>
-            )}
-            
-            <div className="relative flex-shrink-0 p-3 text-xs text-center text-gray-500 bg-gray-900 border-t border-gray-800">
-              © {currentYear} KwetuShop
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========== EMAIL VERIFICATION MODAL - Updated colors ========== */}
-      {isVerifyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-80 backdrop-blur-md animate-fadeIn">
-          <div className="relative w-full max-w-md animate-slideUp">
-            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-2xl opacity-30 blur-xl"></div>
-            <div className="relative border border-gray-800 shadow-2xl bg-gradient-to-b from-gray-900 to-black rounded-2xl">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
-                        <FiMail className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-600 to-orange-600 rounded-full opacity-50 blur"></div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Verify Your Email</h3>
-                      <p className="text-xs text-gray-400 mt-0.5">Enter the 6-digit code sent to</p>
-                      <p className="text-sm font-semibold text-yellow-500">{user?.email}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setIsVerifyModalOpen(false);
-                      setVerifyOtp(["", "", "", "", "", ""]);
-                    }}
-                    className="p-2 text-gray-400 transition-colors rounded-lg hover:text-white hover:bg-white/10"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleVerifyEmail}>
-                  <div
-                    className="flex justify-center gap-2 mb-6 sm:gap-3"
-                    onPaste={handleVerifyOtpPaste}
-                  >
-                    {verifyOtp.map((digit, index) => (
-                      <input
-                        key={index}
-                        ref={(el) => (otpInputRefs.current[index] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleVerifyOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleVerifyOtpKeyDown(index, e)}
-                        className="w-12 h-12 text-xl font-bold text-center text-white transition-all bg-gray-800 border-2 border-gray-700 outline-none sm:w-14 sm:h-14 sm:text-2xl rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
-                        disabled={verifyLoading}
-                        autoFocus={index === 0}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-400">
-                      <FiClock className="w-4 h-4" />
-                      <span>Code expires in <span className="font-semibold text-yellow-500">10 minutes</span></span>
-                    </div>
-                    {resendTimer > 0 ? (
-                      <span className="text-xs text-gray-500 sm:text-sm">
-                        Resend in {resendTimer}s
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleResendVerification}
-                        disabled={verifyLoading}
-                        className="text-xs font-medium text-yellow-500 sm:text-sm hover:text-yellow-400 hover:underline disabled:opacity-50"
-                      >
-                        Resend Code
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      disabled={verifyLoading || verifyOtp.join("").length !== 6}
-                      className="relative flex-1 px-6 py-3 overflow-hidden text-sm font-medium text-white transition-all rounded-full group"
-                    >
-                      <span className="absolute inset-0 bg-gradient-to-r from-yellow-600 to-orange-600"></span>
-                      <span className="absolute inset-0 transition-opacity opacity-0 bg-gradient-to-r from-yellow-600 to-orange-600 blur-xl group-hover:opacity-100"></span>
-                      <span className="relative flex items-center justify-center gap-2">
-                        {verifyLoading ? (
-                          <>
-                            <FiClock className="w-4 h-4 animate-spin" />
-                            Verifying...
-                          </>
-                        ) : (
-                          "Verify Email"
-                        )}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsVerifyModalOpen(false);
-                        setVerifyOtp(["", "", "", "", "", ""]);
-                      }}
-                      className="px-6 py-3 text-sm font-medium text-gray-300 transition-colors bg-gray-800 rounded-full hover:bg-gray-700"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-
-                <div className="flex items-start gap-2 p-3 mt-4 border rounded-xl bg-yellow-600/10 border-yellow-600/20">
-                  <FiShield className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-yellow-400">
-                    Never share your verification code. Our team will never ask for this code.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Scrollbar Styles - Updated colors */}
-      <style jsx>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(31, 41, 55, 0.5);
-          border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(245, 158, 11, 0.5);
-          border-radius: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(245, 158, 11, 0.8);
-        }
-      `}</style>
+      {/* Verification Modal */}
+      <VerificationModal
+        isOpen={isVerifyModalOpen}
+        userEmail={user?.email}
+        verifyOtp={verifyOtp}
+        onOtpChange={handleVerifyOtpChange}
+        onVerifySubmit={handleVerifyEmail}
+        onResend={handleResendVerification}
+        onClose={() => {
+          setIsVerifyModalOpen(false);
+          setVerifyOtp(["", "", "", "", "", ""]);
+        }}
+        verifyLoading={verifyLoading}
+        resendTimer={resendTimer}
+      />
     </>
   );
 });

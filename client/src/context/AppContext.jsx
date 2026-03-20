@@ -1,4 +1,4 @@
-// src/context/AppContext.jsx - FIXED (no built-in loader)
+// src/context/AppContext.jsx - COMPLETE FIXED VERSION
 import { createContext, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import clientApi, { setAuthToken, clearAuthData } from "../services/client/api";
 import { toast } from "react-toastify";
@@ -126,6 +126,58 @@ export const AppContextProvider = (props) => {
     return { success: false, message: "Not authenticated" };
   }, [backendAvailable, getToken]);
 
+  // ✅ NEW: Refresh user data function
+  const refreshUserData = useCallback(async () => {
+    const token = getToken();
+    if (!token) return null;
+    
+    try {
+      const response = await clientApi.get(`/auth/me`);
+      if (response.data.success && response.data.user) {
+        const user = response.data.user;
+        const processedUser = {
+          ...user,
+          id: user.id || user._id,
+          _id: user._id || user.id,
+          isAccountVerified: user.isAccountVerified || false
+        };
+        setUserData(processedUser);
+        setIsLoggedIn(true);
+        localStorage.setItem("user", JSON.stringify(processedUser));
+        sessionStorage.setItem("user", JSON.stringify(processedUser));
+        console.log("✅ User data refreshed:", processedUser.name);
+        return processedUser;
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        clearAuthData();
+        setUserData(null);
+        setIsLoggedIn(false);
+      }
+    }
+    return null;
+  }, [getToken]);
+
+  // ✅ NEW: Set auth token function
+  const setAuthToken = useCallback((token, remember = false) => {
+    if (token) {
+      if (remember) {
+        localStorage.setItem('token', token);
+      } else {
+        sessionStorage.setItem('token', token);
+      }
+      clientApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }, []);
+
+  // ✅ NEW: Clear auth data function
+  const clearAuth = useCallback(() => {
+    clearAuthData();
+    setUserData(null);
+    setIsLoggedIn(false);
+  }, []);
+
   useEffect(() => {
     const initializeApp = async () => {
       console.log("🚀 Initializing application...");
@@ -198,6 +250,9 @@ export const AppContextProvider = (props) => {
     userData,
     setUserData,
     getUserData: fetchUserData,
+    refreshUserData,      // ✅ Added
+    setAuthToken,          // ✅ Added
+    clearAuth,             // ✅ Added
     logout,
     isLoading,
     authChecked,
@@ -205,12 +260,20 @@ export const AppContextProvider = (props) => {
     isAuthenticated: !!isLoggedIn && !!userData,
     isEmailVerified: userData?.isAccountVerified || false
   }), [
-    backendUrl, backendAvailable, csrfToken, isLoggedIn, userData,
-    isLoading, authChecked, fetchUserData, logout, getToken
+    backendUrl, 
+    backendAvailable, 
+    csrfToken, 
+    isLoggedIn, 
+    userData,
+    isLoading, 
+    authChecked, 
+    fetchUserData, 
+    refreshUserData,       // ✅ Added to dependencies
+    setAuthToken,          // ✅ Added to dependencies
+    clearAuth,             // ✅ Added to dependencies
+    logout, 
+    getToken
   ]);
 
-  // ✅ REMOVED: The built-in loader - now just render children immediately
-  // The loading state is still available via context for components that need it
-  
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
 };

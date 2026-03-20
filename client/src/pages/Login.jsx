@@ -1,18 +1,18 @@
-// src/pages/Login.jsx - FIXED Google OAuth with LoadingSpinner
+// src/pages/Login.jsx - Add back arrow
 import React, { useContext, useState, useEffect } from "react";
-import { assets } from "../assets/assets";
 import { useNavigate, useLocation } from "react-router-dom";
+import { assets } from "../assets/assets";
 import clientApi from "../services/client/api";
 import { AppContext } from "../context/AppContext";
 import { toast } from "react-toastify";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { FcGoogle } from "react-icons/fc";
-import LoadingSpinner from "../components/LoadingSpinner";
+import AuthLayout from "../components/auth/AuthLayout";
+import AuthForm from "../components/auth/AuthForm";
+import PasswordInput from "../components/auth/PasswordInput";
+import SocialLoginButtons from "../components/auth/SocialLoginButtons";
+import { IoArrowBack } from "react-icons/io5"; // Add this import
 
-// Login background image
+// Background image
 const loginBackgroundImage = "https://images.pexels.com/photos/5709661/pexels-photo-5709661.jpeg?auto=compress&cs=tinysrgb&w=1600";
-
-// Gradient for overlay
 const bottomGradient = "from-yellow-600/20 via-orange-600/20 to-red-600/20";
 
 const Login = () => {
@@ -26,15 +26,11 @@ const Login = () => {
 
   const from = location.state?.from || '/dashboard';
   
-  console.log('📍 Will redirect to after login:', from);
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  
   const [rememberMe, setRememberMe] = useState(() => {
     const savedEmail = localStorage.getItem('rememberedEmail');
     return !!savedEmail;
@@ -47,30 +43,23 @@ const Login = () => {
     }
   }, [state]);
 
+  // Only check once on mount to prevent flash
   useEffect(() => {
-    if (isLoggedIn && !window.location.search) {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    if (token && isLoggedIn) {
+      console.log('📍 Already logged in, redirecting to:', from);
       navigate(from, { replace: true });
     }
-  }, [isLoggedIn, navigate, from]);
+  }, []);
 
-  // FIXED Google OAuth handler
   const handleGoogleLogin = async () => {
     try {
       setGoogleLoading(true);
-      // Save redirect location
       sessionStorage.setItem('redirectAfterLogin', from);
-      console.log('📍 Initiating Google login, redirect to:', from);
       
-      toast.info("Connecting to Google...", { autoClose: 2000 });
-      
-      // Get auth URL from backend
       const response = await clientApi.get('/auth/google');
-      console.log('📍 Google auth response:', response.data);
       
       if (response.data?.authUrl) {
-        console.log('📍 Redirecting to:', response.data.authUrl);
-        
-        // IMPORTANT: This redirects the browser to Google
         window.location.href = response.data.authUrl;
       } else {
         throw new Error('No auth URL received');
@@ -115,9 +104,7 @@ const Login = () => {
   const onSubmitHandler = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
 
@@ -125,15 +112,8 @@ const Login = () => {
       const url = state === "Sign Up" ? '/auth/register' : '/auth/login';
 
       const payload = state === "Sign Up"
-        ? {
-            name: name.trim(),
-            email: email.toLowerCase().trim(),
-            password,
-          }
-        : {
-            email: email.toLowerCase().trim(),
-            password,
-          };
+        ? { name: name.trim(), email: email.toLowerCase().trim(), password }
+        : { email: email.toLowerCase().trim(), password };
 
       const response = await clientApi.post(url, payload);
 
@@ -165,7 +145,6 @@ const Login = () => {
         if (state === "Login") {
           toast.success("Logged in successfully!");
           await getUserData();
-          console.log('📍 Redirecting to:', from);
           navigate(from, { replace: true });
         } else {
           toast.success("Account created successfully!");
@@ -205,75 +184,50 @@ const Login = () => {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black">
-      <div className="absolute inset-0">
-        <img 
-          src={loginBackgroundImage}
-          alt="Background"
-          className="object-cover w-full h-full"
-        />
-        <div className="absolute inset-0 bg-black/60"></div>
-        <div className={`absolute inset-0 bg-gradient-to-t ${bottomGradient} mix-blend-overlay`}></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent"></div>
-      </div>
-
-      <div className="absolute z-20 top-4 left-4">
+    <AuthLayout backgroundImage={loginBackgroundImage} gradient={bottomGradient}>
+      {/* Back Arrow Button - Added */}
+      <div className="absolute z-30 top-4 left-4">
         <button 
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white transition-all border border-gray-700 rounded-full bg-black/50 backdrop-blur-sm hover:border-yellow-500/50"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white transition-all border border-gray-700 rounded-full bg-black/50 backdrop-blur-sm hover:border-yellow-500/50 hover:bg-black/70"
         >
-          <span className="text-yellow-500">←</span> Back
+          <IoArrowBack className="w-3.5 h-3.5 text-yellow-500" />
+          <span className="hidden sm:inline">Back</span>
         </button>
       </div>
 
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-full max-w-[300px] px-3">
-          <div className="relative p-5 text-center border border-gray-800 rounded-xl bg-gray-900/95 backdrop-blur-sm">
+        <div className="w-full max-w-[360px] px-4">
+          <div className="relative p-6 border border-gray-800 rounded-2xl bg-gray-900/95 backdrop-blur-sm">
             
-            <div className="flex justify-center mb-3">
-              <img 
-                src={assets.logo} 
-                alt="KwetuShop" 
-                className="w-auto h-8 sm:h-9" 
-              />
+            {/* Logo inside card */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <div className="absolute rounded-full -inset-1 bg-gradient-to-r from-yellow-600 to-orange-600 opacity-30 blur-xl"></div>
+                <img 
+                  src={assets.logo} 
+                  alt="KwetuShop" 
+                  className="relative w-auto h-12"
+                />
+              </div>
             </div>
 
-            <h2 className="mb-1 text-base font-semibold text-white">
+            <h2 className="mb-4 text-lg font-bold text-center text-white">
               {state === "Sign Up" ? "Create Account" : "Welcome Back"}
             </h2>
-            <p className="mb-4 text-xs text-gray-400">
-              {state === "Sign Up" ? "Sign up to get started" : "Login to your account"}
-            </p>
 
-            {/* Google Button with Loading State */}
-            <button
-              onClick={handleGoogleLogin}
-              disabled={isSubmitting || googleLoading}
-              className="flex items-center justify-center w-full gap-2 px-3 py-2 mb-3 text-xs font-medium text-white transition-all border border-gray-700 rounded-lg bg-gray-800/95 backdrop-blur-sm hover:bg-gray-700 hover:border-yellow-500/50 disabled:opacity-50"
+            <SocialLoginButtons 
+              onGoogleClick={handleGoogleLogin}
+              loading={googleLoading}
+              disabled={isSubmitting}
+            />
+
+            <AuthForm
+              onSubmit={onSubmitHandler}
+              isLoading={isSubmitting}
+              buttonText={state === "Sign Up" ? "Sign Up" : "Sign In"}
+              loadingText={state === "Sign Up" ? "Creating..." : "Logging in..."}
             >
-              {googleLoading ? (
-                <>
-                  <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                  <span>Connecting...</span>
-                </>
-              ) : (
-                <>
-                  <FcGoogle className="w-4 h-4" />
-                  <span>Continue with Google</span>
-                </>
-              )}
-            </button>
-
-            <div className="relative mb-3">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-700"></div>
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="px-2 text-gray-400 bg-gray-900/95">or</span>
-              </div>
-            </div>
-
-            <form className="flex flex-col gap-2" onSubmit={onSubmitHandler}>
               {state === "Sign Up" && (
                 <div className="flex items-center w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800/95 focus-within:border-yellow-500/50">
                   <img src={assets.person_icon} alt="User" className="w-4 h-4 opacity-70" />
@@ -302,26 +256,12 @@ const Login = () => {
                 />
               </div>
 
-              <div className="relative flex items-center w-full px-3 py-2 border border-gray-700 rounded-lg bg-gray-800/95 focus-within:border-yellow-500/50">
-                <img src={assets.lock_icon} alt="Password" className="w-4 h-4 opacity-70" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-2 text-xs text-white placeholder-gray-400 bg-transparent outline-none"
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute text-gray-400 transition cursor-pointer right-2 top-2 hover:text-yellow-500"
-                  disabled={isSubmitting}
-                >
-                  {showPassword ? <AiOutlineEyeInvisible size={16} /> : <AiOutlineEye size={16} />}
-                </button>
-              </div>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                disabled={isSubmitting}
+              />
 
               {state === "Login" && (
                 <div className="flex items-center justify-between px-1 mt-1">
@@ -345,26 +285,11 @@ const Login = () => {
                   </button>
                 </div>
               )}
+            </AuthForm>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="relative w-full py-2 mt-2 overflow-hidden text-xs font-medium text-white transition-all rounded-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:shadow-lg hover:shadow-orange-600/20 disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <div className="w-3 h-3 border-2 border-white rounded-full border-t-transparent animate-spin"></div>
-                    <span>{state === "Sign Up" ? "Creating..." : "Logging in..."}</span>
-                  </span>
-                ) : (
-                  state === "Sign Up" ? "Sign Up" : "Sign In"
-                )}
-              </button>
-            </form>
-
-            <p className="mt-3 text-xs text-gray-400">
+            <div className="mt-4 text-xs text-center text-gray-400">
               {state === "Sign Up" ? (
-                <>
+                <p>
                   Already have an account?{" "}
                   <button
                     onClick={() => {
@@ -374,13 +299,12 @@ const Login = () => {
                       setPassword("");
                     }}
                     className="font-medium text-yellow-500 hover:text-yellow-400"
-                    disabled={isSubmitting}
                   >
                     Sign In
                   </button>
-                </>
+                </p>
               ) : (
-                <>
+                <p>
                   Don't have an account?{" "}
                   <button
                     onClick={() => {
@@ -390,17 +314,16 @@ const Login = () => {
                       setPassword("");
                     }}
                     className="font-medium text-yellow-500 hover:text-yellow-400"
-                    disabled={isSubmitting}
                   >
                     Sign Up
                   </button>
-                </>
+                </p>
               )}
-            </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 

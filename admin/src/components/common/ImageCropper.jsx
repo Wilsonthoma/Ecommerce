@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 const ImageCropper = ({ image, onCrop, onCancel, aspectRatio = 1 }) => {
   const [crop, setCrop] = useState({ 
@@ -12,9 +13,7 @@ const ImageCropper = ({ image, onCrop, onCancel, aspectRatio = 1 }) => {
   const imgRef = useRef(null);
 
   const getCroppedImg = () => {
-    if (!completedCrop || !imgRef.current) {
-      return;
-    }
+    if (!completedCrop || !imgRef.current) return;
 
     const image = imgRef.current;
     const canvas = document.createElement('canvas');
@@ -47,66 +46,62 @@ const ImageCropper = ({ image, onCrop, onCancel, aspectRatio = 1 }) => {
 
   const handleCropComplete = async () => {
     const croppedImage = await getCroppedImg();
-    if (croppedImage) {
-      onCrop(croppedImage);
-    }
+    if (croppedImage) onCrop(croppedImage);
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-90">
+      <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Crop Image</h2>
+            <h2 className="text-xl font-semibold text-white">Crop Image</h2>
             <button
               onClick={onCancel}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 transition-colors hover:text-gray-300"
             >
-              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
-          <p className="text-sm text-gray-600 mt-1">Adjust the crop area and click "Apply Crop"</p>
+          <p className="mt-1 text-sm text-gray-400">Adjust the crop area and click "Apply Crop"</p>
         </div>
 
         <div className="p-6">
           <div className="max-h-[60vh] overflow-auto">
             {typeof image === 'string' ? (
-              <img src={image} alt="Original" className="max-w-full h-auto" />
+              <img src={image} alt="Original" className="h-auto max-w-full" />
             ) : (
               <ReactCrop
                 crop={crop}
                 onChange={(newCrop) => setCrop(newCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
                 aspect={aspectRatio}
-                className="max-w-full h-auto"
+                className="h-auto max-w-full"
               >
                 <img
                   ref={imgRef}
                   src={URL.createObjectURL(image)}
                   alt="Crop me"
-                  className="max-w-full h-auto"
+                  className="h-auto max-w-full"
                 />
               </ReactCrop>
             )}
           </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">Tip:</span> Drag the corners to adjust the crop area
+          <div className="flex items-center justify-between mt-6">
+            <div className="text-sm text-gray-400">
+              <span className="font-medium text-yellow-500">Tip:</span> Drag the corners to adjust the crop area
             </div>
             
             <div className="flex space-x-3">
               <button
                 onClick={onCancel}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCropComplete}
-                className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                className="px-6 py-2 font-medium text-white transition-colors rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!completedCrop}
               >
                 Apply Crop

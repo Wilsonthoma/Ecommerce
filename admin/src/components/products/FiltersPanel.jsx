@@ -52,30 +52,30 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
   ];
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
+    <div className="p-6 bg-gray-800 border border-gray-700 shadow-xl rounded-xl">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <FunnelIcon className="h-5 w-5 text-gray-400 mr-2" />
-          <h3 className="text-lg font-semibold text-gray-900">Filters & Sorting</h3>
+          <FunnelIcon className="w-5 h-5 mr-2 text-yellow-500" />
+          <h3 className="text-lg font-semibold text-white">Filters & Sorting</h3>
         </div>
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-gray-400 transition-colors hover:text-gray-300"
         >
-          <XMarkIcon className="h-5 w-5" />
+          <XMarkIcon className="w-5 h-5" />
         </button>
       </div>
 
       <div className="space-y-6">
         {/* Category Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Category
           </label>
           <select
             value={filters.category}
             onChange={(e) => handleFilterChange('category', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            className="w-full px-3 py-2 text-white transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
           >
             <option value="">All Categories</option>
             {categories.map((category) => (
@@ -88,7 +88,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
 
         {/* Status Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Status
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -97,8 +97,8 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 key={option.value}
                 className={`flex items-center justify-center px-3 py-2 border rounded-lg cursor-pointer transition-colors ${
                   filters.status === option.value
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500'
+                    : 'border-gray-600 text-gray-400 hover:border-gray-500 hover:bg-gray-700'
                 }`}
               >
                 <input
@@ -117,7 +117,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
 
         {/* Price Range */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Price Range ($)
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -127,7 +127,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 placeholder="Min"
                 value={filters.priceRange.min}
                 onChange={(e) => handleRangeChange('priceRange', 'min', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white placeholder-gray-500 transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 min="0"
                 step="0.01"
               />
@@ -138,7 +138,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 placeholder="Max"
                 value={filters.priceRange.max}
                 onChange={(e) => handleRangeChange('priceRange', 'max', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white placeholder-gray-500 transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 min="0"
                 step="0.01"
               />
@@ -148,7 +148,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
 
         {/* Stock Range */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Stock Range
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -158,7 +158,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 placeholder="Min"
                 value={filters.stockRange.min}
                 onChange={(e) => handleRangeChange('stockRange', 'min', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white placeholder-gray-500 transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 min="0"
               />
             </div>
@@ -168,7 +168,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 placeholder="Max"
                 value={filters.stockRange.max}
                 onChange={(e) => handleRangeChange('stockRange', 'max', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white placeholder-gray-500 transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                 min="0"
               />
             </div>
@@ -177,7 +177,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
 
         {/* Date Range */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Date Created
           </label>
           <div className="grid grid-cols-2 gap-3">
@@ -186,7 +186,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 type="date"
                 value={filters.dateRange.start}
                 onChange={(e) => handleRangeChange('dateRange', 'start', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               />
             </div>
             <div>
@@ -194,7 +194,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 type="date"
                 value={filters.dateRange.end}
                 onChange={(e) => handleRangeChange('dateRange', 'end', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                className="w-full px-3 py-2 text-white transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               />
             </div>
           </div>
@@ -202,7 +202,7 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
 
         {/* Sorting */}
         <div>
-          <label className="block text-sm font-medium text-gray-900 mb-2">
+          <label className="block mb-2 text-sm font-medium text-gray-300">
             Sort By
           </label>
           <div className="space-y-2">
@@ -212,16 +212,16 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
                 onClick={() => handleSortChange(option.value)}
                 className={`w-full flex items-center justify-between px-3 py-2 border rounded-lg transition-colors ${
                   filters.sortBy === option.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500'
+                    : 'border-gray-600 text-gray-400 hover:border-gray-500 hover:bg-gray-700'
                 }`}
               >
-                <span className="text-sm font-medium text-gray-900">{option.label}</span>
+                <span className="text-sm font-medium">{option.label}</span>
                 {filters.sortBy === option.value && (
                   <span className={`text-xs font-medium px-2 py-1 rounded ${
                     filters.sortOrder === 'asc' 
-                      ? 'bg-emerald-100 text-emerald-800' 
-                      : 'bg-blue-100 text-blue-800'
+                      ? 'bg-emerald-500/20 text-emerald-400' 
+                      : 'bg-yellow-500/20 text-yellow-400'
                   }`}>
                     {filters.sortOrder === 'asc' ? 'A → Z' : 'Z → A'}
                   </span>
@@ -232,17 +232,17 @@ const FiltersPanel = ({ filters, onFilterChange, categories, onClose }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-4 border-t border-gray-200">
+        <div className="pt-4 border-t border-gray-700">
           <div className="flex space-x-3">
             <button
               onClick={clearAllFilters}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700"
             >
               Clear All Filters
             </button>
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex-1 px-4 py-2 font-medium text-white transition-colors rounded-lg shadow-sm bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
             >
               Apply Filters
             </button>

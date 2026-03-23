@@ -10,14 +10,14 @@ const CategorySales = ({ data, loading }) => {
   };
 
   const colors = [
-    'bg-blue-500',
-    'bg-emerald-500',
+    'bg-yellow-500',
+    'bg-orange-500',
     'bg-amber-500',
-    'bg-purple-500',
-    'bg-pink-500',
-    'bg-indigo-500',
-    'bg-rose-500',
-    'bg-cyan-500'
+    'bg-yellow-600',
+    'bg-orange-600',
+    'bg-amber-600',
+    'bg-yellow-400',
+    'bg-orange-400'
   ];
 
   if (loading) {
@@ -26,10 +26,10 @@ const CategorySales = ({ data, loading }) => {
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="animate-pulse">
             <div className="flex items-center justify-between mb-1">
-              <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+              <div className="w-1/4 h-4 bg-gray-700 rounded"></div>
+              <div className="w-1/6 h-4 bg-gray-700 rounded"></div>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full"></div>
+            <div className="h-2 bg-gray-700 rounded-full"></div>
           </div>
         ))}
       </div>
@@ -38,9 +38,9 @@ const CategorySales = ({ data, loading }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="text-center py-8">
-        <div className="text-gray-400 mb-2">No category data available</div>
-        <p className="text-sm text-gray-500">Add categories to products to see distribution</p>
+      <div className="py-8 text-center">
+        <div className="mb-2 text-gray-500">No category data available</div>
+        <p className="text-sm text-gray-600">Add categories to products to see distribution</p>
       </div>
     );
   }
@@ -58,14 +58,14 @@ const CategorySales = ({ data, loading }) => {
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className={`h-3 w-3 rounded-full ${color} mr-2`}></div>
-                <span className="text-sm font-medium text-gray-900">{item.category}</span>
+                <span className="text-sm font-medium text-gray-200">{item.category}</span>
               </div>
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">{formatCurrency(item.sales || 0)}</span>
-                <span className="text-sm font-medium text-gray-900">{percentage}%</span>
+                <span className="text-sm text-gray-400">{formatCurrency(item.sales || 0)}</span>
+                <span className="text-sm font-medium text-gray-200">{percentage}%</span>
               </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full h-2 bg-gray-700 rounded-full">
               <div 
                 className={`h-2 rounded-full ${color}`}
                 style={{ width: `${percentage}%` }}
@@ -75,10 +75,10 @@ const CategorySales = ({ data, loading }) => {
         );
       })}
       
-      <div className="pt-4 border-t border-gray-200">
+      <div className="pt-4 border-t border-gray-700">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-900">Total Revenue</span>
-          <span className="text-lg font-bold text-gray-900">{formatCurrency(totalSales)}</span>
+          <span className="text-sm font-medium text-gray-200">Total Revenue</span>
+          <span className="text-lg font-bold text-white">{formatCurrency(totalSales)}</span>
         </div>
       </div>
     </div>

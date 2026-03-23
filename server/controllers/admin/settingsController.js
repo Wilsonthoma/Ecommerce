@@ -1,4 +1,3 @@
-// controllers/admin/settingsController.js
 import asyncHandler from 'express-async-handler';
 import os from 'os';
 import mongoose from 'mongoose';
@@ -6,7 +5,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import GlobalSettings from '../../models/GlobalSettings.js';
-import UserSettings from '../../models/UserSettings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +17,6 @@ const __dirname = path.dirname(__filename);
 export const getSettings = asyncHandler(async (req, res) => {
   console.log(`📋 GET Settings requested by: ${req.admin?.email || req.user?.email}`);
   
-  // Get or create global settings
   let settings = await GlobalSettings.findOne();
   if (!settings) {
     settings = await GlobalSettings.create({});
@@ -41,7 +38,6 @@ export const getSettings = asyncHandler(async (req, res) => {
  */
 export const updateSettings = asyncHandler(async (req, res) => {
   console.log(`🔄 UPDATE Settings requested by: ${req.admin?.email || req.user?.email}`);
-  console.log('Updates:', JSON.stringify(req.body, null, 2));
   
   let settings = await GlobalSettings.findOne();
   if (!settings) {
@@ -50,89 +46,43 @@ export const updateSettings = asyncHandler(async (req, res) => {
   
   const updates = req.body;
   
-  // Validate currency
-  if (updates.currency?.code && !['KES', 'USD', 'EUR', 'GBP'].includes(updates.currency.code)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid currency. Allowed: KES, USD, EUR, GBP'
-    });
-  }
+  // Update all sections
+  const sections = [
+    'customerSettings',
+    'productDisplay',
+    'checkoutSettings',
+    'emailTemplates',
+    'smsTemplates',
+    'legalSettings',
+    'paymentDisplay',
+    'seoSettings'
+  ];
   
-  // Validate timezone
-  if (updates.timezone && !['Africa/Nairobi', 'UTC', 'Africa/Dar_es_Salaam', 'Africa/Kampala'].includes(updates.timezone)) {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid timezone'
-    });
-  }
+  sections.forEach(section => {
+    if (updates[section]) {
+      settings[section] = {
+        ...(settings[section]?.toObject() || {}),
+        ...updates[section]
+      };
+    }
+  });
   
-  // Update store info
-  if (updates.storeInfo) {
-    settings.storeInfo = {
-      ...settings.storeInfo.toObject(),
-      ...updates.storeInfo
-    };
-  }
-  
-  // Update currency
-  if (updates.currency) {
-    settings.currency = {
-      ...settings.currency.toObject(),
-      ...updates.currency
-    };
-  }
-  
-  // Update shipping
-  if (updates.shipping) {
-    settings.shipping = {
-      ...settings.shipping.toObject(),
-      ...updates.shipping
-    };
-  }
-  
-  // Update maintenance
-  if (updates.maintenance !== undefined) {
-    settings.maintenance = {
-      ...settings.maintenance.toObject(),
-      ...updates.maintenance
-    };
-  }
-  
-  // Update social media
-  if (updates.socialMedia) {
-    settings.socialMedia = {
-      ...settings.socialMedia.toObject(),
-      ...updates.socialMedia
-    };
-  }
-  
-  // Update payment methods
-  if (updates.paymentMethods) {
-    settings.paymentMethods = updates.paymentMethods;
-  }
-  
-  // Update features
-  if (updates.features) {
-    settings.features = {
-      ...settings.features.toObject(),
-      ...updates.features
-    };
-  }
-  
-  // Update other top-level fields
+  // Update top-level fields
   const topLevelFields = [
     'storeName', 'storeEmail', 'storePhone', 'storeAddress', 'storeLogo',
-    'currency', 'timezone', 'dateFormat', 'timeFormat',
-    'stripePublicKey', 'stripeSecretKey', 'mpesaShortCode', 'mpesaPasskey',
-    'mpesaConsumerKey', 'mpesaConsumerSecret', 'standardShippingPrice',
-    'expressShippingPrice', 'freeShippingThreshold', 'shippingZones',
-    'emailNotifications', 'orderConfirmation', 'shippingUpdates',
-    'promotionalEmails', 'adminNotifications', 'smtpHost', 'smtpPort',
-    'smtpUsername', 'smtpPassword', 'smtpFromEmail', 'smtpFromName',
+    'favicon', 'storeDescription', 'storeKeywords', 'enableWhatsApp',
+    'whatsappNumber', 'socialLinks', 'currency', 'timezone',
+    'paymentMethods', 'stripePublicKey', 'stripeSecretKey', 'stripeWebhookSecret',
+    'mpesaShortCode', 'mpesaPasskey', 'mpesaConsumerKey', 'mpesaConsumerSecret',
+    'mpesaTestMode', 'shippingMethods', 'standardShippingPrice', 'expressShippingPrice',
+    'freeShippingThreshold', 'shippingZones', 'processingTimeDays',
+    'standardDeliveryDays', 'expressDeliveryDays', 'freeShippingMessage',
+    'estimatedDeliveryMessage', 'enableOrderTracking', 'trackingUrl',
+    'sendTrackingEmail', 'emailNotifications', 'orderConfirmation',
+    'shippingUpdates', 'promotionalEmails', 'smsNotifications', 'adminNotifications',
     'require2FA', 'sessionTimeout', 'passwordPolicy', 'apiRateLimit',
-    'loginAttempts', 'maintenanceMode', 'metaTitle', 'metaDescription',
-    'metaKeywords', 'googleAnalyticsId', 'facebookUrl', 'twitterUrl',
-    'instagramUrl', 'whatsappNumber'
+    'loginAttempts', 'ipWhitelist', 'maintenanceMode', 'maintenanceMessage',
+    'taxRate', 'taxName', 'taxInclusive', 'taxableProducts', 'taxShipping'
   ];
   
   topLevelFields.forEach(field => {
@@ -149,9 +99,7 @@ export const updateSettings = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Settings updated successfully',
-    data: settings,
-    updatedBy: req.admin?.email || req.user?.email,
-    updatedAt: settings.updatedAt
+    data: settings
   });
 });
 
@@ -163,23 +111,24 @@ export const updateSettings = asyncHandler(async (req, res) => {
 export const getEmailSettings = asyncHandler(async (req, res) => {
   const settings = await GlobalSettings.findOne();
   
-  const emailSettings = {
-    emailNotifications: settings?.emailNotifications ?? true,
-    orderConfirmation: settings?.orderConfirmation ?? true,
-    shippingUpdates: settings?.shippingUpdates ?? true,
-    promotionalEmails: settings?.promotionalEmails ?? false,
-    adminNotifications: settings?.adminNotifications ?? true,
-    smtpHost: settings?.smtpHost || '',
-    smtpPort: settings?.smtpPort || 587,
-    smtpUsername: settings?.smtpUsername || '',
-    smtpPassword: settings?.smtpPassword || '',
-    smtpFromEmail: settings?.smtpFromEmail || 'noreply@kwetushop.co.ke',
-    smtpFromName: settings?.smtpFromName || 'KwetuShop'
-  };
-  
   res.status(200).json({
     success: true,
-    data: emailSettings
+    data: settings?.emailTemplates || {
+      fromEmail: 'noreply@kwetushop.co.ke',
+      fromName: 'KwetuShop',
+      replyToEmail: 'support@kwetushop.co.ke',
+      welcomeEmailSubject: 'Welcome to KwetuShop!',
+      welcomeEmailBody: 'Thank you for joining KwetuShop!',
+      orderConfirmationSubject: 'Order #{orderNumber} Confirmed',
+      orderConfirmationBody: 'Your order has been received.',
+      shippingUpdateSubject: 'Your order #{orderNumber} has shipped',
+      shippingUpdateBody: 'Your order is on its way!',
+      resetPasswordSubject: 'Password Reset Request',
+      resetPasswordBody: 'Click the link below to reset your password.',
+      emailFooterText: 'Thank you for shopping with KwetuShop',
+      emailFooterSocial: true,
+      emailUnsubscribeLink: true
+    }
   });
 });
 
@@ -194,20 +143,10 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
     settings = new GlobalSettings();
   }
   
-  const emailUpdates = req.body;
-  
-  // Update email-related fields
-  const emailFields = [
-    'emailNotifications', 'orderConfirmation', 'shippingUpdates',
-    'promotionalEmails', 'adminNotifications', 'smtpHost', 'smtpPort',
-    'smtpUsername', 'smtpPassword', 'smtpFromEmail', 'smtpFromName'
-  ];
-  
-  emailFields.forEach(field => {
-    if (emailUpdates[field] !== undefined) {
-      settings[field] = emailUpdates[field];
-    }
-  });
+  settings.emailTemplates = {
+    ...(settings.emailTemplates?.toObject() || {}),
+    ...req.body
+  };
   
   settings.updatedBy = req.admin?._id || req.user?._id;
   await settings.save();
@@ -215,13 +154,358 @@ export const updateEmailSettings = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Email settings updated successfully',
-    data: {
-      emailNotifications: settings.emailNotifications,
-      orderConfirmation: settings.orderConfirmation,
-      shippingUpdates: settings.shippingUpdates,
-      promotionalEmails: settings.promotionalEmails,
-      adminNotifications: settings.adminNotifications
+    data: settings.emailTemplates
+  });
+});
+
+/**
+ * @desc    Get SMS settings
+ * @route   GET /api/admin/settings/sms
+ * @access  Private/Admin
+ */
+export const getSmsSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.smsTemplates || {
+      smsProvider: 'africastalking',
+      smsApiKey: '',
+      smsApiSecret: '',
+      smsSenderId: 'KwetuShop',
+      orderConfirmationSms: 'Order #{orderNumber} confirmed. KSh{amount}. Thank you!',
+      shippingUpdateSms: 'Order #{orderNumber} shipped. Track: {tracking}',
+      deliveryNotificationSms: 'Your order has been delivered!',
+      welcomeSms: 'Welcome to KwetuShop!',
+      otpSms: 'Your verification code is: {code}',
+      smsNotifications: true
     }
+  });
+});
+
+/**
+ * @desc    Update SMS settings
+ * @route   PUT /api/admin/settings/sms
+ * @access  Private/Admin
+ */
+export const updateSmsSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.smsTemplates = {
+    ...(settings.smsTemplates?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'SMS settings updated successfully',
+    data: settings.smsTemplates
+  });
+});
+
+/**
+ * @desc    Get legal settings
+ * @route   GET /api/admin/settings/legal
+ * @access  Private/Admin
+ */
+export const getLegalSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.legalSettings || {
+      termsOfServiceUrl: '/terms',
+      privacyPolicyUrl: '/privacy',
+      refundPolicyUrl: '/refund-policy',
+      shippingPolicyUrl: '/shipping-policy',
+      enableCookieConsent: true,
+      cookieConsentMessage: 'We use cookies to enhance your experience.',
+      enableGdpr: true,
+      dataRetentionDays: 365,
+      allowDataExport: true,
+      allowAccountDeletion: true,
+      ageRestricted: false,
+      minimumAge: 18
+    }
+  });
+});
+
+/**
+ * @desc    Update legal settings
+ * @route   PUT /api/admin/settings/legal
+ * @access  Private/Admin
+ */
+export const updateLegalSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.legalSettings = {
+    ...(settings.legalSettings?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Legal settings updated successfully',
+    data: settings.legalSettings
+  });
+});
+
+/**
+ * @desc    Get product display settings
+ * @route   GET /api/admin/settings/product-display
+ * @access  Private/Admin
+ */
+export const getProductDisplaySettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.productDisplay || {
+      showProductRating: true,
+      showProductBadges: true,
+      showDiscountBadge: true,
+      showStockStatus: true,
+      enableZoomOnHover: true,
+      enableGalleryLightbox: true,
+      showRelatedProducts: true,
+      recentlyViewedCount: 4
+    }
+  });
+});
+
+/**
+ * @desc    Update product display settings
+ * @route   PUT /api/admin/settings/product-display
+ * @access  Private/Admin
+ */
+export const updateProductDisplaySettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.productDisplay = {
+    ...(settings.productDisplay?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Product display settings updated successfully',
+    data: settings.productDisplay
+  });
+});
+
+/**
+ * @desc    Get checkout settings
+ * @route   GET /api/admin/settings/checkout
+ * @access  Private/Admin
+ */
+export const getCheckoutSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.checkoutSettings || {
+      allowGuestCheckout: true,
+      requirePhone: true,
+      requireCompany: false,
+      enableNotes: true,
+      cartExpiryDays: 30
+    }
+  });
+});
+
+/**
+ * @desc    Update checkout settings
+ * @route   PUT /api/admin/settings/checkout
+ * @access  Private/Admin
+ */
+export const updateCheckoutSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.checkoutSettings = {
+    ...(settings.checkoutSettings?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Checkout settings updated successfully',
+    data: settings.checkoutSettings
+  });
+});
+
+/**
+ * @desc    Get customer settings
+ * @route   GET /api/admin/settings/customer
+ * @access  Private/Admin
+ */
+export const getCustomerSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.customerSettings || {
+      allowRegistration: true,
+      requireEmailVerification: true,
+      requirePhoneVerification: false,
+      enableSocialLogin: false,
+      socialLoginProviders: [],
+      enableWishlist: true,
+      enableReviews: true,
+      enableOrderTracking: true,
+      enableReturns: true,
+      returnsWindowDays: 14,
+      enableSavedAddresses: true
+    }
+  });
+});
+
+/**
+ * @desc    Update customer settings
+ * @route   PUT /api/admin/settings/customer
+ * @access  Private/Admin
+ */
+export const updateCustomerSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.customerSettings = {
+    ...(settings.customerSettings?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Customer settings updated successfully',
+    data: settings.customerSettings
+  });
+});
+
+/**
+ * @desc    Get payment display settings
+ * @route   GET /api/admin/settings/payment-display
+ * @access  Private/Admin
+ */
+export const getPaymentDisplaySettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.paymentDisplay || {
+      showPaymentIcons: true,
+      paymentIcons: ['visa', 'mastercard', 'mpesa', 'airtel'],
+      acceptedCards: ['visa', 'mastercard', 'amex'],
+      securePaymentMessage: 'Your payment information is secure',
+      installmentMessage: 'Pay in installments from KSh 500/month'
+    }
+  });
+});
+
+/**
+ * @desc    Update payment display settings
+ * @route   PUT /api/admin/settings/payment-display
+ * @access  Private/Admin
+ */
+export const updatePaymentDisplaySettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.paymentDisplay = {
+    ...(settings.paymentDisplay?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'Payment display settings updated successfully',
+    data: settings.paymentDisplay
+  });
+});
+
+/**
+ * @desc    Get SEO settings
+ * @route   GET /api/admin/settings/seo
+ * @access  Private/Admin
+ */
+export const getSeoSettings = asyncHandler(async (req, res) => {
+  const settings = await GlobalSettings.findOne();
+  
+  res.status(200).json({
+    success: true,
+    data: settings?.seoSettings || {
+      metaTitle: 'KwetuShop - Best Electronics Store in Kenya',
+      metaDescription: 'Shop the latest smartphones, laptops, and electronics.',
+      metaKeywords: 'electronics, smartphones, laptops, Kenya',
+      robotsTxt: 'User-agent: *\nAllow: /',
+      sitemapEnabled: true,
+      googleAnalyticsId: '',
+      facebookPixelId: '',
+      enableEnhancedEcommerce: true,
+      ogImage: '',
+      twitterCard: 'summary_large_image',
+      enableSocialShare: true,
+      enableAnalytics: true,
+      trackPurchases: true
+    }
+  });
+});
+
+/**
+ * @desc    Update SEO settings
+ * @route   PUT /api/admin/settings/seo
+ * @access  Private/Admin
+ */
+export const updateSeoSettings = asyncHandler(async (req, res) => {
+  let settings = await GlobalSettings.findOne();
+  if (!settings) {
+    settings = new GlobalSettings();
+  }
+  
+  settings.seoSettings = {
+    ...(settings.seoSettings?.toObject() || {}),
+    ...req.body
+  };
+  
+  settings.updatedBy = req.admin?._id || req.user?._id;
+  await settings.save();
+  
+  res.status(200).json({
+    success: true,
+    message: 'SEO settings updated successfully',
+    data: settings.seoSettings
   });
 });
 
@@ -257,8 +541,7 @@ export const getSystemInfo = asyncHandler(async (req, res) => {
       uptime: formatUptime(process.uptime()),
       memoryUsage: formatBytes(process.memoryUsage().heapUsed),
       pid: process.pid,
-      settingsCount: settings ? Object.keys(settings.toObject()).length : 0,
-      maintenanceMode: settings?.maintenance?.isEnabled || false,
+      maintenanceMode: settings?.maintenanceMode || false,
       version: '1.0.0'
     },
     network: {
@@ -292,11 +575,8 @@ export const toggleMaintenance = asyncHandler(async (req, res) => {
     settings = new GlobalSettings();
   }
   
-  settings.maintenance = {
-    isEnabled: enabled,
-    message: message || settings.maintenance?.message || 'Site under maintenance',
-    allowedIps: settings.maintenance?.allowedIps || []
-  };
+  settings.maintenanceMode = enabled;
+  if (message) settings.maintenanceMessage = message;
   
   settings.updatedBy = req.admin?._id || req.user?._id;
   await settings.save();
@@ -305,23 +585,19 @@ export const toggleMaintenance = asyncHandler(async (req, res) => {
     success: true,
     message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'}`,
     data: {
-      maintenanceMode: settings.maintenance.isEnabled,
-      updatedAt: settings.updatedAt,
-      updatedBy: req.admin?.email || req.user?.email
+      maintenanceMode: settings.maintenanceMode,
+      maintenanceMessage: settings.maintenanceMessage,
+      updatedAt: settings.updatedAt
     }
   });
 });
 
 /**
- * @desc    Upload file (logo, etc.)
+ * @desc    Upload file
  * @route   POST /api/admin/settings/upload
  * @access  Private/Admin
  */
 export const uploadFile = asyncHandler(async (req, res) => {
-  console.log('📤 File upload request received');
-  console.log('File:', req.file);
-  console.log('Body:', req.body);
-  
   if (!req.file) {
     return res.status(400).json({
       success: false,
@@ -333,7 +609,6 @@ export const uploadFile = asyncHandler(async (req, res) => {
   const allowedTypes = ['logo', 'favicon', 'banner'];
   
   if (!allowedTypes.includes(type)) {
-    // Remove the uploaded file if type is invalid
     if (req.file.path && fs.existsSync(req.file.path)) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('Error deleting invalid file:', err);
@@ -346,10 +621,8 @@ export const uploadFile = asyncHandler(async (req, res) => {
     });
   }
   
-  // Check file type
   const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
   if (!allowedMimeTypes.includes(req.file.mimetype)) {
-    // Remove invalid file
     if (req.file.path && fs.existsSync(req.file.path)) {
       fs.unlink(req.file.path, (err) => {
         if (err) console.error('Error deleting invalid file:', err);
@@ -362,16 +635,9 @@ export const uploadFile = asyncHandler(async (req, res) => {
     });
   }
   
-  // File is already saved by multer, get its info
   const filename = path.basename(req.file.path);
   const fileUrl = `/uploads/${filename}`;
   
-  console.log(`✅ File saved: ${filename}`);
-  console.log(`   URL: ${fileUrl}`);
-  console.log(`   Type: ${type}`);
-  console.log(`   Size: ${formatBytes(req.file.size)}`);
-  
-  // Update settings
   let settings = await GlobalSettings.findOne();
   if (!settings) {
     settings = new GlobalSettings();
@@ -397,10 +663,7 @@ export const uploadFile = asyncHandler(async (req, res) => {
       filename,
       size: req.file.size,
       formattedSize: formatBytes(req.file.size),
-      mimetype: req.file.mimetype,
-      originalName: req.file.originalname,
-      uploadedBy: req.admin?.email || req.user?.email,
-      uploadedAt: new Date().toISOString()
+      mimetype: req.file.mimetype
     }
   });
 });
@@ -411,22 +674,17 @@ export const uploadFile = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const resetSettings = asyncHandler(async (req, res) => {
-  console.log(`🔄 RESET Settings requested by: ${req.admin?.email || req.user?.email}`);
-  
   await GlobalSettings.deleteMany({});
   const settings = await GlobalSettings.create({});
   
   res.status(200).json({
     success: true,
     message: 'Settings reset to defaults',
-    data: settings,
-    resetBy: req.admin?.email || req.user?.email,
-    resetAt: new Date().toISOString()
+    data: settings
   });
 });
 
-// ==================== HELPER FUNCTIONS ====================
-
+// Helper functions
 function formatBytes(bytes) {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;

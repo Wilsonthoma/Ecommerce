@@ -23,10 +23,8 @@ const ExportProducts = ({ onClose, products, filters }) => {
     setExporting(true);
     
     try {
-      // Simulate export process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // In a real app, this would make an API call to export
       console.log('Exporting products:', {
         format: exportFormat,
         fields: includeFields,
@@ -36,7 +34,6 @@ const ExportProducts = ({ onClose, products, filters }) => {
       
       setExported(true);
       
-      // Simulate file download
       setTimeout(() => {
         const data = {
           message: 'Export completed successfully',
@@ -54,7 +51,6 @@ const ExportProducts = ({ onClose, products, filters }) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        // Close after delay
         setTimeout(onClose, 2000);
       }, 500);
     } catch (error) {
@@ -87,36 +83,36 @@ const ExportProducts = ({ onClose, products, filters }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75 backdrop-blur-sm">
+      <div className="bg-gray-800 rounded-xl shadow-2xl border border-gray-700 max-w-md w-full max-h-[90vh] overflow-hidden animate-fadeInUp">
+        <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ArrowDownTrayIcon className="h-6 w-6 text-blue-600" />
+              <div className="p-2 rounded-lg bg-yellow-500/20">
+                <ArrowDownTrayIcon className="w-6 h-6 text-yellow-500" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Export Products</h2>
-                <p className="text-sm text-gray-600">Export {products.length} products</p>
+                <h2 className="text-xl font-semibold text-white">Export Products</h2>
+                <p className="text-sm text-gray-400">Export {products.length} products</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 transition-colors hover:text-gray-300"
               disabled={exporting}
             >
-              <XMarkIcon className="h-6 w-6" />
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
         </div>
 
         {exported ? (
           <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircleIcon className="h-8 w-8 text-emerald-600" />
+            <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20">
+              <CheckCircleIcon className="w-8 h-8 text-emerald-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Export Complete!</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="mb-2 text-lg font-semibold text-white">Export Complete!</h3>
+            <p className="mb-4 text-gray-400">
               Your export file has been downloaded successfully.
             </p>
             <div className="text-sm text-gray-500">
@@ -124,18 +120,18 @@ const ExportProducts = ({ onClose, products, filters }) => {
             </div>
           </div>
         ) : (
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh]">
             {/* Export Format */}
             <div>
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Export Format</h3>
+              <h3 className="mb-3 text-sm font-medium text-gray-300">Export Format</h3>
               <div className="grid grid-cols-2 gap-3">
                 {['csv', 'excel', 'json'].map((format) => (
                   <label
                     key={format}
                     className={`relative border rounded-lg p-4 cursor-pointer transition-all ${
                       exportFormat === format
-                        ? 'border-blue-500 ring-2 ring-blue-100 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-yellow-500 ring-2 ring-yellow-500/20 bg-yellow-500/10'
+                        : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700'
                     }`}
                   >
                     <input
@@ -149,16 +145,16 @@ const ExportProducts = ({ onClose, products, filters }) => {
                     <div className="flex items-center">
                       <div className={`h-4 w-4 rounded-full border mr-3 ${
                         exportFormat === format
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
+                          ? 'border-yellow-500 bg-yellow-500'
+                          : 'border-gray-500'
                       }`}>
                         {exportFormat === format && (
-                          <div className="h-2 w-2 bg-white rounded-full m-1" />
+                          <div className="w-2 h-2 m-1 bg-white rounded-full" />
                         )}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{format.toUpperCase()}</div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="font-medium text-white">{format.toUpperCase()}</div>
+                        <div className="mt-1 text-xs text-gray-400">
                           {format === 'csv' && 'Comma separated values'}
                           {format === 'excel' && 'Microsoft Excel format'}
                           {format === 'json' && 'JSON data format'}
@@ -173,21 +169,21 @@ const ExportProducts = ({ onClose, products, filters }) => {
             {/* Fields Selection */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-900">Include Fields</h3>
+                <h3 className="text-sm font-medium text-gray-300">Include Fields</h3>
                 <button
                   type="button"
                   onClick={() => toggleAllFields(!Object.values(includeFields).every(Boolean))}
-                  className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-sm font-medium text-yellow-500 hover:text-yellow-400"
                 >
                   {Object.values(includeFields).every(Boolean) ? 'Deselect All' : 'Select All'}
                 </button>
               </div>
               
-              <div className="space-y-2 max-h-60 overflow-y-auto p-2">
+              <div className="p-2 space-y-2 overflow-y-auto max-h-60 custom-scrollbar">
                 {Object.entries(fieldLabels).map(([field, label]) => (
                   <label
                     key={field}
-                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                    className="flex items-center justify-between p-3 transition-colors rounded-lg cursor-pointer hover:bg-gray-700"
                   >
                     <div className="flex items-center">
                       <input
@@ -199,11 +195,11 @@ const ExportProducts = ({ onClose, products, filters }) => {
                             [field]: e.target.checked,
                           }))
                         }
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="w-4 h-4 text-yellow-500 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
                       />
-                      <span className="ml-3 text-sm text-gray-900">{label}</span>
+                      <span className="ml-3 text-sm text-gray-300">{label}</span>
                     </div>
-                    <span className="text-xs text-gray-500 font-mono">{field}</span>
+                    <span className="font-mono text-xs text-gray-500">{field}</span>
                   </label>
                 ))}
               </div>
@@ -215,24 +211,24 @@ const ExportProducts = ({ onClose, products, filters }) => {
                 ? filters[key] 
                 : Object.values(filters[key] || {}).some(val => val)
             ) && (
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Filters Applied</h4>
-                <div className="text-sm text-gray-600 space-y-1">
+              <div className="p-4 border border-gray-600 rounded-lg bg-gray-700/50">
+                <h4 className="mb-2 text-sm font-medium text-gray-300">Filters Applied</h4>
+                <div className="space-y-1 text-sm text-gray-400">
                   {filters.category && (
-                    <div>Category: <span className="font-medium">{filters.category}</span></div>
+                    <div>Category: <span className="font-medium text-yellow-500">{filters.category}</span></div>
                   )}
                   {filters.status && (
-                    <div>Status: <span className="font-medium">{filters.status}</span></div>
+                    <div>Status: <span className="font-medium text-yellow-500">{filters.status}</span></div>
                   )}
                   {(filters.priceRange.min || filters.priceRange.max) && (
                     <div>
                       Price: 
-                      <span className="font-medium ml-1">
+                      <span className="ml-1 font-medium text-yellow-500">
                         ${filters.priceRange.min || '0'} - ${filters.priceRange.max || '∞'}
                       </span>
                     </div>
                   )}
-                  <div className="text-xs text-gray-500 mt-2">
+                  <div className="mt-2 text-xs text-gray-500">
                     Export will include products matching these filters
                   </div>
                 </div>
@@ -242,13 +238,13 @@ const ExportProducts = ({ onClose, products, filters }) => {
         )}
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="p-6 border-t border-gray-700 bg-gray-800/50">
           <div className="flex justify-end space-x-3">
             {!exported && (
               <>
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700"
                   disabled={exporting}
                 >
                   Cancel
@@ -256,16 +252,16 @@ const ExportProducts = ({ onClose, products, filters }) => {
                 <button
                   onClick={handleExport}
                   disabled={exporting}
-                  className="inline-flex items-center px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+                  className="inline-flex items-center px-6 py-2 font-medium text-white transition-colors rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
                 >
                   {exporting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      <div className="w-4 h-4 mr-2 border-b-2 border-white rounded-full animate-spin" />
                       Exporting...
                     </>
                   ) : (
                     <>
-                      <ArrowDownTrayIcon className="h-4 w-4 mr-2" />
+                      <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
                       Export Products
                     </>
                   )}

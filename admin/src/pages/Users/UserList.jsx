@@ -7,6 +7,7 @@ import {
   UserPlusIcon,
   CheckCircleIcon,
   XCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { userService } from '../../services/users';
 import DataTable from '../../components/common/DataTable';
@@ -28,12 +29,10 @@ const UserList = () => {
     fetchUsers();
   }, [refreshTrigger]);
 
-  // Check if we need to refresh from navigation state
   useEffect(() => {
     if (location.state?.shouldRefresh) {
       console.log('🔄 Refreshing users from navigation state');
       fetchUsers();
-      // Clear the state
       window.history.replaceState({}, '');
     }
   }, [location]);
@@ -52,23 +51,17 @@ const UserList = () => {
       
       let usersArray = [];
       
-      // Handle response format
       if (response && response.success && Array.isArray(response.data)) {
         usersArray = response.data;
-        console.log(`✅ Loaded ${usersArray.length} users from response.data`);
       } else if (Array.isArray(response)) {
         usersArray = response;
-        console.log(`✅ Loaded ${usersArray.length} users from direct array`);
       } else if (response && response.data && Array.isArray(response.data)) {
         usersArray = response.data;
-        console.log(`✅ Loaded ${usersArray.length} users from nested data`);
       } else {
-        console.warn('⚠️ Unexpected response format:', response);
         usersArray = [];
       }
       
       setUsers(usersArray);
-      console.log('📊 Final users array:', usersArray);
       
     } catch (error) {
       console.error('❌ Error fetching users:', error);
@@ -80,7 +73,6 @@ const UserList = () => {
   };
 
   const filterUsers = () => {
-    // Ensure users is an array
     if (!Array.isArray(users)) {
       setFilteredUsers([]);
       return;
@@ -88,12 +80,10 @@ const UserList = () => {
     
     let filtered = [...users];
 
-    // Apply search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(user => {
         if (!user) return false;
-        
         return (
           (user.name && user.name.toLowerCase().includes(query)) ||
           (user.email && user.email.toLowerCase().includes(query)) ||
@@ -102,12 +92,10 @@ const UserList = () => {
       });
     }
 
-    // Apply role filter
     if (selectedRole) {
       filtered = filtered.filter(user => user && user.role === selectedRole);
     }
 
-    // Apply status filter
     if (selectedStatus) {
       filtered = filtered.filter(user => user && user.status === selectedStatus);
     }
@@ -116,14 +104,11 @@ const UserList = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
 
     try {
       await userService.delete(id);
       toast.success('User deleted successfully');
-      // Trigger refresh
       setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('❌ Delete error:', error);
@@ -134,14 +119,11 @@ const UserList = () => {
   const handleStatusToggle = async (id, currentStatus) => {
     const newStatus = currentStatus === USER_STATUS.ACTIVE ? USER_STATUS.INACTIVE : USER_STATUS.ACTIVE;
     
-    if (!window.confirm(`Are you sure you want to ${newStatus === USER_STATUS.ACTIVE ? 'activate' : 'deactivate'} this user?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to ${newStatus === USER_STATUS.ACTIVE ? 'activate' : 'deactivate'} this user?`)) return;
     
     try {
       await userService.updateStatus(id, newStatus);
       toast.success(`User ${newStatus === USER_STATUS.ACTIVE ? 'activated' : 'deactivated'}`);
-      // Trigger refresh
       setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('❌ Status toggle error:', error);
@@ -150,39 +132,37 @@ const UserList = () => {
   };
 
   const getRoleBadge = (role) => {
-    if (!role) return <span className="badge bg-gray-100 text-gray-800">Unknown</span>;
+    if (!role) return <span className="text-gray-400 badge bg-gray-500/20">Unknown</span>;
     
     switch (role) {
       case USER_ROLES.ADMIN:
-        return <span className="badge bg-purple-100 text-purple-800">Admin</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">Admin</span>;
       case USER_ROLES.MODERATOR:
-        return <span className="badge bg-blue-100 text-blue-800">Moderator</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">Moderator</span>;
       case USER_ROLES.USER:
-        return <span className="badge bg-gray-100 text-gray-800">User</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">User</span>;
       default:
-        return <span className="badge bg-gray-100 text-gray-800">{role}</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">{role}</span>;
     }
   };
 
   const getStatusBadge = (status) => {
-    if (!status) return <span className="badge badge-info">Unknown</span>;
+    if (!status) return <span className="text-gray-400 badge bg-gray-500/20">Unknown</span>;
     
     switch (status) {
       case USER_STATUS.ACTIVE:
-        return <span className="badge badge-success">Active</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">Active</span>;
       case USER_STATUS.INACTIVE:
-        return <span className="badge badge-error">Inactive</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">Inactive</span>;
       case USER_STATUS.SUSPENDED:
-        return <span className="badge badge-warning">Suspended</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">Suspended</span>;
       default:
-        return <span className="badge badge-info">{status}</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-400">{status}</span>;
     }
   };
 
   const getInitialsSafe = (name) => {
-    if (!name || name === 'undefined' || name === 'null') {
-      return '??';
-    }
+    if (!name || name === 'undefined' || name === 'null') return '??';
     return getInitials(name) || '??';
   };
 
@@ -196,16 +176,16 @@ const UserList = () => {
         
         return (
           <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
-              <span className="text-primary-600 font-medium">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-yellow-600 to-orange-600">
+              <span className="font-medium text-white">
                 {getInitialsSafe(displayName)}
               </span>
             </div>
             <div className="ml-4">
-              <div className="font-medium text-gray-900">{displayName}</div>
-              <div className="text-sm text-gray-500">{displayEmail}</div>
+              <div className="font-medium text-white">{displayName}</div>
+              <div className="text-sm text-gray-400">{displayEmail}</div>
               {user?.phone && (
-                <div className="text-xs text-gray-400">{user.phone}</div>
+                <div className="text-xs text-gray-500">{user.phone}</div>
               )}
             </div>
           </div>
@@ -244,114 +224,107 @@ const UserList = () => {
             e.stopPropagation();
             handleStatusToggle(user._id, user.status);
           }}
-          className={`p-1 rounded-full ${
+          className={`p-1 rounded-full transition-colors ${
             user.status === USER_STATUS.ACTIVE 
-              ? 'text-red-600 hover:bg-red-50' 
-              : 'text-green-600 hover:bg-green-50'
+              ? 'text-red-400 hover:text-red-300 hover:bg-red-900/20' 
+              : 'text-green-400 hover:text-green-300 hover:bg-green-900/20'
           }`}
           title={user.status === USER_STATUS.ACTIVE ? 'Deactivate' : 'Activate'}
         >
           {user.status === USER_STATUS.ACTIVE ? (
-            <XCircleIcon className="h-5 w-5" />
+            <XCircleIcon className="w-5 h-5" />
           ) : (
-            <CheckCircleIcon className="h-5 w-5" />
+            <CheckCircleIcon className="w-5 h-5" />
           )}
         </button>
         <Link
           to={`/users/edit/${user._id}`}
-          className="p-1 rounded-full text-primary-600 hover:bg-primary-50"
+          className="p-1 text-yellow-500 transition-colors rounded-full hover:text-yellow-400 hover:bg-yellow-900/20"
           title="Edit"
           onClick={(e) => e.stopPropagation()}
         >
-          <PencilIcon className="h-5 w-5" />
+          <PencilIcon className="w-5 h-5" />
         </Link>
         <button
           onClick={(e) => {
             e.stopPropagation();
             handleDelete(user._id);
           }}
-          className="p-1 rounded-full text-red-600 hover:bg-red-50"
+          className="p-1 text-red-400 transition-colors rounded-full hover:text-red-300 hover:bg-red-900/20"
           title="Delete"
         >
-          <TrashIcon className="h-5 w-5" />
+          <TrashIcon className="w-5 h-5" />
         </button>
       </div>
     );
   };
 
-  // Calculate stats safely
   const activeUsers = Array.isArray(users) ? users.filter(u => u?.status === USER_STATUS.ACTIVE).length : 0;
   const adminUsers = Array.isArray(users) ? users.filter(u => u?.role === USER_ROLES.ADMIN).length : 0;
   const moderatorUsers = Array.isArray(users) ? users.filter(u => u?.role === USER_ROLES.MODERATOR).length : 0;
 
-  // Manual refresh function
   const handleManualRefresh = () => {
-    console.log('🔄 Manual refresh triggered');
     setRefreshTrigger(prev => prev + 1);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600">Manage user accounts</p>
+          <h1 className="text-2xl font-bold text-white">Users</h1>
+          <p className="text-gray-400">Manage user accounts</p>
         </div>
         <div className="flex space-x-3">
           <button
             onClick={handleManualRefresh}
-            className="btn-secondary flex items-center"
+            className="inline-flex items-center px-4 py-2 text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700 disabled:opacity-50"
             disabled={loading}
           >
-            {loading ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-            ) : (
-              '↻'
-            )}
+            <ArrowPathIcon className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
           <Link
             to="/users/new"
-            className="btn-primary flex items-center"
+            className="inline-flex items-center px-4 py-2 font-medium text-white transition-all rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700"
           >
-            <UserPlusIcon className="h-5 w-5 mr-2" />
+            <UserPlusIcon className="w-5 h-5 mr-2" />
             Add User
           </Link>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-gray-900">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="p-4 text-center bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="text-2xl font-bold text-white">
             {Array.isArray(users) ? users.length : 0}
           </div>
-          <div className="text-sm text-gray-600">Total Users</div>
+          <div className="text-sm text-gray-400">Total Users</div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-green-600">
+        <div className="p-4 text-center bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="text-2xl font-bold text-green-400">
             {activeUsers}
           </div>
-          <div className="text-sm text-gray-600">Active</div>
+          <div className="text-sm text-gray-400">Active</div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-purple-600">
+        <div className="p-4 text-center bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="text-2xl font-bold text-purple-400">
             {adminUsers}
           </div>
-          <div className="text-sm text-gray-600">Admins</div>
+          <div className="text-sm text-gray-400">Admins</div>
         </div>
-        <div className="card text-center">
-          <div className="text-2xl font-bold text-blue-600">
+        <div className="p-4 text-center bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="text-2xl font-bold text-blue-400">
             {moderatorUsers}
           </div>
-          <div className="text-sm text-gray-600">Moderators</div>
+          <div className="text-sm text-gray-400">Moderators</div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 bg-gray-800 border border-gray-700 rounded-xl">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex-1">
             <SearchBar
               placeholder="Search users by name, email, or phone..."
@@ -363,7 +336,7 @@ const UserList = () => {
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="input-field min-w-[120px]"
+              className="px-4 py-2 text-white transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               disabled={loading}
             >
               <option value="">All Roles</option>
@@ -376,7 +349,7 @@ const UserList = () => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="input-field min-w-[120px]"
+              className="px-4 py-2 text-white transition bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               disabled={loading}
             >
               <option value="">All Status</option>
@@ -392,7 +365,7 @@ const UserList = () => {
                 setSelectedStatus('');
                 setSearchQuery('');
               }}
-              className="btn-secondary text-sm"
+              className="px-4 py-2 text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700"
               disabled={loading}
             >
               Clear
@@ -402,22 +375,22 @@ const UserList = () => {
       </div>
 
       {/* Users Table */}
-      <div className="card overflow-hidden">
+      <div className="overflow-hidden bg-gray-800 border border-gray-700 rounded-xl">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mb-4"></div>
-            <p className="text-gray-600">Loading users...</p>
+            <div className="w-8 h-8 mb-4 border-2 border-yellow-500 rounded-full border-t-transparent animate-spin"></div>
+            <p className="text-gray-400">Loading users...</p>
           </div>
         ) : (
           <>
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
+            <div className="px-6 py-4 border-b border-gray-700">
+              <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-400">
                     Showing {filteredUsers.length} of {users.length} users
                   </span>
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-500">
                   {selectedRole && `Role: ${selectedRole} • `}
                   {selectedStatus && `Status: ${selectedStatus} • `}
                   {searchQuery && `Search: "${searchQuery}"`}
@@ -429,9 +402,9 @@ const UserList = () => {
               data={filteredUsers}
               loading={false}
               emptyMessage={
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg mb-2">No users found</p>
-                  <p className="text-gray-400 text-sm">
+                <div className="py-12 text-center">
+                  <p className="mb-2 text-lg text-gray-400">No users found</p>
+                  <p className="text-sm text-gray-500">
                     {searchQuery || selectedRole || selectedStatus 
                       ? 'Try adjusting your search filters'
                       : 'No users in the system yet. Click "Add User" to create one.'}

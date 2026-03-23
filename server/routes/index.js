@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 import os from 'os';
 import { createRequire } from 'module';
 
-// Use the CJS require shim for JSON files
 const require = createRequire(import.meta.url);
 const packageJson = require('../package.json');
 
@@ -16,8 +15,11 @@ import publicProductRoutes from './public/products.js';
 import publicCategoryRoutes from './public/categories.js';
 import cartRoutes from './public/cart.js';
 import reviewRoutes from './public/reviews.js';
-import clientOrderRoutes from './client/orders.js';        // ✅ NEW: Client orders
-import clientCheckoutRoutes from './client/checkout.js';    // ✅ NEW: Client checkout
+import clientOrderRoutes from './client/orders.js';
+import clientCheckoutRoutes from './client/checkout.js';
+// ✅ ADD MISSING IMPORTS
+import publicSettingsRoutes from './public/settingsRoutes.js';
+import clientSettingsRoutes from './client/settingsRoutes.js';
 // -------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------
@@ -25,7 +27,7 @@ import clientCheckoutRoutes from './client/checkout.js';    // ✅ NEW: Client c
 // -------------------------------------------------------------------------
 import adminAuthRoutes from './admin/authRoutes.js';
 import adminProductRoutes from './admin/productRoutes.js';
-import adminOrderRoutes from './admin/orderRoutes.js';      // ✅ Already exists
+import adminOrderRoutes from './admin/orderRoutes.js';
 import adminAnalyticsRoutes from './admin/analyticsRoutes.js';
 import adminCustomerRoutes from './admin/customerRoutes.js';
 import adminUserRoutes from './admin/userRoutes.js';
@@ -34,10 +36,11 @@ import settingsRoutes from './admin/settingsRoutes.js';
 import adminRoutes from './admin/adminRoutes.js';
 import adminManagementRoutes from './admin/adminManagementRoutes.js';
 import adminNotificationRoutes from './admin/notificationRoutes.js';
+import userRoutes from './userRoutes.js';
 // -------------------------------------------------------------------------
 
 // -------------------------------------------------------------------------
-// 3. IMPORT THE COMPREHENSIVE AUTH ROUTES
+// 3. AUTH ROUTES
 // -------------------------------------------------------------------------
 import authRouter from './authRoutes.js';
 // -------------------------------------------------------------------------
@@ -49,20 +52,27 @@ router.use('/products', publicProductRoutes);
 router.use('/categories', publicCategoryRoutes);
 router.use('/cart', cartRoutes);
 router.use('/reviews', reviewRoutes);
-router.use('/client/orders', clientOrderRoutes);        // ✅ NEW: /api/client/orders
-router.use('/client/checkout', clientCheckoutRoutes);    // ✅ NEW: /api/client/checkout
+router.use('/client/orders', clientOrderRoutes);
+router.use('/client/checkout', clientCheckoutRoutes);
+// ✅ ADD PUBLIC SETTINGS ROUTES
+router.use('/public/settings', publicSettingsRoutes);
+// ✅ ADD CLIENT SETTINGS ROUTES (requires auth)
+router.use('/client/settings', clientSettingsRoutes);
 
 // ------------------
-// Mount COMPREHENSIVE auth routes (Google OAuth + traditional auth)
+// Mount COMPREHENSIVE auth routes
 // ------------------
 router.use('/auth', authRouter);
+
+// User routes (for dashboard, profile, etc.)
+router.use('/user', userRoutes);
 
 // ------------------
 // Mount admin routes
 // ------------------
 router.use('/admin/auth', adminAuthRoutes);
 router.use('/admin/products', adminProductRoutes);
-router.use('/admin/orders', adminOrderRoutes);           // ✅ Admin order management
+router.use('/admin/orders', adminOrderRoutes);
 router.use('/admin/analytics', adminAnalyticsRoutes);
 router.use('/admin/customers', adminCustomerRoutes);
 router.use('/admin/users', adminUserRoutes);
@@ -85,12 +95,18 @@ router.get('/test-products', (req, res) => {
       'GET /api/products/:id',
       'GET /api/categories',
       'GET /api/reviews/products/:productId/reviews',
-      'GET /api/client/orders',              // ✅ NEW
-      'GET /api/client/orders/:id',           // ✅ NEW
-      'POST /api/client/checkout/place-order', // ✅ NEW
-      'POST /api/client/checkout/validate'    // ✅ NEW
+      'GET /api/client/orders',
+      'GET /api/client/orders/:id',
+      'POST /api/client/checkout/place-order',
+      'POST /api/client/checkout/validate',
+      'GET /api/public/settings',
+      'GET /api/client/settings',
+      'PUT /api/client/settings/profile',
+      'PUT /api/client/settings/notifications',
+      'PUT /api/client/settings/display',
+      'PUT /api/client/settings/privacy'
     ],
-    note: 'Make sure public routes are properly imported'
+    note: 'Make sure all routes are properly imported'
   });
 });
 
@@ -232,13 +248,16 @@ router.get('/health', (req, res) => {
       categories: '/api/categories',
       cart: '/api/cart',
       reviews: '/api/reviews',
-      client_orders: '/api/client/orders',        // ✅ NEW
-      client_checkout: '/api/client/checkout',     // ✅ NEW
+      client_orders: '/api/client/orders',
+      client_checkout: '/api/client/checkout',
+      public_settings: '/api/public/settings',
+      client_settings: '/api/client/settings',
       admin_users: '/api/admin/users',
       admin_customers: '/api/admin/customers',
       admin_products: '/api/admin/products',
-      admin_orders: '/api/admin/orders',           // ✅ NEW
-      admin_notifications: '/api/admin/notifications'
+      admin_orders: '/api/admin/orders',
+      admin_notifications: '/api/admin/notifications',
+      admin_settings: '/api/admin/settings'
     }
   });
 });
@@ -280,7 +299,21 @@ router.get('/', (req, res) => {
           update: 'PUT /api/reviews/reviews/:reviewId',
           delete: 'DELETE /api/reviews/reviews/:reviewId'
         },
-        clientOrders: {                             // ✅ NEW
+        publicSettings: {
+          get: 'GET /api/public/settings',
+          storeInfo: 'GET /api/public/settings/store-info',
+          theme: 'GET /api/public/settings/theme',
+          checkout: 'GET /api/public/settings/checkout'
+        },
+        clientSettings: {
+          get: 'GET /api/client/settings',
+          updateProfile: 'PUT /api/client/settings/profile',
+          updateNotifications: 'PUT /api/client/settings/notifications',
+          updateDisplay: 'PUT /api/client/settings/display',
+          updatePrivacy: 'PUT /api/client/settings/privacy',
+          reset: 'POST /api/client/settings/reset'
+        },
+        clientOrders: {
           list: 'GET /api/client/orders',
           single: 'GET /api/client/orders/:id',
           cancel: 'PUT /api/client/orders/:id/cancel',
@@ -290,7 +323,7 @@ router.get('/', (req, res) => {
           rate: 'POST /api/client/orders/:id/rate',
           stats: 'GET /api/client/orders/stats/summary'
         },
-        clientCheckout: {                           // ✅ NEW
+        clientCheckout: {
           validate: 'POST /api/client/checkout/validate',
           calculate: 'POST /api/client/checkout/calculate',
           placeOrder: 'POST /api/client/checkout/place-order',
@@ -352,7 +385,7 @@ router.get('/', (req, res) => {
           bulk_update: 'PUT /api/admin/products/bulk',
           stats: 'GET /api/admin/products/stats'
         },
-        orders: {                                   // ✅ NEW
+        orders: {
           list: 'GET /api/admin/orders',
           single: 'GET /api/admin/orders/:id',
           updateStatus: 'PUT /api/admin/orders/:id/status',
@@ -403,11 +436,14 @@ router.use('*', (req, res) => {
     '/api/admin/user': '/api/admin/users',
     '/api/customer': '/api/admin/customers',
     '/api/product': '/api/products or /api/admin/products',
-    '/api/order': '/api/client/orders or /api/admin/orders',           // ✅ UPDATED
-    '/api/orders': '/api/client/orders or /api/admin/orders',          // ✅ UPDATED
-    '/api/checkout': '/api/client/checkout',                           // ✅ NEW
+    '/api/order': '/api/client/orders or /api/admin/orders',
+    '/api/orders': '/api/client/orders or /api/admin/orders',
+    '/api/checkout': '/api/client/checkout',
     '/api/notification': '/api/admin/notifications',
     '/api/admin/notification': '/api/admin/notifications',
+    '/api/settings': '/api/public/settings or /api/client/settings or /api/admin/settings',
+    '/api/client/setting': '/api/client/settings',
+    '/api/public/setting': '/api/public/settings',
     '/api/review': '/api/reviews',
     '/api/reviews/product': '/api/reviews/products/:productId/reviews',
     '/api/auth-new/i/send-reset-otp': '/api/auth/send-reset-otp',
@@ -452,13 +488,16 @@ router.use('*', (req, res) => {
     categories: '/api/categories',
     cart: '/api/cart',
     reviews: '/api/reviews',
-    client_orders: '/api/client/orders',          // ✅ NEW
-    client_checkout: '/api/client/checkout',       // ✅ NEW
+    client_orders: '/api/client/orders',
+    client_checkout: '/api/client/checkout',
+    public_settings: '/api/public/settings',
+    client_settings: '/api/client/settings',
     admin_users: '/api/admin/users',
     admin_customers: '/api/admin/customers',
     admin_products: '/api/admin/products',
-    admin_orders: '/api/admin/orders',             // ✅ NEW
+    admin_orders: '/api/admin/orders',
     admin_notifications: '/api/admin/notifications',
+    admin_settings: '/api/admin/settings',
     health_check: '/api/health',
     api_docs: '/api/'
   };

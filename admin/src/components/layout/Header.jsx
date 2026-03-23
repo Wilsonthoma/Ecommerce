@@ -3,17 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   BellIcon, 
-  MagnifyingGlassIcon, 
-  UserCircleIcon,
-  Cog6ToothIcon,
+  MagnifyingGlassIcon,
   UserIcon,
+  Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   InformationCircleIcon,
-  ClockIcon
+  ClockIcon,
+  SparklesIcon,
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
-import api from '../../services/api';  // CHANGED: Default import instead of named import
+import api from '../../services/api';
 import { formatDistanceToNow, format } from 'date-fns';
 
 const Header = () => {
@@ -25,13 +27,12 @@ const Header = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
 
-  // Polling interval for new notifications (every 30 seconds)
   const NOTIFICATIONS_POLLING_INTERVAL = 30000;
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -46,29 +47,21 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch notifications from API
   const fetchNotifications = async (showLoading = true) => {
     try {
       if (showLoading) setLoadingNotifications(true);
       
       const response = await api.get('/admin/notifications', {
-        params: {
-          limit: 20,
-          include_read: false,
-          sort: 'created_at:desc'
-        }
+        params: { limit: 20, include_read: false, sort: 'created_at:desc' }
       });
 
       if (response.data?.success) {
         setNotifications(response.data.data || []);
-        
-        // Calculate unread count
         const unread = (response.data.data || []).filter(n => !n.read).length;
         setUnreadCount(unread);
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      // Fallback to empty array if API fails
       setNotifications([]);
       setUnreadCount(0);
     } finally {
@@ -76,13 +69,9 @@ const Header = () => {
     }
   };
 
-  // Initial fetch and setup polling
   useEffect(() => {
     fetchNotifications();
-
-    // Set up polling for new notifications
     const intervalId = setInterval(fetchNotifications, NOTIFICATIONS_POLLING_INTERVAL);
-
     return () => clearInterval(intervalId);
   }, []);
 
@@ -106,15 +95,9 @@ const Header = () => {
   const markNotificationAsRead = async (notificationId) => {
     try {
       await api.patch(`/admin/notifications/${notificationId}/read`);
-      
-      // Update local state
       setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId ? { ...notif, read: true, read_at: new Date().toISOString() } : notif
-        )
+        prev.map(notif => notif.id === notificationId ? { ...notif, read: true } : notif)
       );
-      
-      // Update unread count
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -124,17 +107,7 @@ const Header = () => {
   const markAllNotificationsAsRead = async () => {
     try {
       await api.post('/admin/notifications/mark-all-read');
-      
-      // Update all notifications to read
-      setNotifications(prev => 
-        prev.map(notif => ({ 
-          ...notif, 
-          read: true, 
-          read_at: new Date().toISOString() 
-        }))
-      );
-      
-      // Reset unread count
+      setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
       setUnreadCount(0);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -143,14 +116,9 @@ const Header = () => {
 
   const deleteNotification = async (notificationId, e) => {
     e.stopPropagation();
-    
     try {
       await api.delete(`/admin/notifications/${notificationId}`);
-      
-      // Remove from local state
       setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
-      
-      // Update unread count if notification was unread
       const notification = notifications.find(n => n.id === notificationId);
       if (notification && !notification.read) {
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -167,58 +135,35 @@ const Header = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'order':
-        return (
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-          </svg>
-        );
-      case 'payment':
-        return (
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        );
-      case 'user':
-        return (
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-          </svg>
-        );
-      case 'system':
-        return <Cog6ToothIcon className="h-5 w-5" />;
-      case 'warning':
-        return <ExclamationCircleIcon className="h-5 w-5" />;
-      case 'success':
-        return <CheckCircleIcon className="h-5 w-5" />;
-      case 'info':
-        return <InformationCircleIcon className="h-5 w-5" />;
-      default:
-        return <InformationCircleIcon className="h-5 w-5" />;
+      case 'order': return <CheckCircleIcon className="w-5 h-5" />;
+      case 'payment': return <SparklesIcon className="w-5 h-5" />;
+      case 'user': return <UserIcon className="w-5 h-5" />;
+      case 'system': return <Cog6ToothIcon className="w-5 h-5" />;
+      case 'warning': return <ExclamationCircleIcon className="w-5 h-5" />;
+      case 'success': return <CheckCircleIcon className="w-5 h-5" />;
+      case 'info': return <InformationCircleIcon className="w-5 h-5" />;
+      default: return <InformationCircleIcon className="w-5 h-5" />;
     }
   };
 
   const getNotificationColor = (type) => {
     switch (type) {
-      case 'order': return 'text-green-600 bg-green-100';
-      case 'payment': return 'text-purple-600 bg-purple-100';
-      case 'user': return 'text-blue-600 bg-blue-100';
-      case 'system': return 'text-gray-600 bg-gray-100';
-      case 'warning': return 'text-yellow-600 bg-yellow-100';
-      case 'success': return 'text-green-600 bg-green-100';
-      case 'info': return 'text-blue-600 bg-blue-100';
-      default: return 'text-gray-600 bg-gray-100';
+      case 'order': return 'bg-green-500/20 text-green-400';
+      case 'payment': return 'bg-purple-500/20 text-purple-400';
+      case 'user': return 'bg-blue-500/20 text-blue-400';
+      case 'system': return 'bg-gray-500/20 text-gray-400';
+      case 'warning': return 'bg-yellow-500/20 text-yellow-400';
+      case 'success': return 'bg-green-500/20 text-green-400';
+      case 'info': return 'bg-blue-500/20 text-blue-400';
+      default: return 'bg-gray-500/20 text-gray-400';
     }
   };
 
   const formatTime = (dateString) => {
     if (!dateString) return 'Just now';
-    
     try {
       const date = new Date(dateString);
-      const now = new Date();
-      const diffInHours = (now - date) / (1000 * 60 * 60);
-      
+      const diffInHours = (new Date() - date) / (1000 * 60 * 60);
       if (diffInHours < 24) {
         return formatDistanceToNow(date, { addSuffix: true });
       } else {
@@ -230,117 +175,30 @@ const Header = () => {
   };
 
   const handleNotificationClick = (notification) => {
-    // Mark as read first
-    if (!notification.read) {
-      markNotificationAsRead(notification.id);
-    }
-
-    // Navigate based on notification type
-    switch (notification.type) {
-      case 'order':
-        if (notification.data?.order_id) {
-          navigate(`/admin/orders/${notification.data.order_id}`);
-        } else {
-          navigate('/admin/orders');
-        }
-        break;
-      case 'payment':
-        if (notification.data?.payment_id) {
-          navigate(`/admin/payments/${notification.data.payment_id}`);
-        } else {
-          navigate('/admin/payments');
-        }
-        break;
-      case 'user':
-        if (notification.data?.user_id) {
-          navigate(`/admin/users/${notification.data.user_id}`);
-        } else {
-          navigate('/admin/users');
-        }
-        break;
-      default:
-        // For other types, just close the dropdown
-        break;
-    }
-    
+    if (!notification.read) markNotificationAsRead(notification.id);
     setShowNotifications(false);
   };
 
-  // Added missing user dropdown menu content
-  const renderUserMenu = () => (
-    <div className="p-4">
-      <div className="flex items-center mb-4">
-        <div className="h-12 w-12 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-sm">
-          {user?.avatar ? (
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="h-full w-full rounded-full object-cover border-2 border-white" 
-            />
-          ) : (
-            <span>{getUserInitials(user?.name)}</span>
-          )}
-        </div>
-        <div className="ml-3">
-          <p className="text-sm font-semibold text-gray-900">{user?.name || 'Administrator'}</p>
-          <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-          <p className="text-xs text-primary-600 capitalize mt-1 font-medium">
-            {user?.role?.replace('_', ' ') || 'Super Admin'}
-          </p>
-        </div>
-      </div>
-      <div className="border-t border-gray-200 pt-4">
-        <a
-          href="/admin/profile"
-          className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/admin/profile');
-            setShowUserMenu(false);
-          }}
-        >
-          <UserIcon className="h-5 w-5 mr-3 text-gray-400" />
-          Your Profile
-        </a>
-        <a
-          href="/admin/settings"
-          className="flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150 mt-1"
-          onClick={(e) => {
-            e.preventDefault();
-            navigate('/admin/settings');
-            setShowUserMenu(false);
-          }}
-        >
-          <Cog6ToothIcon className="h-5 w-5 mr-3 text-gray-400" />
-          Settings
-        </a>
-      </div>
-      <div className="border-t border-gray-200 pt-4 mt-4">
-        <button
-          onClick={handleLogout}
-          className="flex items-center w-full px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
-        >
-          <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
-          Sign out
-        </button>
-      </div>
-    </div>
-  );
-
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
-      <div className="flex justify-between items-center px-4 py-3 md:px-6 md:py-4">
+    <header className="sticky top-0 z-30 border-b border-gray-700 bg-gray-800/95 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4">
         {/* Search bar */}
         <div className="flex-1 max-w-2xl">
           <form onSubmit={handleSearch} className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <MagnifyingGlassIcon className={`w-5 h-5 transition-colors duration-200 ${searchFocused ? 'text-yellow-500' : 'text-gray-500'}`} />
             </div>
             <input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              className={`block w-full pl-10 pr-3 py-2.5 bg-gray-700 border rounded-lg leading-5 text-white placeholder-gray-500 transition-all duration-200 sm:text-sm ${
+                searchFocused 
+                  ? 'border-yellow-500 ring-2 ring-yellow-500/20' 
+                  : 'border-gray-600 hover:border-gray-500'
+              } focus:outline-none`}
               placeholder="Search products, orders, customers..."
               aria-label="Search"
             />
@@ -348,48 +206,46 @@ const Header = () => {
         </div>
 
         {/* Right side icons */}
-        <div className="flex items-center space-x-3 ml-4">
+        <div className="flex items-center ml-4 space-x-2">
           {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 setShowUserMenu(false);
-                if (!showNotifications) {
-                  fetchNotifications();
-                }
+                if (!showNotifications) fetchNotifications();
               }}
-              className="relative p-2 rounded-full text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+              className="relative p-2 text-gray-400 transition-all duration-200 rounded-lg hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500"
               aria-label="Notifications"
-              disabled={loadingNotifications}
             >
               <BellIcon className={`h-6 w-6 ${loadingNotifications ? 'animate-pulse' : ''}`} />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 block h-5 w-5 rounded-full bg-red-500 text-white text-xs font-semibold flex items-center justify-center">
+                <span className="absolute flex items-center justify-center w-5 h-5 text-xs font-bold text-white rounded-full -top-1 -right-1 bg-gradient-to-r from-yellow-500 to-orange-500 ring-2 ring-gray-800 animate-pulse">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notifications dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 transform origin-top-right">
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-900">Notifications</h3>
+              <div className="absolute right-0 z-50 mt-2 overflow-hidden bg-gray-800 border border-gray-700 shadow-2xl w-96 rounded-xl animate-slideDown">
+                <div className="p-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-800/50">
+                  <div className="flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 font-semibold text-white">
+                      <BellIcon className="w-5 h-5 text-yellow-500" />
+                      Notifications
+                    </h3>
                     <div className="flex items-center space-x-2">
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllNotificationsAsRead}
-                          className="text-sm text-primary-600 hover:text-primary-800 font-medium"
-                          disabled={loadingNotifications}
+                          className="text-xs font-medium text-yellow-500 transition-colors hover:text-yellow-400"
                         >
-                          Mark all as read
+                          Mark all read
                         </button>
                       )}
                       <button
                         onClick={() => navigate('/admin/notifications')}
-                        className="text-sm text-gray-600 hover:text-gray-800 font-medium"
+                        className="text-xs font-medium text-gray-400 transition-colors hover:text-white"
                       >
                         View all
                       </button>
@@ -397,66 +253,52 @@ const Header = () => {
                   </div>
                 </div>
                 
-                <div className="max-h-96 overflow-y-auto">
+                <div className="overflow-y-auto max-h-96 custom-scrollbar">
                   {loadingNotifications ? (
                     <div className="p-8 text-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                      <p className="mt-3 text-sm text-gray-500">Loading notifications...</p>
+                      <div className="w-8 h-8 mx-auto border-2 border-yellow-500 rounded-full border-t-transparent animate-spin"></div>
+                      <p className="mt-3 text-sm text-gray-400">Loading notifications...</p>
                     </div>
                   ) : notifications.length > 0 ? (
-                    <div className="divide-y divide-gray-100">
-                      {notifications.map((notification) => (
+                    <div className="divide-y divide-gray-700">
+                      {notifications.map((notification, index) => (
                         <div
                           key={notification.id}
-                          className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-150 group ${
-                            !notification.read ? 'bg-blue-50' : ''
-                          }`}
+                          className={`p-4 hover:bg-gray-700 cursor-pointer transition-all duration-200 group ${
+                            !notification.read ? 'bg-yellow-600/5' : ''
+                          } animate-fadeIn`}
+                          style={{ animationDelay: `${index * 50}ms` }}
                           onClick={() => handleNotificationClick(notification)}
                         >
-                          <div className="flex items-start">
-                            <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${getNotificationColor(notification.type)}`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${getNotificationColor(notification.type)}`}>
                               {getNotificationIcon(notification.type)}
                             </div>
-                            <div className="ml-3 flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white">
                                 {notification.title}
                               </p>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="mt-1 text-sm text-gray-400 line-clamp-2">
                                 {notification.message}
                               </p>
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex items-center text-xs text-gray-500">
-                                  <ClockIcon className="h-3 w-3 mr-1" />
+                                  <ClockIcon className="w-3 h-3 mr-1" />
                                   {formatTime(notification.created_at)}
                                 </div>
                                 {!notification.read && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-800">
+                                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium text-white rounded-full bg-gradient-to-r from-yellow-500 to-orange-500">
                                     New
                                   </span>
                                 )}
                               </div>
-                              
-                              {/* Additional data if available */}
-                              {notification.data && (
-                                <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
-                                  {notification.data.order_id && (
-                                    <div>Order: #{notification.data.order_id}</div>
-                                  )}
-                                  {notification.data.amount && (
-                                    <div>Amount: ${parseFloat(notification.data.amount).toFixed(2)}</div>
-                                  )}
-                                  {notification.data.customer_name && (
-                                    <div>Customer: {notification.data.customer_name}</div>
-                                  )}
-                                </div>
-                              )}
                             </div>
                             <button
                               onClick={(e) => deleteNotification(notification.id, e)}
-                              className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-gray-400 hover:text-red-600 transition-opacity duration-150"
+                              className="p-1 text-gray-500 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:text-red-400"
                               aria-label="Delete notification"
                             >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
@@ -466,17 +308,11 @@ const Header = () => {
                     </div>
                   ) : (
                     <div className="p-8 text-center">
-                      <BellIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">No notifications</p>
-                      <p className="text-gray-400 text-xs mt-1">You're all caught up!</p>
+                      <BellIcon className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                      <p className="text-sm text-gray-400">No notifications</p>
+                      <p className="mt-1 text-xs text-gray-500">You're all caught up!</p>
                     </div>
                   )}
-                </div>
-                
-                <div className="p-3 border-t border-gray-200 bg-gray-50">
-                  <div className="text-xs text-gray-500 text-center">
-                    Notifications update every 30 seconds
-                  </div>
                 </div>
               </div>
             )}
@@ -489,35 +325,87 @@ const Header = () => {
                 setShowUserMenu(!showUserMenu);
                 setShowNotifications(false);
               }}
-              className="flex items-center space-x-3 p-1 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
+              className="flex items-center gap-3 p-1 transition-all duration-200 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 group"
               aria-label="User menu"
-              aria-expanded={showUserMenu}
             >
-              <div className="h-9 w-9 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 flex items-center justify-center text-white font-semibold shadow-sm">
-                {user?.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
-                    className="h-full w-full rounded-full object-cover border-2 border-white" 
-                  />
-                ) : (
-                  <span className="text-sm">{getUserInitials(user?.name)}</span>
+              <div className="relative">
+                <div className="flex items-center justify-center text-white transition-transform duration-200 rounded-full shadow-lg w-9 h-9 bg-gradient-to-r from-yellow-500 to-orange-500 group-hover:scale-105">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="object-cover w-full h-full rounded-full" />
+                  ) : (
+                    <span className="text-sm font-semibold">{getUserInitials(user?.name)}</span>
+                  )}
+                </div>
+                {user?.isAccountVerified && (
+                  <div className="absolute -bottom-0.5 -right-0.5">
+                    <div className="w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full"></div>
+                  </div>
                 )}
               </div>
-              <div className="hidden lg:block text-left">
-                <p className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+              <div className="hidden text-left lg:block">
+                <p className="text-sm font-semibold text-white truncate max-w-[150px] group-hover:text-yellow-500 transition-colors">
                   {user?.name || 'Administrator'}
                 </p>
-                <p className="text-xs text-gray-500 capitalize">
+                <p className="text-xs text-gray-400 capitalize">
                   {user?.role?.replace('_', ' ') || 'Super Admin'}
                 </p>
               </div>
             </button>
 
-            {/* User dropdown menu */}
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 z-50 transform origin-top-right">
-                {renderUserMenu()}
+              <div className="absolute right-0 z-50 w-64 mt-2 overflow-hidden bg-gray-800 border border-gray-700 shadow-2xl rounded-xl animate-slideDown">
+                <div className="p-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-800/50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-12 h-12 text-lg font-bold text-white rounded-full shadow-lg bg-gradient-to-r from-yellow-500 to-orange-500">
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="object-cover w-full h-full rounded-full" />
+                      ) : (
+                        <span>{getUserInitials(user?.name)}</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{user?.name || 'Administrator'}</p>
+                      <p className="text-xs text-gray-400">{user?.email || 'admin@example.com'}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <p className="text-xs text-green-400 capitalize">
+                          {user?.role?.replace('_', ' ') || 'Super Admin'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      navigate('/admin/profile');
+                      setShowUserMenu(false);
+                    }}
+                    className="flex items-center w-full px-3 py-2 text-sm text-gray-300 transition-all duration-200 rounded-lg hover:text-white hover:bg-gray-700 group"
+                  >
+                    <UserIcon className="w-5 h-5 mr-3 text-gray-500 transition-colors group-hover:text-yellow-500" />
+                    Your Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/admin/settings');
+                      setShowUserMenu(false);
+                    }}
+                    className="flex items-center w-full px-3 py-2 mt-1 text-sm text-gray-300 transition-all duration-200 rounded-lg hover:text-white hover:bg-gray-700 group"
+                  >
+                    <Cog6ToothIcon className="w-5 h-5 mr-3 text-gray-500 transition-colors group-hover:text-yellow-500" />
+                    Settings
+                  </button>
+                </div>
+                <div className="p-2 mt-2 border-t border-gray-700">
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center w-full px-3 py-2 text-sm text-red-400 transition-all duration-200 rounded-lg hover:text-red-300 hover:bg-red-900/20 group"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3 transition-colors group-hover:text-red-300" />
+                    Sign out
+                  </button>
+                </div>
               </div>
             )}
           </div>

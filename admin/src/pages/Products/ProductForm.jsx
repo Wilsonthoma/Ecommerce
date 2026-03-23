@@ -82,7 +82,6 @@ const ProductForm = () => {
   const [errors, setErrors] = useState({});
   const [filesToUpload, setFilesToUpload] = useState([]);
   const [touchedFields, setTouchedFields] = useState({});
-  const [tagInput, setTagInput] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -97,8 +96,6 @@ const ProductForm = () => {
     images: [],
     status: 'draft',
     sku: '',
-    barcode: '',
-    tags: [],
     vendor: '',
     trackQuantity: true,
     allowOutOfStockPurchase: false,
@@ -116,7 +113,6 @@ const ProductForm = () => {
     weight: '',
     weightUnit: 'kg',
     dimensions: { length: '', width: '', height: '', unit: 'cm' },
-    flatShippingRate: '',
     freeShipping: false,
     estimatedDeliveryMin: '',
     estimatedDeliveryMax: '',
@@ -218,10 +214,6 @@ const ProductForm = () => {
         ...prev,
         dimensions: { ...prev.dimensions, [dimensionKey]: value }
       }));
-    } else if (name === 'tags') {
-      setTagInput(value);
-      const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
-      setFormData(prev => ({ ...prev, tags: tagsArray }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -272,8 +264,6 @@ const ProductForm = () => {
           images: extractedImages,
           status: product.status || 'draft',
           sku: product.sku || '',
-          barcode: product.barcode || '',
-          tags: product.tags || [],
           vendor: product.vendor || '',
           trackQuantity: product.trackQuantity !== false,
           allowOutOfStockPurchase: Boolean(product.allowOutOfStockPurchase),
@@ -291,14 +281,11 @@ const ProductForm = () => {
           weight: product.weight?.toString() || '',
           weightUnit: product.weightUnit || 'kg',
           dimensions: product.dimensions || { length: '', width: '', height: '', unit: 'cm' },
-          flatShippingRate: product.flatShippingRate?.toString() || '',
           freeShipping: Boolean(product.freeShipping),
           estimatedDeliveryMin: product.estimatedDeliveryMin?.toString() || '',
           estimatedDeliveryMax: product.estimatedDeliveryMax?.toString() || '',
           notes: product.notes || ''
         });
-        
-        if (product.tags) setTagInput(product.tags.join(', '));
       } else {
         toast.error('Failed to fetch product');
         navigate('/products');
@@ -398,9 +385,7 @@ const ProductForm = () => {
       formDataObj.append('lowStockThreshold', parseInt(formData.lowStockThreshold) || 5);
       
       if (formData.sku) formDataObj.append('sku', String(formData.sku).trim());
-      if (formData.barcode) formDataObj.append('barcode', String(formData.barcode).trim());
       if (formData.vendor) formDataObj.append('vendor', String(formData.vendor).trim());
-      if (formData.tags.length) formDataObj.append('tags', JSON.stringify(formData.tags));
       
       if (formData.seoTitle) formDataObj.append('seoTitle', String(formData.seoTitle).trim());
       if (formData.seoDescription) formDataObj.append('seoDescription', String(formData.seoDescription).trim());
@@ -415,7 +400,6 @@ const ProductForm = () => {
       }
       
       formDataObj.append('freeShipping', String(formData.freeShipping));
-      if (formData.flatShippingRate) formDataObj.append('flatShippingRate', parseFloat(formData.flatShippingRate) || 0);
       if (formData.estimatedDeliveryMin) formDataObj.append('estimatedDeliveryMin', parseInt(formData.estimatedDeliveryMin) || 0);
       if (formData.estimatedDeliveryMax) formDataObj.append('estimatedDeliveryMax', parseInt(formData.estimatedDeliveryMax) || 0);
       if (formData.notes) formDataObj.append('notes', String(formData.notes).trim());
@@ -620,7 +604,7 @@ const ProductForm = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                       <label className="block mb-2 text-sm font-medium text-gray-300">SKU</label>
                       <input 
@@ -631,18 +615,6 @@ const ProductForm = () => {
                         onBlur={handleBlur}
                         className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" 
                         placeholder="e.g., PROD-001" 
-                      />
-                    </div>
-                    <div>
-                      <label className="block mb-2 text-sm font-medium text-gray-300">Barcode</label>
-                      <input 
-                        type="text" 
-                        name="barcode" 
-                        value={formData.barcode || ''} 
-                        onChange={handleChange} 
-                        onBlur={handleBlur}
-                        className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" 
-                        placeholder="Enter barcode" 
                       />
                     </div>
                     <div>
@@ -657,19 +629,6 @@ const ProductForm = () => {
                         placeholder="Supplier name" 
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block mb-2 text-sm font-medium text-gray-300">Tags</label>
-                    <input 
-                      type="text" 
-                      name="tags" 
-                      value={tagInput} 
-                      onChange={handleChange} 
-                      onBlur={handleBlur}
-                      className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" 
-                      placeholder="Enter tags separated by commas" 
-                    />
                   </div>
                 </div>
               </div>
@@ -984,19 +943,6 @@ const ProductForm = () => {
                             {weightUnits.map(unit => <option key={unit} value={unit}>{unit}</option>)}
                           </select>
                         </div>
-                      </div>
-                      <div>
-                        <label className="block mb-2 text-sm font-medium text-gray-300">Flat Shipping Rate (KSh)</label>
-                        <input 
-                          type="number" 
-                          name="flatShippingRate" 
-                          min="0" 
-                          step="0.01" 
-                          value={formData.flatShippingRate ?? ''} 
-                          onChange={handleChange} 
-                          className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500" 
-                          placeholder="e.g., 500" 
-                        />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>

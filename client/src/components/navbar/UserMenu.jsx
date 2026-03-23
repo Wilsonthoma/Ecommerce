@@ -1,7 +1,19 @@
-// src/components/navbar/UserMenu.jsx
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUser, FiChevronDown, FiHome, FiPackage, FiHeart, FiSettings, FiLogOut, FiLogIn, FiShield, FiCheckCircle } from 'react-icons/fi';
+import { 
+  FiUser, 
+  FiChevronDown, 
+  FiHome, 
+  FiPackage, 
+  FiHeart, 
+  FiSettings, 
+  FiLogOut, 
+  FiLogIn, 
+  FiShield, 
+  FiCheckCircle,
+  FiChevronRight  // ✅ ADD THIS MISSING IMPORT
+} from 'react-icons/fi';
 import { MdVerified, MdWarning } from 'react-icons/md';
 
 const UserMenu = ({ 

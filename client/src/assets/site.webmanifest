@@ -1,0 +1,20 @@
+{
+  "name": "KwetuShop",
+  "short_name": "KwetuShop",
+  "description": "Your Trusted Electronics Store in Kenya",
+  "icons": [
+    {
+      "src": "/src/assets/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#EAB308",
+  "background_color": "#000000",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait",
+  "categories": ["shopping", "electronics"],
+  "lang": "en-KE"
+}

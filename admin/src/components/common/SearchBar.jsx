@@ -25,7 +25,6 @@ const SearchBar = ({
   const inputRef = useRef(null);
   const debouncedQuery = useDebounce(query, debounceDelay);
 
-  // Trigger search on debounced query change
   useEffect(() => {
     if (autoSearch && debouncedQuery !== undefined && onSearch) {
       onSearch(debouncedQuery.trim());
@@ -41,25 +40,15 @@ const SearchBar = ({
 
   const handleClear = () => {
     setQuery('');
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    if (onClear) {
-      onClear();
-    }
-    if (onSearch && autoSearch) {
-      onSearch('');
-    }
+    if (inputRef.current) inputRef.current.focus();
+    if (onClear) onClear();
+    if (onSearch && autoSearch) onSearch('');
   };
 
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-    
-    // If not using debounce, call onSearch directly
-    if (!autoSearch && onSearch && value.trim() === '') {
-      onSearch('');
-    }
+    if (!autoSearch && onSearch && value.trim() === '') onSearch('');
   };
 
   const sizeClasses = {
@@ -79,11 +68,11 @@ const SearchBar = ({
       <form onSubmit={handleSubmit} className="relative">
         <div className={`relative rounded-lg transition-all duration-200 ${
           isFocused 
-            ? 'ring-2 ring-primary-500 ring-offset-1' 
-            : 'hover:ring-1 hover:ring-gray-300'
+            ? 'ring-2 ring-yellow-500 ring-offset-1 ring-offset-gray-900' 
+            : 'hover:ring-1 hover:ring-gray-600'
         }`}>
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className={`${iconSizes[size]} text-gray-400`} />
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <MagnifyingGlassIcon className={`${iconSizes[size]} text-gray-500`} />
           </div>
           
           <input
@@ -93,7 +82,7 @@ const SearchBar = ({
             onChange={handleChange}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            className={`block w-full pl-10 ${showFiltersButton ? 'pr-20' : showClearButton ? 'pr-10' : 'pr-4'} border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:border-transparent ${
+            className={`block w-full pl-10 ${showFiltersButton ? 'pr-20' : showClearButton ? 'pr-10' : 'pr-4'} bg-gray-800 border border-gray-700 rounded-lg leading-5 text-white placeholder-gray-500 focus:outline-none focus:border-transparent ${
               sizeClasses[size]
             }`}
             placeholder={placeholder}
@@ -105,7 +94,7 @@ const SearchBar = ({
               <button
                 type="button"
                 onClick={handleClear}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors duration-150"
+                className="p-1 text-gray-500 transition-colors duration-150 hover:text-gray-300"
                 aria-label="Clear search"
               >
                 <XMarkIcon className={iconSizes[size]} />
@@ -116,7 +105,7 @@ const SearchBar = ({
               <button
                 type="button"
                 onClick={onFiltersClick}
-                className="ml-1 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors duration-150"
+                className="ml-1 p-1.5 text-gray-500 hover:text-gray-300 hover:bg-gray-700 rounded-md transition-colors duration-150"
                 aria-label="Open filters"
               >
                 <FunnelIcon className={iconSizes[size]} />
@@ -128,18 +117,17 @@ const SearchBar = ({
         {!autoSearch && (
           <button
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary-500 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:from-yellow-700 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition-colors duration-150"
           >
             Search
           </button>
         )}
       </form>
       
-      {/* Search suggestions (example) */}
       {isFocused && query && (
-        <div className="absolute top-full mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+        <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl top-full">
           <div className="py-2">
-            <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="px-4 py-2 text-xs font-medium tracking-wider text-gray-500 uppercase">
               Recent Searches
             </div>
             {['iPhone 14', 'MacBook Pro', 'Samsung TV'].map((suggestion, index) => (
@@ -149,9 +137,9 @@ const SearchBar = ({
                   setQuery(suggestion);
                   if (onSearch) onSearch(suggestion);
                 }}
-                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-gray-700"
               >
-                <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 mr-3" />
+                <MagnifyingGlassIcon className="w-4 h-4 mr-3 text-gray-500" />
                 {suggestion}
               </button>
             ))}
@@ -182,28 +170,20 @@ export const FilterBar = ({
     }
     
     setActiveFilters(newFilters);
-    if (onFilterChange) {
-      onFilterChange(newFilters);
-    }
+    if (onFilterChange) onFilterChange(newFilters);
   };
 
   const clearFilter = (filterName) => {
     const newFilters = { ...activeFilters };
     delete newFilters[filterName];
     setActiveFilters(newFilters);
-    if (onFilterChange) {
-      onFilterChange(newFilters);
-    }
+    if (onFilterChange) onFilterChange(newFilters);
   };
 
   const clearAllFilters = () => {
     setActiveFilters({});
-    if (onFilterChange) {
-      onFilterChange({});
-    }
-    if (onClearAll) {
-      onClearAll();
-    }
+    if (onFilterChange) onFilterChange({});
+    if (onClearAll) onClearAll();
   };
 
   const getFilteredOptions = (options) => {
@@ -214,11 +194,11 @@ export const FilterBar = ({
   };
 
   return (
-    <div className={`bg-white p-5 rounded-xl border border-gray-200 shadow-sm ${className}`}>
-      <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+    <div className={`bg-gray-800 border border-gray-700 rounded-xl p-5 ${className}`}>
+      <div className="flex flex-col gap-4 mb-4 md:flex-row md:items-center">
         <div className="flex items-center">
-          <AdjustmentsHorizontalIcon className="h-5 w-5 text-gray-500 mr-2" />
-          <h3 className="text-sm font-semibold text-gray-700">Filters</h3>
+          <AdjustmentsHorizontalIcon className="w-5 h-5 mr-2 text-yellow-500" />
+          <h3 className="text-sm font-semibold text-white">Filters</h3>
         </div>
         
         {showSearch && (
@@ -228,7 +208,7 @@ export const FilterBar = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search filters..."
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+              className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
             />
           </div>
         )}
@@ -236,17 +216,17 @@ export const FilterBar = ({
         {Object.keys(activeFilters).length > 0 && (
           <button
             onClick={clearAllFilters}
-            className="text-sm text-red-600 hover:text-red-800 font-medium px-3 py-1.5 hover:bg-red-50 rounded-md transition-colors duration-150"
+            className="text-sm text-red-400 hover:text-red-300 font-medium px-3 py-1.5 hover:bg-red-900/20 rounded-md transition-colors duration-150"
           >
             Clear all
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {filters.map((filter) => (
           <div key={filter.name} className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-300">
               {filter.label}
             </label>
             
@@ -254,7 +234,7 @@ export const FilterBar = ({
               <select
                 value={activeFilters[filter.name] || ''}
                 onChange={(e) => handleFilterChange(filter.name, e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm text-white bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
               >
                 <option value="">All {filter.label}</option>
                 {getFilteredOptions(filter.options).map((option) => (
@@ -268,7 +248,7 @@ export const FilterBar = ({
                 type="date"
                 value={activeFilters[filter.name] || ''}
                 onChange={(e) => handleFilterChange(filter.name, e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 text-sm text-white bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
               />
             ) : filter.type === 'range' ? (
               <div className="flex space-x-2">
@@ -280,7 +260,7 @@ export const FilterBar = ({
                     ...(activeFilters[filter.name] || {}),
                     min: e.target.value
                   })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 text-sm text-white placeholder-gray-500 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                 />
                 <input
                   type="number"
@@ -290,11 +270,11 @@ export const FilterBar = ({
                     ...(activeFilters[filter.name] || {}),
                     max: e.target.value
                   })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 text-sm text-white placeholder-gray-500 bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-1 focus:ring-yellow-500 focus:border-yellow-500"
                 />
               </div>
             ) : filter.type === 'checkbox' ? (
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-1 overflow-y-auto max-h-32">
                 {getFilteredOptions(filter.options).map((option) => (
                   <label key={option.value} className="flex items-center">
                     <input
@@ -312,9 +292,9 @@ export const FilterBar = ({
                         
                         handleFilterChange(filter.name, newValues);
                       }}
-                      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      className="w-4 h-4 text-yellow-600 bg-gray-700 border-gray-600 rounded focus:ring-yellow-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">{option.label}</span>
+                    <span className="ml-2 text-sm text-gray-300">{option.label}</span>
                   </label>
                 ))}
               </div>
@@ -323,17 +303,14 @@ export const FilterBar = ({
         ))}
       </div>
 
-      {/* Active filters chips */}
       {Object.keys(activeFilters).length > 0 && (
-        <div className="mt-5 pt-5 border-t border-gray-200">
+        <div className="pt-5 mt-5 border-t border-gray-700">
           <div className="flex flex-wrap gap-2">
-            <span className="text-sm text-gray-600 font-medium">Active filters:</span>
+            <span className="text-sm font-medium text-gray-400">Active filters:</span>
             {Object.entries(activeFilters).map(([key, value]) => {
               const filter = filters.find(f => f.name === key);
-              
               if (!filter) return null;
               
-              // Handle different filter types
               let displayValue;
               
               if (filter.type === 'checkbox' && Array.isArray(value)) {
@@ -354,16 +331,16 @@ export const FilterBar = ({
               return (
                 <span
                   key={key}
-                  className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100"
+                  className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-600/20 text-yellow-400 border border-yellow-600/30"
                 >
                   <span className="font-semibold">{filter.label}:</span>
                   <span className="ml-1">{displayValue}</span>
                   <button
                     onClick={() => clearFilter(key)}
-                    className="ml-2 text-primary-500 hover:text-primary-700"
+                    className="ml-2 text-yellow-400 hover:text-yellow-300"
                     aria-label={`Remove ${filter.label} filter`}
                   >
-                    <XMarkIcon className="h-3 w-3" />
+                    <XMarkIcon className="w-3 h-3" />
                   </button>
                 </span>
               );
@@ -374,47 +351,5 @@ export const FilterBar = ({
     </div>
   );
 };
-
-// Example usage of FilterBar:
-/*
-const productFilters = [
-  {
-    name: 'category',
-    label: 'Category',
-    type: 'select',
-    options: [
-      { value: 'electronics', label: 'Electronics' },
-      { value: 'clothing', label: 'Clothing' },
-      { value: 'home', label: 'Home & Garden' },
-    ]
-  },
-  {
-    name: 'status',
-    label: 'Status',
-    type: 'select',
-    options: [
-      { value: 'active', label: 'Active' },
-      { value: 'draft', label: 'Draft' },
-      { value: 'archived', label: 'Archived' },
-    ]
-  },
-  {
-    name: 'price_range',
-    label: 'Price Range',
-    type: 'range',
-    options: []
-  },
-  {
-    name: 'tags',
-    label: 'Tags',
-    type: 'checkbox',
-    options: [
-      { value: 'featured', label: 'Featured' },
-      { value: 'new', label: 'New Arrival' },
-      { value: 'sale', label: 'On Sale' },
-    ]
-  }
-];
-*/
 
 export default SearchBar;

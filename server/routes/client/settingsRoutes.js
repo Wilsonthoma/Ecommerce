@@ -1,7 +1,7 @@
-// src/routes/client/settingsRoutes.js
+// server/routes/client/settingsRoutes.js
 import express from 'express';
 import { body } from 'express-validator';
-import { protect } from '../../middleware/auth.js';
+import { protectUser } from '../../middleware/authMiddleware.js';  // ✅ Use protectUser for client routes
 import {
   getUserSettings,
   updateUserSettings,
@@ -15,11 +15,11 @@ import {
 
 const router = express.Router();
 
-// Public route
+// Public route - no auth required
 router.get('/public-profile/:userId', getPublicProfile);
 
-// Protected routes
-router.use(protect);
+// Protected routes - require user authentication
+router.use(protectUser);  // ✅ This requires user to be logged in
 
 // Main settings
 router.route('/')

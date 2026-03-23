@@ -10,7 +10,6 @@ import {
   ArrowPathIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  TagIcon,
   CurrencyDollarIcon,
   TruckIcon,
   InformationCircleIcon,
@@ -449,18 +448,6 @@ const ProductDetails = () => {
                         </div>
                       )}
                     </div>
-                    <div className="col-span-2">
-                      <h3 className="mb-2 text-sm font-medium text-gray-400">Tags</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {product.tags?.length > 0 ? (
-                          product.tags.map(tag => (
-                            <span key={tag} className="px-2 py-1 text-xs text-gray-300 bg-gray-700 rounded-full">{tag}</span>
-                          ))
-                        ) : (
-                          <p className="text-sm text-gray-500">No tags</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 )}
 
@@ -591,12 +578,6 @@ const ProductDetails = () => {
                                   {product.freeShipping ? 'Yes' : 'No'}
                                 </span>
                               </div>
-                              {product.flatShippingRate && !product.freeShipping && (
-                                <div className="flex justify-between">
-                                  <span className="text-gray-500">Flat Rate</span>
-                                  <span className="text-white">{formatCurrency(product.flatShippingRate)}</span>
-                                </div>
-                              )}
                               {product.estimatedDeliveryMin && product.estimatedDeliveryMax && (
                                 <div className="flex justify-between">
                                   <span className="text-gray-500">Estimated Delivery</span>
@@ -669,7 +650,7 @@ const ProductDetails = () => {
             </div>
 
             {/* Vendor & SKU Info */}
-            {(product.sku || product.barcode || product.vendor) && (
+            {(product.sku || product.vendor) && (
               <div className="p-6 bg-gray-800 border border-gray-700 rounded-xl">
                 <h2 className="mb-4 text-lg font-semibold text-white">Identifiers</h2>
                 <div className="space-y-3">
@@ -677,12 +658,6 @@ const ProductDetails = () => {
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-400">SKU</span>
                       <span className="font-mono text-sm text-white">{product.sku}</span>
-                    </div>
-                  )}
-                  {product.barcode && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-400">Barcode</span>
-                      <span className="font-mono text-sm text-white">{product.barcode}</span>
                     </div>
                   )}
                   {product.vendor && (

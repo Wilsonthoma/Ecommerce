@@ -1,29 +1,36 @@
 import React from 'react';
 import { ArrowTrendingUpIcon, ArrowTrendingDownIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 
-const StatsCard = ({ title, value, change, icon, color = 'blue', loading = false }) => {
+const StatsCard = ({ title, value, change, icon, color = 'yellow', loading = false }) => {
+  // Define color classes safely
   const colorClasses = {
-    blue: 'bg-blue-50 border-blue-100',
-    emerald: 'bg-emerald-50 border-emerald-100',
-    purple: 'bg-purple-50 border-purple-100',
-    amber: 'bg-amber-50 border-amber-100',
-    red: 'bg-red-50 border-red-100',
-    gray: 'bg-gray-50 border-gray-100'
+    yellow: 'bg-yellow-500/10 border-yellow-500/30',
+    orange: 'bg-orange-500/10 border-orange-500/30',
+    amber: 'bg-amber-500/10 border-amber-500/30',
+    green: 'bg-green-500/10 border-green-500/30',
+    emerald: 'bg-emerald-500/10 border-emerald-500/30',
+    blue: 'bg-blue-500/10 border-blue-500/30',
+    purple: 'bg-purple-500/10 border-purple-500/30',
+    red: 'bg-red-500/10 border-red-500/30',
+    gray: 'bg-gray-500/10 border-gray-500/30'
   };
 
   const iconColors = {
-    blue: 'text-blue-600',
-    emerald: 'text-emerald-600',
-    purple: 'text-purple-600',
-    amber: 'text-amber-600',
-    red: 'text-red-600',
-    gray: 'text-gray-600'
+    yellow: 'text-yellow-500',
+    orange: 'text-orange-500',
+    amber: 'text-amber-500',
+    green: 'text-green-500',
+    emerald: 'text-emerald-500',
+    blue: 'text-blue-500',
+    purple: 'text-purple-500',
+    red: 'text-red-500',
+    gray: 'text-gray-500'
   };
 
   const changeColors = {
-    positive: 'text-emerald-600 bg-emerald-50',
-    negative: 'text-red-600 bg-red-50',
-    neutral: 'text-gray-600 bg-gray-50'
+    positive: 'text-emerald-400 bg-emerald-500/10',
+    negative: 'text-red-400 bg-red-500/10',
+    neutral: 'text-gray-400 bg-gray-500/10'
   };
 
   const getChangeType = () => {
@@ -32,45 +39,58 @@ const StatsCard = ({ title, value, change, icon, color = 'blue', loading = false
     return 'neutral';
   };
 
+  const getSafeValue = (val) => {
+    if (val === undefined || val === null) return 0;
+    if (typeof val === 'string') return parseFloat(val) || 0;
+    return val;
+  };
+
   const changeType = getChangeType();
+  const safeChange = getSafeValue(change);
   
-  const ChangeIcon = change > 0 
+  const ChangeIcon = safeChange > 0 
     ? ArrowTrendingUpIcon 
-    : change < 0 
+    : safeChange < 0 
       ? ArrowTrendingDownIcon 
       : ArrowsRightLeftIcon;
 
+  // Get safe color class with fallback
+  const cardColorClass = colorClasses[color] || colorClasses.yellow;
+  const iconColorClass = iconColors[color] || iconColors.yellow;
+
   if (loading) {
     return (
-      <div className={`rounded-xl border p-5 ${colorClasses[color]} animate-pulse`}>
+      <div className={`rounded-xl border p-5 ${cardColorClass} animate-pulse`}>
         <div className="flex items-center justify-between">
-          <div className="space-y-2 flex-1">
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+          <div className="flex-1 space-y-2">
+            <div className="w-1/2 h-4 bg-gray-700 rounded"></div>
+            <div className="w-3/4 h-8 bg-gray-700 rounded"></div>
           </div>
-          <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
+          <div className="w-10 h-10 bg-gray-700 rounded-lg"></div>
         </div>
       </div>
     );
   }
 
+  const formattedChange = safeChange > 0 ? `+${safeChange.toFixed(1)}%` : safeChange < 0 ? `${safeChange.toFixed(1)}%` : '0%';
+
   return (
-    <div className={`rounded-xl border p-5 ${colorClasses[color]}`}>
+    <div className={`rounded-xl border p-5 ${cardColorClass}`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-sm font-medium text-gray-400">{title || 'Metric'}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{value || '0'}</p>
           
           <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-3 ${changeColors[changeType]}`}>
-            <ChangeIcon className="h-3 w-3 mr-1" />
-            <span>{change > 0 ? '+' : ''}{change}%</span>
+            <ChangeIcon className="w-3 h-3 mr-1" />
+            <span>{formattedChange}</span>
             <span className="ml-1">from last period</span>
           </div>
         </div>
         
-        <div className={`p-3 rounded-lg ${colorClasses[color].replace('-50', '-100').replace('border-', 'bg-')}`}>
-          <div className={iconColors[color]}>
-            {icon}
+        <div className={`p-3 rounded-lg ${cardColorClass}`}>
+          <div className={iconColorClass}>
+            {icon || <div className="w-6 h-6" />}
           </div>
         </div>
       </div>

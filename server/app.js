@@ -1,4 +1,4 @@
-// backend/app.js - COMPLETE FIXED VERSION WITH ALL CORRECTIONS
+// backend/app.js - COMPLETE FIXED VERSION
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -27,6 +27,16 @@ import logger from './utils/logger.js';
 import authRouter from './routes/authRoutes.js';
 import userRouter from './routes/userRoutes.js';
 import indexRouter from './routes/index.js';
+
+// ✅ ADD MISSING IMPORTS
+import publicSettingsRoutes from './routes/public/settingsRoutes.js';
+import clientSettingsRoutes from './routes/client/settingsRoutes.js';
+import adminSettingsRoutes from './routes/admin/settingsRoutes.js';
+import adminProductRoutes from './routes/admin/productRoutes.js';
+import adminOrderRoutes from './routes/admin/orderRoutes.js';
+import adminUserRoutes from './routes/admin/userRoutes.js';
+import adminAnalyticsRoutes from './routes/admin/analyticsRoutes.js';
+import adminNotificationRoutes from './routes/admin/notificationRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -172,7 +182,7 @@ app.use(mongoSanitize());
 app.use(xss());
 app.use(hpp());
 
-// ==================== ✅ FIXED: SESSION MANAGEMENT WITH ALL CORRECTIONS ====================
+// ==================== SESSION MANAGEMENT ====================
 const sessionConfig = {
     secret: process.env.SESSION_SECRET || '9771ea993cb28fde5e239b22a2d3d98abb0d197917c8e8ca15df65df31e169c8',
     resave: true,
@@ -181,12 +191,12 @@ const sessionConfig = {
         maxAge: 20 * 60 * 1000, // 20 minutes
         secure: false, // Set to false for development (HTTP)
         httpOnly: true,
-        sameSite: 'lax', // Use 'lax' for development
-        domain: 'localhost' // Added domain for localhost
+        sameSite: 'lax',
+        domain: 'localhost'
     },
     name: 'kwetu.sid',
     rolling: true,
-    proxy: true // Added proxy for localhost
+    proxy: true
 };
 
 // Use MongoDB for session store
@@ -195,7 +205,7 @@ try {
         mongoUrl: process.env.DB_URI || process.env.MONGODB_URI,
         ttl: 20 * 60, // 20 minutes in seconds
         autoRemove: 'native',
-        touchAfter: 24 * 3600 // lazy session update
+        touchAfter: 24 * 3600
     });
     console.log('📦 Using MongoDB session store'.green);
 } catch (error) {
@@ -204,7 +214,7 @@ try {
 
 app.use(session(sessionConfig));
 
-// ✅ ADDED: Comprehensive cookie debugging middleware
+// ✅ Cookie debugging middleware
 app.use((req, res, next) => {
     console.log('🍪 Complete Cookie Debug:', {
         path: req.path,
@@ -246,14 +256,14 @@ app.use('/api/auth/google', oauthLimiter);
 app.use('/api/auth/google/callback', oauthLimiter);
 
 // ==================== CSRF PROTECTION ====================
-// CSRF Protection for state-changing methods
 app.use('/api', (req, res, next) => {
     // Skip CSRF for OAuth callbacks and public endpoints
     if (req.path.includes('/auth/google/callback') ||
         req.path.includes('/health') ||
         req.path.includes('/csrf-token') ||
         req.path.includes('/webhook') ||
-        req.path.includes('/debug')) {
+        req.path.includes('/debug') ||
+        req.path.includes('/public/')) {
         return next();
     }
 
@@ -267,7 +277,6 @@ app.use('/api', (req, res, next) => {
 app.get('/api/csrf-token', getCsrfToken);
 
 // ==================== STATIC FILES ====================
-// Serve static files from main uploads directory
 app.use('/uploads', express.static(uploadsPath, {
     maxAge: config.isProduction?.() ? '30d' : 0,
     etag: true,
@@ -275,11 +284,9 @@ app.use('/uploads', express.static(uploadsPath, {
     setHeaders: (res, filePath) => {
         res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         res.setHeader('Cache-Control', 'public, max-age=31536000');
-        console.log(`📸 Serving static file: ${path.basename(filePath)}`.gray);
     }
 }));
 
-// Explicitly serve products subfolder
 app.use('/uploads/products', express.static(path.join(uploadsPath, 'products'), {
     maxAge: config.isProduction?.() ? '30d' : 0,
     etag: true,
@@ -295,7 +302,6 @@ app.get('/api/health', (req, res) => {
     const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
     const dbState = ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown';
     
-    // Get uploads stats
     let uploadsStats = {
         path: uploadsPath,
         exists: fs.existsSync(uploadsPath),
@@ -333,10 +339,8 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ==================== DEBUG ENDPOINTS (MUST COME BEFORE API ROUTES) ====================
+// ==================== DEBUG ENDPOINTS ====================
 if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
-    
-    // ✅ Session debug endpoint
     app.get('/api/debug/session', (req, res) => {
         try {
             const sessionData = {
@@ -351,7 +355,6 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                 sessionStore: req.sessionStore ? 'configured' : 'missing'
             };
             
-            console.log('📊 Session Debug Endpoint Called:', sessionData);
             res.json({ 
                 success: true, 
                 message: 'Session debug info',
@@ -359,16 +362,13 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
                 timestamp: new Date().toISOString()
             });
         } catch (error) {
-            console.error('❌ Session debug error:', error);
             res.status(500).json({ 
                 success: false, 
-                error: error.message,
-                timestamp: new Date().toISOString()
+                error: error.message 
             });
         }
     });
 
-    // Uploads debug endpoint
     app.get('/api/debug/uploads', (req, res) => {
         try {
             const folderExists = fs.existsSync(uploadsPath);
@@ -413,13 +413,11 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         } catch (error) {
             res.status(500).json({
                 success: false,
-                error: error.message,
-                path: uploadsPath
+                error: error.message
             });
         }
     });
 
-    // Test endpoint
     app.get('/api/debug/test', (req, res) => {
         res.json({
             success: true,
@@ -429,7 +427,6 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         });
     });
 
-    // Routes debug endpoint
     app.get('/api/debug/routes', (req, res) => {
         const routes = [];
 
@@ -467,7 +464,6 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
         });
     });
 
-    // Config debug endpoint
     app.get('/api/debug/config', (req, res) => {
         const safeConfig = {
             environment: config.server?.env || process.env.NODE_ENV,
@@ -503,7 +499,24 @@ if (config.isDevelopment?.() || process.env.NODE_ENV === 'development') {
     });
 }
 
-// ==================== API ROUTES (THESE COME AFTER DEBUG ENDPOINTS) ====================
+// ==================== API ROUTES ====================
+// Public settings routes (no auth required)
+app.use('/api/public/settings', publicSettingsRoutes);
+
+// Client settings routes (requires auth)
+app.use('/api/client/settings', clientSettingsRoutes);
+
+// Admin settings routes (requires admin auth)
+app.use('/api/admin/settings', adminSettingsRoutes);
+
+// Admin routes
+app.use('/api/admin/products', adminProductRoutes);
+app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
+app.use('/api/admin/notifications', adminNotificationRoutes);
+
+// Main API router (includes all other routes)
 app.use('/api', indexRouter);
 
 // ==================== ROOT ENDPOINT ====================
@@ -524,7 +537,9 @@ app.get('/', (req, res) => {
             products: '/api/products',
             categories: '/api/categories',
             cart: '/api/cart',
-            admin: '/api/admin'
+            admin: '/api/admin',
+            publicSettings: '/api/public/settings',
+            clientSettings: '/api/client/settings'
         }
     });
 });

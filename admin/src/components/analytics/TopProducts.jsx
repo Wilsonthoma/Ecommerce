@@ -19,15 +19,15 @@ const TopProducts = ({ products, loading }) => {
     return (
       <div className="space-y-4">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="flex items-center p-3 bg-gray-50 rounded-lg animate-pulse">
-            <div className="h-10 w-10 bg-gray-200 rounded-lg mr-4"></div>
+          <div key={i} className="flex items-center p-3 bg-gray-800 rounded-lg animate-pulse">
+            <div className="w-10 h-10 mr-4 bg-gray-700 rounded-lg"></div>
             <div className="flex-1">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+              <div className="w-1/2 h-4 mb-2 bg-gray-700 rounded"></div>
+              <div className="w-1/4 h-3 bg-gray-700 rounded"></div>
             </div>
             <div className="text-right">
-              <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded w-12"></div>
+              <div className="w-16 h-4 mb-2 bg-gray-700 rounded"></div>
+              <div className="w-12 h-3 bg-gray-700 rounded"></div>
             </div>
           </div>
         ))}
@@ -37,9 +37,9 @@ const TopProducts = ({ products, loading }) => {
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-8">
-        <div className="text-gray-400 mb-2">No products data available</div>
-        <p className="text-sm text-gray-500">Start adding products to see analytics</p>
+      <div className="py-8 text-center">
+        <div className="mb-2 text-gray-500">No products data available</div>
+        <p className="text-sm text-gray-600">Start adding products to see analytics</p>
       </div>
     );
   }
@@ -47,35 +47,35 @@ const TopProducts = ({ products, loading }) => {
   return (
     <div className="space-y-3">
       {products.map((product, index) => (
-        <div key={product.id} className="flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors">
-          <div className="flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-600 rounded-lg font-semibold text-sm mr-4">
+        <div key={product.id} className="flex items-center p-3 transition-colors rounded-lg hover:bg-gray-800">
+          <div className="flex items-center justify-center w-10 h-10 mr-4 text-sm font-semibold text-yellow-500 rounded-lg bg-yellow-500/20">
             #{index + 1}
           </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center">
-              <h4 className="font-medium text-gray-900 truncate">{product.name}</h4>
+              <h4 className="font-medium text-white truncate">{product.name}</h4>
               <div className="flex items-center ml-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   star <= Math.floor(product.rating || 4) ? (
-                    <StarIcon key={star} className="h-3 w-3 text-amber-400 fill-current" />
+                    <StarIcon key={star} className="w-3 h-3 text-yellow-500 fill-current" />
                   ) : (
-                    <StarOutline key={star} className="h-3 w-3 text-amber-400" />
+                    <StarOutline key={star} className="w-3 h-3 text-yellow-500" />
                   )
                 ))}
-                <span className="text-xs text-gray-500 ml-1">{product.rating?.toFixed(1) || '4.0'}</span>
+                <span className="ml-1 text-xs text-gray-500">{product.rating?.toFixed(1) || '4.0'}</span>
               </div>
             </div>
-            <p className="text-sm text-gray-500 truncate">
+            <p className="text-sm text-gray-400 truncate">
               {formatNumber(product.sales || 0)} units sold
             </p>
           </div>
           
-          <div className="text-right ml-4">
-            <div className="font-semibold text-gray-900">
+          <div className="ml-4 text-right">
+            <div className="font-semibold text-white">
               {formatCurrency(product.revenue || 0)}
             </div>
-            <div className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
+            <div className="text-xs text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full inline-block">
               {product.revenue && product.sales 
                 ? formatCurrency(Math.round(product.revenue / product.sales))
                 : formatCurrency(0)}

@@ -23,32 +23,32 @@ const RecentOrders = ({ orders, loading }) => {
     switch (status?.toLowerCase()) {
       case 'completed':
         return {
-          icon: <CheckCircleIcon className="h-4 w-4" />,
-          color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+          icon: <CheckCircleIcon className="w-4 h-4" />,
+          color: 'text-green-400 bg-green-500/10 border-green-500/30',
           text: 'Completed'
         };
       case 'processing':
         return {
-          icon: <ClockIcon className="h-4 w-4" />,
-          color: 'text-blue-600 bg-blue-50 border-blue-200',
+          icon: <ClockIcon className="w-4 h-4" />,
+          color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
           text: 'Processing'
         };
       case 'shipped':
         return {
-          icon: <TruckIcon className="h-4 w-4" />,
-          color: 'text-amber-600 bg-amber-50 border-amber-200',
+          icon: <TruckIcon className="w-4 h-4" />,
+          color: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
           text: 'Shipped'
         };
       case 'cancelled':
         return {
-          icon: <XCircleIcon className="h-4 w-4" />,
-          color: 'text-red-600 bg-red-50 border-red-200',
+          icon: <XCircleIcon className="w-4 h-4" />,
+          color: 'text-red-400 bg-red-500/10 border-red-500/30',
           text: 'Cancelled'
         };
       default:
         return {
-          icon: <ClockIcon className="h-4 w-4" />,
-          color: 'text-gray-600 bg-gray-50 border-gray-200',
+          icon: <ClockIcon className="w-4 h-4" />,
+          color: 'text-gray-400 bg-gray-500/10 border-gray-500/30',
           text: 'Pending'
         };
     }
@@ -57,33 +57,33 @@ const RecentOrders = ({ orders, loading }) => {
   if (loading) {
     return (
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-700">
           <thead>
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Order ID</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Customer</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Amount</th>
+              <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-700">
             {[1, 2, 3, 4, 5].map((i) => (
               <tr key={i}>
                 <td className="px-4 py-3">
-                  <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  <div className="w-24 h-4 bg-gray-700 rounded animate-pulse"></div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  <div className="w-32 h-4 bg-gray-700 rounded animate-pulse"></div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                  <div className="w-20 h-4 bg-gray-700 rounded animate-pulse"></div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                  <div className="w-16 h-4 bg-gray-700 rounded animate-pulse"></div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="h-6 bg-gray-200 rounded w-20"></div>
+                  <div className="w-20 h-6 bg-gray-700 rounded animate-pulse"></div>
                 </td>
               </tr>
             ))}
@@ -95,43 +95,43 @@ const RecentOrders = ({ orders, loading }) => {
 
   if (!orders || orders.length === 0) {
     return (
-      <div className="text-center py-8">
-        <div className="text-gray-400 mb-2">No recent orders</div>
-        <p className="text-sm text-gray-500">Orders will appear here once they are placed</p>
+      <div className="py-8 text-center">
+        <div className="mb-2 text-gray-500">No recent orders</div>
+        <p className="text-sm text-gray-600">Orders will appear here once they are placed</p>
       </div>
     );
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-gray-700">
         <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Order ID</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Customer</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Date</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Amount</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Status</th>
+            <th className="px-4 py-3 text-xs font-medium tracking-wider text-left text-gray-500 uppercase">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-200">
+        <tbody className="divide-y divide-gray-700">
           {orders.map((order) => {
             const statusConfig = getStatusConfig(order.status);
             
             return (
-              <tr key={order.id} className="hover:bg-gray-50">
+              <tr key={order.id} className="transition-colors hover:bg-gray-800">
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{order.id}</div>
+                  <div className="text-sm font-medium text-white">{order.id}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{order.customer}</div>
+                  <div className="text-sm text-gray-300">{order.customer}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-600">{formatDate(order.date)}</div>
+                  <div className="text-sm text-gray-400">{formatDate(order.date)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{formatCurrency(order.amount)}</div>
+                  <div className="text-sm font-medium text-white">{formatCurrency(order.amount)}</div>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
@@ -139,8 +139,8 @@ const RecentOrders = ({ orders, loading }) => {
                     {statusConfig.text}
                   </div>
                 </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                  <button className="text-blue-600 hover:text-blue-900">View</button>
+                <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                  <button className="text-yellow-500 transition-colors hover:text-yellow-400">View</button>
                 </td>
               </tr>
             );

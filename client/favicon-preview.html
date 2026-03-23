@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Favicon Preview - KwetuShop</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            font-family: 'Inter', sans-serif;
+            padding: 40px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            color: #EAB308;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: #EAB308;
+        }
+        .card img {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 12px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .card h3 {
+            color: #EAB308;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .card p {
+            color: #888;
+            font-size: 11px;
+        }
+        .active {
+            border-color: #EAB308;
+            background: rgba(234, 88, 12, 0.1);
+            box-shadow: 0 0 20px rgba(234, 88, 12, 0.3);
+        }
+        .current-badge {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #EAB308;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 KwetuShop Favicon Collection</h1>
+        <div class="grid" id="faviconGrid">
+            <div class="loading">Loading favicons...</div>
+        </div>
+        <div class="current-badge" id="currentBadge">Current: Loading...</div>
+    </div>
+
+    <script>
+        const favicons = [
+            { name: "Original K", file: "favicon.svg", desc: "Simplified K with cart" },
+            { name: "K + Bag", file: "favicon-k-bag.svg", desc: "Letter K with shopping bag" },
+            { name: "Shield", file: "favicon-shield.svg", desc: "Shield with cart" },
+            { name: "K + Lightning", file: "favicon-k-lightning.svg", desc: "Fast delivery" },
+            { name: "Store Front", file: "favicon-store.svg", desc: "Modern store icon" },
+            { name: "Circle K", file: "favicon-circle-k.svg", desc: "Circular with cart" },
+            { name: "Geometric", file: "favicon-geometric.svg", desc: "Modern geometric K" },
+            { name: "Shopping Cart", file: "favicon-cart.svg", desc: "Simple cart icon" },
+            { name: "Hexagon", file: "favicon-hexagon.svg", desc: "Hexagon shape" },
+            { name: "Rounded Cart", file: "favicon-rounded-cart.svg", desc: "Rounded with cart" }
+        ];
+
+        // Get current favicon from page
+        const getCurrentFavicon = () => {
+            const links = document.querySelectorAll('link[rel*="icon"]');
+            for (let link of links) {
+                if (link.href && link.href.includes('favicon')) {
+                    const parts = link.href.split('/');
+                    return parts[parts.length - 1];
+                }
+            }
+            return 'favicon-shield.svg';
+        };
+
+        const currentFavicon = getCurrentFavicon();
+        
+        // Render favicon grid
+        const grid = document.getElementById('faviconGrid');
+        grid.innerHTML = favicons.map(fav => `
+            <div class="card ${currentFavicon === fav.file ? 'active' : ''}" onclick="switchFavicon('${fav.file}')">
+                <img src="/src/assets/${fav.file}" alt="${fav.name}" onerror="this.src='/src/assets/favicon-shield.svg'">
+                <h3>${fav.name}</h3>
+                <p>${fav.desc}</p>
+            </div>
+        `).join('');
+        
+        document.getElementById('currentBadge').innerHTML = `Current: ${favicons.find(f => f.file === currentFavicon)?.name || 'Shield'}`;
+        
+        function switchFavicon(file) {
+            // Update all favicon links
+            const links = document.querySelectorAll('link[rel*="icon"]');
+            links.forEach(link => {
+                if (link.rel === 'icon' || link.rel === 'shortcut icon' || link.rel === 'apple-touch-icon') {
+                    const newHref = `/src/assets/${file}`;
+                    link.href = newHref;
+                }
+            });
+            
+            // Update manifest
+            const manifestLink = document.querySelector('link[rel="manifest"]');
+            if (manifestLink) {
+                manifestLink.href = '/src/assets/site.webmanifest';
+            }
+            
+            // Update active state in UI
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('currentBadge').innerHTML = `Current: ${favicons.find(f => f.file === file)?.name || 'Updated'}`;
+            
+            // Show success message
+            const badge = document.getElementById('currentBadge');
+            badge.style.animation = 'pulse 0.5s ease-in-out';
+            setTimeout(() => {
+                badge.style.animation = '';
+            }, 500);
+            
+            // Log for debugging
+            console.log(`✅ Favicon switched to: ${file}`);
+        }
+        
+        // Handle image loading errors
+        document.querySelectorAll('img').forEach(img => {
+            img.onerror = function() {
+                this.src = '/src/assets/favicon-shield.svg';
+            };
+        });
+    </script>
+</body>
+</html>

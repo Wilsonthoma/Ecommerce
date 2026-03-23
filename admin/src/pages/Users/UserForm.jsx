@@ -40,8 +40,6 @@ const UserForm = () => {
       console.log('📦 User response:', response);
       
       const user = response.data || response;
-      
-      // Handle nested address structure from backend
       const address = user.address || {};
       
       setFormData({
@@ -71,7 +69,6 @@ const UserForm = () => {
       [name]: value
     }));
     
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -80,7 +77,6 @@ const UserForm = () => {
   const validateForm = () => {
     const validationErrors = validateUser(formData);
     
-    // Additional validation for new users
     if (!isEditMode && !formData.password) {
       validationErrors.password = 'Password is required';
     }
@@ -104,7 +100,6 @@ const UserForm = () => {
     setLoading(true);
 
     try {
-      // Prepare data for backend format
       const userData = {
         name: formData.name,
         email: formData.email,
@@ -119,33 +114,25 @@ const UserForm = () => {
         }
       };
 
-      // Only include password if provided (for new users or password change)
       if (formData.password) {
         userData.password = formData.password;
       }
 
-      let result;
       if (isEditMode) {
-        result = await userService.update(id, userData);
+        await userService.update(id, userData);
         toast.success('User updated successfully');
       } else {
-        result = await userService.create(userData);
+        await userService.create(userData);
         toast.success('User created successfully');
       }
       
-      console.log('✅ Operation successful:', result);
-      
-      // Navigate back to users list with refresh flag
-      navigate('/users', { 
-        state: { shouldRefresh: true } 
-      });
+      navigate('/users', { state: { shouldRefresh: true } });
       
     } catch (error) {
       console.error('❌ Operation failed:', error);
       const message = error.response?.data?.message || error.response?.data?.error || 'Operation failed';
       toast.error(message);
       
-      // Handle validation errors from server
       if (error.response?.data?.errors) {
         setErrors(error.response.data.errors);
       }
@@ -157,20 +144,20 @@ const UserForm = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <button
             onClick={() => navigate('/users')}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-2"
+            className="inline-flex items-center mb-2 text-sm text-gray-400 transition-colors hover:text-yellow-500"
             disabled={loading}
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Users
           </button>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-white">
             {isEditMode ? 'Edit User' : 'Create New User'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-400">
             {isEditMode ? 'Update user information' : 'Add a new user to the system'}
           </p>
         </div>
@@ -178,7 +165,7 @@ const UserForm = () => {
           <button
             type="button"
             onClick={() => navigate('/users')}
-            className="btn-secondary"
+            className="px-4 py-2 text-gray-300 transition-colors border border-gray-600 rounded-lg hover:bg-gray-700"
             disabled={loading}
           >
             Cancel
@@ -186,12 +173,12 @@ const UserForm = () => {
           <button
             type="submit"
             form="user-form"
-            className="btn-primary"
+            className="px-6 py-2 font-medium text-white transition-all rounded-lg shadow-lg bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:opacity-50"
             disabled={loading}
           >
             {loading ? (
               <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                <div className="w-4 h-4 mr-2 border-b-2 border-white rounded-full animate-spin"></div>
                 {isEditMode ? 'Updating...' : 'Creating...'}
               </div>
             ) : (
@@ -202,15 +189,15 @@ const UserForm = () => {
       </div>
 
       {/* Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main form */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+        <div className="space-y-6 lg:col-span-2">
+          <div className="p-6 bg-gray-800 border border-gray-700 rounded-xl">
+            <h2 className="mb-4 text-lg font-semibold text-white">Basic Information</h2>
             <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Full Name *
                   </label>
                   <input
@@ -219,17 +206,17 @@ const UserForm = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className={`input-field ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    className={`w-full px-4 py-2.5 bg-gray-700 border rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition ${errors.name ? 'border-red-500' : 'border-gray-600'}`}
                     placeholder="Enter full name"
                     disabled={loading}
                   />
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                    <p className="mt-1 text-sm text-red-400">{errors.name}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Email Address *
                   </label>
                   <input
@@ -238,19 +225,19 @@ const UserForm = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className={`input-field ${errors.email ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                    className={`w-full px-4 py-2.5 bg-gray-700 border rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition ${errors.email ? 'border-red-500' : 'border-gray-600'}`}
                     placeholder="user@example.com"
                     disabled={loading}
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    <p className="mt-1 text-sm text-red-400">{errors.email}</p>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Phone Number
                   </label>
                   <input
@@ -258,24 +245,24 @@ const UserForm = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className={`input-field ${errors.phone ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
-                    placeholder="+1234567890"
+                    className={`w-full px-4 py-2.5 bg-gray-700 border rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition ${errors.phone ? 'border-red-500' : 'border-gray-600'}`}
+                    placeholder="+254712345678"
                     disabled={loading}
                   />
                   {errors.phone && (
-                    <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+                    <p className="mt-1 text-sm text-red-400">{errors.phone}</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Role *
                   </label>
                   <select
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    className="input-field"
+                    className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
                     disabled={loading}
                   >
                     <option value={USER_ROLES.USER}>User</option>
@@ -286,9 +273,9 @@ const UserForm = () => {
               </div>
 
               {!isEditMode && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-300">
                       Password *
                     </label>
                     <input
@@ -297,12 +284,12 @@ const UserForm = () => {
                       required={!isEditMode}
                       value={formData.password}
                       onChange={handleChange}
-                      className={`input-field ${errors.password ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                      className={`w-full px-4 py-2.5 bg-gray-700 border rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition ${errors.password ? 'border-red-500' : 'border-gray-600'}`}
                       placeholder="••••••••"
                       disabled={loading}
                     />
                     {errors.password && (
-                      <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                      <p className="mt-1 text-sm text-red-400">{errors.password}</p>
                     )}
                     <p className="mt-1 text-xs text-gray-500">
                       At least 8 characters with uppercase, lowercase, and number
@@ -310,7 +297,7 @@ const UserForm = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block mb-2 text-sm font-medium text-gray-300">
                       Confirm Password *
                     </label>
                     <input
@@ -319,12 +306,12 @@ const UserForm = () => {
                       required={!isEditMode}
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className={`input-field ${errors.confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''}`}
+                      className={`w-full px-4 py-2.5 bg-gray-700 border rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition ${errors.confirmPassword ? 'border-red-500' : 'border-gray-600'}`}
                       placeholder="••••••••"
                       disabled={loading}
                     />
                     {errors.confirmPassword && (
-                      <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                      <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>
                     )}
                   </div>
                 </div>
@@ -332,17 +319,17 @@ const UserForm = () => {
 
               {isEditMode && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     New Password (leave blank to keep current)
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
                       <input
                         type="password"
                         name="password"
                         value={formData.password}
                         onChange={handleChange}
-                        className="input-field"
+                        className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
                         placeholder="••••••••"
                         disabled={loading}
                       />
@@ -353,12 +340,12 @@ const UserForm = () => {
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="input-field"
+                        className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
                         placeholder="Confirm new password"
                         disabled={loading}
                       />
                       {errors.confirmPassword && (
-                        <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                        <p className="mt-1 text-sm text-red-400">{errors.confirmPassword}</p>
                       )}
                     </div>
                   </div>
@@ -368,11 +355,11 @@ const UserForm = () => {
           </div>
 
           {/* Address Information */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h2>
+          <div className="p-6 bg-gray-800 border border-gray-700 rounded-xl">
+            <h2 className="mb-4 text-lg font-semibold text-white">Address Information</h2>
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block mb-2 text-sm font-medium text-gray-300">
                   Street Address
                 </label>
                 <input
@@ -380,15 +367,15 @@ const UserForm = () => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  className="input-field"
+                  className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
                   placeholder="123 Main St"
                   disabled={loading}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     City
                   </label>
                   <input
@@ -396,14 +383,14 @@ const UserForm = () => {
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
-                    className="input-field"
-                    placeholder="New York"
+                    className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
+                    placeholder="Nairobi"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Country
                   </label>
                   <input
@@ -411,14 +398,14 @@ const UserForm = () => {
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    className="input-field"
-                    placeholder="United States"
+                    className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
+                    placeholder="Kenya"
                     disabled={loading}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block mb-2 text-sm font-medium text-gray-300">
                     Postal Code
                   </label>
                   <input
@@ -426,8 +413,8 @@ const UserForm = () => {
                     name="postalCode"
                     value={formData.postalCode}
                     onChange={handleChange}
-                    className="input-field"
-                    placeholder="10001"
+                    className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
+                    placeholder="00100"
                     disabled={loading}
                   />
                 </div>
@@ -439,18 +426,18 @@ const UserForm = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status and Actions */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Status & Actions</h2>
+          <div className="p-6 bg-gray-800 border border-gray-700 rounded-xl">
+            <h2 className="mb-4 text-lg font-semibold text-white">Status & Actions</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block mb-2 text-sm font-medium text-gray-300">
                   Account Status
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="input-field"
+                  className="w-full px-4 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition"
                   disabled={loading}
                 >
                   <option value={USER_STATUS.ACTIVE}>Active</option>
@@ -459,16 +446,16 @@ const UserForm = () => {
                 </select>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-gray-700">
                 <button
                   type="submit"
                   form="user-form"
-                  className="w-full btn-primary"
+                  className="w-full px-4 py-2.5 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-medium rounded-lg hover:from-yellow-700 hover:to-orange-700 transition-all shadow-lg disabled:opacity-50"
                   disabled={loading}
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      <div className="w-4 h-4 mr-2 border-b-2 border-white rounded-full animate-spin"></div>
                       {isEditMode ? 'Updating...' : 'Creating...'}
                     </div>
                   ) : (
@@ -478,7 +465,7 @@ const UserForm = () => {
                 <button
                   type="button"
                   onClick={() => navigate('/users')}
-                  className="w-full btn-secondary mt-3"
+                  className="w-full px-4 py-2.5 border border-gray-600 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors mt-3"
                   disabled={loading}
                 >
                   Cancel
@@ -488,22 +475,22 @@ const UserForm = () => {
           </div>
 
           {/* Account Information */}
-          <div className="card">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h2>
+          <div className="p-6 bg-gray-800 border border-gray-700 rounded-xl">
+            <h2 className="mb-4 text-lg font-semibold text-white">Account Information</h2>
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-gray-500">User ID</p>
-                <p className="text-sm font-medium text-gray-900">{id || 'Will be generated'}</p>
+                <p className="text-sm font-medium text-white">{id || 'Will be generated'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Created</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-white">
                   {isEditMode ? 'Previously' : 'Upon creation'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Last Updated</p>
-                <p className="text-sm font-medium text-gray-900">
+                <p className="text-sm font-medium text-white">
                   {isEditMode ? 'Previously' : 'Upon creation'}
                 </p>
               </div>

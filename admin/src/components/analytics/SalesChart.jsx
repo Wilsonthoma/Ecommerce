@@ -1,4 +1,3 @@
-// src/components/analytics/SalesChart.jsx
 import React from 'react';
 import {
   Chart as ChartJS,
@@ -25,15 +24,14 @@ ChartJS.register(
 );
 
 const SalesChart = ({ data, loading }) => {
-  // Ensure data is always an array
   const chartData = Array.isArray(data) ? data : [];
   
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Loading chart...</p>
+          <div className="w-8 h-8 mx-auto mb-2 border-b-2 border-yellow-500 rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-400">Loading chart...</p>
         </div>
       </div>
     );
@@ -43,8 +41,8 @@ const SalesChart = ({ data, loading }) => {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="text-gray-400 mb-2">No sales data available</div>
-          <p className="text-sm text-gray-500">Sales data will appear here</p>
+          <div className="mb-2 text-gray-500">No sales data available</div>
+          <p className="text-sm text-gray-600">Sales data will appear here</p>
         </div>
       </div>
     );
@@ -60,19 +58,17 @@ const SalesChart = ({ data, loading }) => {
       tooltip: {
         mode: 'index',
         intersect: false,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#1f2937',
-        bodyColor: '#1f2937',
-        borderColor: '#e5e7eb',
+        backgroundColor: 'rgba(31, 41, 55, 0.95)',
+        titleColor: '#f3f4f6',
+        bodyColor: '#f3f4f6',
+        borderColor: '#374151',
         borderWidth: 1,
         padding: 12,
         boxPadding: 4,
         callbacks: {
           label: function(context) {
             let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
+            if (label) label += ': ';
             if (context.parsed.y !== null) {
               if (context.dataset.label === 'Sales') {
                 label += new Intl.NumberFormat('en-US', {
@@ -92,19 +88,20 @@ const SalesChart = ({ data, loading }) => {
     scales: {
       x: {
         grid: {
-          display: false
+          display: false,
+          color: '#374151'
         },
         ticks: {
-          color: '#6b7280'
+          color: '#9ca3af'
         }
       },
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(229, 231, 235, 0.5)'
+          color: '#374151'
         },
         ticks: {
-          color: '#6b7280',
+          color: '#9ca3af',
           callback: function(value) {
             if (value >= 1000) {
               return '$' + value / 1000 + 'k';
@@ -120,7 +117,7 @@ const SalesChart = ({ data, loading }) => {
           drawOnChartArea: false
         },
         ticks: {
-          color: '#6b7280'
+          color: '#9ca3af'
         }
       }
     },
@@ -130,7 +127,7 @@ const SalesChart = ({ data, loading }) => {
     }
   };
 
-  const chartConfig = {
+  const config = {
     labels: chartData.map(item => {
       const date = new Date(item.date || item.createdAt || Date.now());
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -139,8 +136,8 @@ const SalesChart = ({ data, loading }) => {
       {
         label: 'Sales',
         data: chartData.map(item => item.sales || item.amount || 0),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
         fill: true,
         tension: 0.4,
         yAxisID: 'y'
@@ -148,8 +145,8 @@ const SalesChart = ({ data, loading }) => {
       {
         label: 'Orders',
         data: chartData.map(item => item.orders || 1),
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderColor: '#ea580c',
+        backgroundColor: 'rgba(234, 88, 12, 0.1)',
         fill: true,
         tension: 0.4,
         yAxisID: 'y1'
@@ -157,7 +154,7 @@ const SalesChart = ({ data, loading }) => {
     ]
   };
 
-  return <Line options={options} data={chartConfig} />;
+  return <Line options={options} data={config} />;
 };
 
 export default SalesChart;
